@@ -24,6 +24,9 @@ export function PeoplePanel() {
     const name = String(data.get("name") ?? "").trim();
     if (!name) return;
     const override = String(data.get("interval") ?? "").trim();
+    if (override && !/^[1-9]\d*$/.test(override)) {
+      return setError("Days must be a whole number of at least 1.");
+    }
     const { error } = await supabase!.from("people").insert({
       name,
       tier: Number(data.get("tier")),
@@ -78,21 +81,26 @@ export function PeoplePanel() {
                 tier {p.tier}, every {p.interval_days ?? TIER_INTERVAL_DAYS[p.tier]} days
               </small>
             </span>
-            <button type="button" onClick={() => remove(p.id)}>
-              Remove
-            </button>
+            <span className="people-actions">
+              <button type="button" onClick={() => contacted(p.id)}>
+                Contacted
+              </button>
+              <button type="button" onClick={() => remove(p.id)}>
+                Remove
+              </button>
+            </span>
           </li>
         ))}
       </ul>
 
       <form className="people-add" onSubmit={add}>
-        <input name="name" placeholder="Name" required />
+        <input name="name" placeholder="Name" aria-label="Name" required />
         <select name="tier" defaultValue="2" aria-label="Tier">
           <option value="1">Tier 1</option>
           <option value="2">Tier 2</option>
           <option value="3">Tier 3</option>
         </select>
-        <input name="interval" type="number" min="1" step="1" placeholder="Days (default by tier)" />
+        <input name="interval" type="number" min="1" step="1" placeholder="Days (default by tier)" aria-label="Days between reach-outs" />
         <button type="submit">Add person</button>
       </form>
 

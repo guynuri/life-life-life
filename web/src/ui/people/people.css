@@ -18,6 +18,11 @@
   border-bottom: 1px solid var(--muted);
 }
 
+.people-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .people-list small {
   color: var(--muted);
 }

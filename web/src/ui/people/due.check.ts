@@ -1,4 +1,4 @@
-// Run: compile with tsc, then node. See the check step in the job log.
+// Not run on import. Compile with tsc, then call checks() from node.
 import { duePeople, dueAt, type Person } from "./due";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -17,7 +17,7 @@ function person(over: Partial<Person>): Person {
   };
 }
 
-function demo() {
+export function checks() {
   // Tier default: tier 1 = 7 days. Contacted 6 days ago → not due; 8 days ago → due.
   assert(duePeople([person({ last_contacted_at: daysAgo(6) })], NOW).length === 0, "6d not due");
   assert(duePeople([person({ last_contacted_at: daysAgo(8) })], NOW).length === 1, "8d due");
@@ -48,5 +48,3 @@ function demo() {
 function assert(cond: boolean, msg: string): asserts cond {
   if (!cond) throw new Error(`check failed: ${msg}`);
 }
-
-demo();
