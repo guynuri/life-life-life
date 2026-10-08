@@ -1,6 +1,6 @@
 # life-life-life
 
-Personal iPhone PWA that manages the things I forget: Google Calendar events, tasks that get scheduled automatically, people to stay in touch with, daily mood colors, and reminders. Single user (me). Full plan: `C:\Users\LIOZ\.claude\plans\first-of-all-linear-acorn.md`.
+Personal iPhone PWA that manages the things I forget: Google Calendar events, tasks that get scheduled automatically, people to stay in touch with, daily mood colors, and reminders. Single user (me). Feature requirements are in `SPEC.md`.
 
 ## Stack
 
@@ -32,11 +32,19 @@ Personal iPhone PWA that manages the things I forget: Google Calendar events, ta
 1. Create a Supabase project. Put its URL and publishable key (Project Settings, API Keys) in `web/src/lib/config.ts`. These are public values, safe to commit. Never put the secret or service-role key in the repo or the browser.
 2. Run `supabase/migrations/0001_init.sql` in the Supabase SQL editor (or with the Supabase CLI).
 3. In Supabase Auth, enable the Google provider. Give it a Google OAuth client ID and secret. Add the Supabase callback URL to the Google OAuth client's redirect URIs.
-4. Add the GitHub Pages URL (`https://<user>.github.io/life-life-life/`) to Supabase Auth's redirect URL allowlist.
+4. In Supabase Auth → URL Configuration, add `http://localhost:5173/**` and the GitHub Pages URL (`https://guynuri.github.io/life-life-life/**`) to Redirect URLs. Set Site URL to the Pages URL. Supabase falls back to the Site URL if the app's `redirect_to` isn't allowlisted, which causes 404s.
 5. In the repo settings, set Pages source to "GitHub Actions".
+
+Status: steps 1 and 3 are done, and Google sign-in works locally. Steps 4 and 5 still need to be confirmed for production.
+
+## Local development
+
+- `cd web && npm install && npm run dev`, then open http://localhost:5173/. Requires Node 20 or newer.
+- Build check before committing: `npm run build` in `web/`.
 
 ## Known constraints
 
+- Calendar access depends on the `calendar.events` scope being granted at sign-in. Confirm it under https://myaccount.google.com/permissions. The Google Calendar API must also be enabled in the Google Cloud project.
 - Google access tokens expire after about an hour. Refreshing them needs the Google client secret, so the refresh step belongs in an Edge Function. Confirm the Supabase `provider_refresh_token` flow in a spike before building on it.
 - Google OAuth apps in "Testing" status expire refresh tokens after 7 days.
 - Free Supabase projects pause after about 7 days of inactivity, which would stop reminders.
