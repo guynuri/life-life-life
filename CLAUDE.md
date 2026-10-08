@@ -14,7 +14,7 @@ Personal iPhone PWA that manages the things I forget: Google Calendar events, ta
 - `web/index.html`: Vite entry. `web/public/icon.svg`: app icon.
 - `web/vite.config.ts`: React plugin and PWA manifest/service worker config.
 - `web/src/main.tsx`: React root. `web/src/App.tsx`: sign-in with Google (requests calendar scope, offline access), sign-out, session display. `web/src/styles.css`: global styles.
-- `web/src/lib/config.ts`: public Supabase URL and anon key, plus the Calendar scope. Placeholders until filled in.
+- `web/src/lib/config.ts`: public Supabase URL and publishable key, plus the Calendar scope.
 - `web/src/lib/supabase.ts`: Supabase client; `configured` is false while config is still placeholders.
 - `supabase/migrations/0001_init.sql`: tables `tasks`, `people`, `moods`, `push_subscriptions`, all with RLS owner-only policies.
 
@@ -29,7 +29,7 @@ Personal iPhone PWA that manages the things I forget: Google Calendar events, ta
 
 ## Setup the owner must do
 
-1. Create a Supabase project. Put its URL and anon key in `web/src/lib/config.ts` (public values, safe to commit). Never put the service-role key in the repo or the browser.
+1. Create a Supabase project. Put its URL and publishable key (Project Settings, API Keys) in `web/src/lib/config.ts`. These are public values, safe to commit. Never put the secret or service-role key in the repo or the browser.
 2. Run `supabase/migrations/0001_init.sql` in the Supabase SQL editor (or with the Supabase CLI).
 3. In Supabase Auth, enable the Google provider. Give it a Google OAuth client ID and secret. Add the Supabase callback URL to the Google OAuth client's redirect URIs.
 4. Add the GitHub Pages URL (`https://<user>.github.io/life-life-life/`) to Supabase Auth's redirect URL allowlist.
