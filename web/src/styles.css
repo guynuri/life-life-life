@@ -50,3 +50,74 @@ button {
 .status {
   color: var(--muted);
 }
+
+.mood {
+  margin-top: 24px;
+}
+
+.mood-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mood-nav button {
+  padding: 4px 14px;
+}
+
+.mood-zooms {
+  display: flex;
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.mood-zooms button {
+  flex: 1;
+  padding: 8px 0;
+  background: var(--muted);
+}
+
+.mood-zooms button[aria-pressed="true"] {
+  background: var(--accent);
+}
+
+.mood-grid {
+  display: grid;
+  gap: 4px;
+}
+
+.mood-cell {
+  aspect-ratio: 1;
+  padding: 0;
+  font-size: 0.75rem;
+  color: var(--fg);
+  background: var(--accent);
+  opacity: 0.9;
+}
+
+.mood-cell.empty {
+  background: transparent;
+  border: 1px solid var(--muted);
+  color: var(--muted);
+}
+
+.mood-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.mood-picker button {
+  padding: 8px 12px;
+  background: var(--muted);
+}
+
+.swatch {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+}
