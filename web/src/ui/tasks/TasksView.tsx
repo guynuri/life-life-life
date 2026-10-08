@@ -7,7 +7,9 @@ type Row = {
   id: string;
   title: string;
   kind: TaskKind;
+  topic: string | null;
   duration_minutes: number | null;
+  spread_days: number | null;
   deadline: string | null;
   conditions: { place?: Place };
 };
@@ -27,7 +29,7 @@ export function TasksView() {
     try {
       const { data, error } = await supabase!
         .from("tasks")
-        .select("id, title, kind, duration_minutes, deadline, conditions")
+        .select("id, title, kind, topic, duration_minutes, spread_days, deadline, conditions")
         .order("deadline", { ascending: true, nullsFirst: false });
       if (error) setError(error.message);
       else setRows((data ?? []) as Row[]);
@@ -61,7 +63,9 @@ export function TasksView() {
             <div>
               <strong>{r.title}</strong>
               <div className="status">
+                {r.topic ? `${r.topic} · ` : ""}
                 {KIND_LABEL[r.kind]}
+                {r.spread_days ? ` · over ${r.spread_days} days` : ""}
                 {r.duration_minutes ? ` · ${r.duration_minutes} min` : ""}
                 {r.conditions.place ? ` · ${r.conditions.place}` : ""}
                 {r.deadline ? ` · due ${new Date(r.deadline).toLocaleString()}` : ""}
@@ -81,7 +85,9 @@ export function TasksView() {
 function AddTask({ onAdded, onError }: { onAdded: () => void; onError: (msg: string | null) => void }) {
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState<TaskKind>("scheduled_small");
+  const [topic, setTopic] = useState("");
   const [minutes, setMinutes] = useState("60");
+  const [spreadDays, setSpreadDays] = useState("");
   const [deadline, setDeadline] = useState("");
   const [place, setPlace] = useState<Place | "">("");
 
@@ -91,8 +97,10 @@ function AddTask({ onAdded, onError }: { onAdded: () => void; onError: (msg: str
     try {
       const { error } = await supabase!.from("tasks").insert({
         title: title.trim(),
+        topic: topic.trim() || null,
         kind,
         duration_minutes: Number(minutes),
+        spread_days: kind === "big" ? Number(spreadDays) : null,
         deadline: deadline ? new Date(deadline).toISOString() : null,
         conditions: place ? { place } : {},
       });
@@ -101,6 +109,8 @@ function AddTask({ onAdded, onError }: { onAdded: () => void; onError: (msg: str
         return;
       }
       setTitle("");
+      setTopic("");
+      setSpreadDays("");
       setDeadline("");
       onAdded();
     } catch (err) {
@@ -117,6 +127,7 @@ function AddTask({ onAdded, onError }: { onAdded: () => void; onError: (msg: str
         onChange={(e) => setTitle(e.target.value)}
         required
       />
+      <input aria-label="Topic" placeholder="Topic (optional)" value={topic} onChange={(e) => setTopic(e.target.value)} />
       <select aria-label="Kind" value={kind} onChange={(e) => setKind(e.target.value as TaskKind)}>
         {(Object.keys(KIND_LABEL) as TaskKind[]).map((k) => (
           <option key={k} value={k}>
@@ -124,6 +135,18 @@ function AddTask({ onAdded, onError }: { onAdded: () => void; onError: (msg: str
           </option>
         ))}
       </select>
+      {kind === "big" && (
+        <input
+          type="number"
+          min="1"
+          step="1"
+          aria-label="Spread over (days)"
+          placeholder="Spread over (days)"
+          value={spreadDays}
+          onChange={(e) => setSpreadDays(e.target.value)}
+          required
+        />
+      )}
       <input
         type="number"
         min="5"

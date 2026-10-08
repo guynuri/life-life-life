@@ -8,6 +8,8 @@ export type SchedTask = {
   kind: TaskKind;
   durationMinutes: number;
   deadline: Date | null;
+  // Big tasks only: sessions spread over this many days from now, capped by the deadline.
+  spreadDays?: number | null;
   place?: Place;
 };
 
@@ -16,6 +18,7 @@ export type Placement = { taskId: string; start: Date; end: Date };
 export type ScheduleResult = { placements: Placement[]; unplaced: string[] };
 
 const MIN = 60_000;
+const DAY_MS = 24 * 60 * MIN;
 const SESSION_MS = 60 * MIN; // ponytail: fixed 60-min big-task sessions, no per-task session length yet
 const STEP_MS = 15 * MIN; // candidate start grid; coarser than minute-exact, fine for a personal planner
 
@@ -33,17 +36,18 @@ export function schedule(tasks: SchedTask[], free: Slot[], now: Date): ScheduleR
 
   for (const task of [...tasks].sort(byDeadline)) {
     const lengths = task.kind === "big" ? splitSessions(task.durationMinutes * MIN) : [task.durationMinutes * MIN];
-    const deadline = task.deadline?.getTime() ?? null;
+    const end = windowEnd(task, nowMs);
     const usedDays = new Set<string>();
     let remaining = open;
     const found: MsRange[] = [];
     let ok = true;
 
     for (let i = 0; i < lengths.length; i++) {
-      // Big tasks: session i wants to start in the i-th slice of the window from now to the deadline.
-      // ponytail: no deadline = greedy from now, sessions cluster early; add a horizon once the spec says how far out to spread.
-      const target = deadline === null ? nowMs : nowMs + (i * (deadline - nowMs)) / lengths.length;
-      const start = findStart(remaining, task, lengths[i], Math.max(nowMs, target), usedDays);      if (start === null) {
+      // Session i aims at the i-th slice of the window. No window = greedy from now.
+      // ponytail: no window = sessions cluster at the front; big tasks always have spreadDays in the app.
+      const target = end === null ? nowMs : nowMs + (i * (end - nowMs)) / lengths.length;
+      const start = findStart(remaining, task, lengths[i], Math.max(nowMs, target), end ?? Infinity, usedDays);
+      if (start === null) {
         ok = false;
         break;
       }
@@ -66,6 +70,14 @@ export function schedule(tasks: SchedTask[], free: Slot[], now: Date): ScheduleR
   return { placements, unplaced };
 }
 
+// The latest time a task may be placed: the deadline, and for big tasks now + spreadDays. Null = no limit.
+function windowEnd(task: SchedTask, nowMs: number): number | null {
+  const ends: number[] = [];
+  if (task.deadline) ends.push(task.deadline.getTime());
+  if (task.kind === "big" && task.spreadDays) ends.push(nowMs + task.spreadDays * DAY_MS);
+  return ends.length ? Math.min(...ends) : null;
+}
+
 // Earliest deadline first; tasks without a deadline go last.
 function byDeadline(a: SchedTask, b: SchedTask): number {
   if (a.deadline === null) return b.deadline === null ? 0 : 1;
@@ -84,11 +96,11 @@ function findStart(
   task: SchedTask,
   len: number,
   earliest: number,
+  latest: number,
   usedDays: Set<string>,
 ): number | null {
-  const deadline = task.deadline?.getTime() ?? Infinity;
   for (const slot of open) {
-    const last = Math.min(slot.end, deadline);
+    const last = Math.min(slot.end, latest);
     for (let t = Math.ceil(Math.max(slot.start, earliest) / STEP_MS) * STEP_MS; t + len <= last; t += STEP_MS) {
       if (!usedDays.has(localDay(t)) && fits(t, len, task)) return t;
     }

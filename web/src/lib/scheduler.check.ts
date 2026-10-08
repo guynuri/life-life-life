@@ -69,6 +69,22 @@ export function runChecks() {
   const gap = spread.placements[1].start.getDate() - spread.placements[0].start.getDate();
   check(gap === 3, `big task sessions spread across the window (gap ${gap} days)`);
 
+  // Horizon: spreadDays 2 with no deadline spreads sessions over Oct 10 and Oct 11, and nothing lands after Oct 12 12:00.
+  const horizon = schedule(
+    [task("h", { kind: "big", durationMinutes: 120, spreadDays: 2 })],
+    [10, 11, 12, 13].map((d) => slot(at(d, d === 10 ? 12 : 6), at(d, 23))),
+    now,
+  );
+  check(horizon.placements.length === 2, "horizon big task makes 2 sessions");
+  check(horizon.placements[1].start.getDate() - horizon.placements[0].start.getDate() === 1, "horizon sessions one day apart");
+  check(horizon.placements.every((p) => p.end.getTime() <= at(12, 12).getTime()), "horizon respects spreadDays");
+  const beyond = schedule(
+    [task("beyond", { kind: "big", durationMinutes: 60, spreadDays: 1 })],
+    [slot(at(13, 6), at(13, 23))],
+    now,
+  );
+  check(beyond.unplaced.includes("beyond"), "no placement past the horizon");
+
   // Two tasks share one slot without overlapping.
   const two = schedule(
     [task("a"), task("b")],
