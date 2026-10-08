@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { GOOGLE_CALENDAR_SCOPE } from "./lib/config";
 import { configured, supabase } from "./lib/supabase";
+import { PeoplePanel } from "./ui/people/PeoplePanel";
 
 export function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -38,6 +39,7 @@ export function App() {
       <button type="button" onClick={() => supabase!.auth.signOut()}>
         Sign out
       </button>
+      <PeoplePanel />
     </Shell>
   );
 }
