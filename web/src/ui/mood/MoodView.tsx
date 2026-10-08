@@ -1,53 +1,84 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { blockColor, blocksFor, step, type Block, type Zoom } from "./moodMath";
 
-export const MOOD_COLORS = ["#e76f51", "#f4a261", "#e9c46a", "#8ab17d", "#5fa8d3", "#9b8ec4"];
+const MOOD_COLORS = [
+  { name: "coral", hex: "#e76f51" },
+  { name: "orange", hex: "#f4a261" },
+  { name: "yellow", hex: "#e9c46a" },
+  { name: "green", hex: "#8ab17d" },
+  { name: "blue", hex: "#5fa8d3" },
+  { name: "purple", hex: "#9b8ec4" },
+];
 
 const ZOOMS: Zoom[] = ["day", "week", "month", "year"];
 const COLUMNS: Record<Zoom, number> = { day: 7, week: 5, month: 4, year: 5 };
 // Tapping a block zooms into the level below it.
 const CHILD: Partial<Record<Zoom, Zoom>> = { year: "month", month: "week", week: "day" };
 
+// "2026-10-09" -> "Fri, Oct 9". Built from parts so it stays on the local date.
+function formatDay(key: string) {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" });
+}
+
 export function MoodView() {
   const [moods, setMoods] = useState<Map<string, string>>(new Map());
   const [zoom, setZoom] = useState<Zoom>("day");
   const [anchor, setAnchor] = useState(() => new Date());
-  const [picking, setPicking] = useState<string | null>(null);
+  const [pickedDay, setPickedDay] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Writes run one at a time so quick taps apply in order.
+  const writes = useRef<Promise<void>>(Promise.resolve());
 
-  function load() {
-    supabase!
-      .from("moods")
-      .select("day,color")
-      .then(({ data, error }) => {
-        if (error) setError(error.message);
-        else setMoods(new Map((data ?? []).map((r: { day: string; color: string }) => [r.day, r.color])));
-      });
+  async function load() {
+    const { data, error } = await supabase!.from("moods").select("day,color");
+    if (error) return setError(error.message);
+    setError(null);
+    setMoods(new Map((data ?? []).map((r: { day: string; color: string }) => [r.day, r.color])));
   }
 
-  useEffect(load, []);
-
-  // ponytail: reloads every mood row after each change; add a date range when rows grow.
-  async function paint(day: string, color: string | null) {
-    setPicking(null);
-    const res = color
-      ? await supabase!.from("moods").upsert({ day, color }, { onConflict: "user_id,day" })
-      : await supabase!.from("moods").delete().eq("day", day);
-    if (res.error) setError(res.error.message);
+  useEffect(() => {
     load();
+  }, []);
+
+  // ponytail: a failed write reloads every mood row; add a date range when rows grow.
+  function setMood(day: string, color: string | null) {
+    setPickedDay(null);
+    writes.current = writes.current.then(async () => {
+      try {
+        const res = color
+          ? await supabase!.from("moods").upsert({ day, color }, { onConflict: "user_id,day" })
+          : await supabase!.from("moods").delete().eq("day", day);
+        if (res.error) {
+          setError(res.error.message);
+          return load();
+        }
+        setError(null);
+        setMoods((m) => {
+          const next = new Map(m);
+          if (color) next.set(day, color);
+          else next.delete(day);
+          return next;
+        });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      }
+    });
   }
 
   function tap(b: Block) {
-    if (zoom === "day") return setPicking(b.key);
+    if (zoom === "day") return setPickedDay(b.key);
+    // A week can start in the previous month; open the current month's part of it.
+    const monthStart = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
     setZoom(CHILD[zoom]!);
-    setAnchor(b.start);
-    setPicking(null);
+    setAnchor(zoom === "week" && b.start < monthStart ? monthStart : b.start);
+    setPickedDay(null);
   }
 
   function changeZoom(z: Zoom) {
     setZoom(z);
-    setPicking(null);
+    setPickedDay(null);
   }
 
   const y = anchor.getFullYear();
@@ -90,13 +121,20 @@ export function MoodView() {
           );
         })}
       </div>
-      {picking && (
+      {pickedDay && (
         <div className="mood-picker">
-          <span>{picking}</span>
+          <span>{formatDay(pickedDay)}</span>
           {MOOD_COLORS.map((c) => (
-            <button key={c} type="button" className="swatch" style={{ background: c }} aria-label={c} onClick={() => paint(picking, c)} />
+            <button
+              key={c.hex}
+              type="button"
+              className="swatch"
+              style={{ background: c.hex }}
+              aria-label={c.name}
+              onClick={() => setMood(pickedDay, c.hex)}
+            />
           ))}
-          <button type="button" onClick={() => paint(picking, null)}>
+          <button type="button" onClick={() => setMood(pickedDay, null)}>
             Clear
           </button>
         </div>

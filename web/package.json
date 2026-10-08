@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "check": "tsc --outDir node_modules/.check --module commonjs --moduleResolution node --target es2020 --strict --skipLibCheck --types node --esModuleInterop src/ui/mood/moodMath.ts src/ui/mood/moodMath.check.ts && node node_modules/.check/moodMath.check.js",
     "preview": "vite preview"
   },
   "dependencies": {
