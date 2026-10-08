@@ -1,4 +1,5 @@
-// Self-check, not wired into the app. Bundle and run it with esbuild (see the job notes).
+// Self-check, not wired into the app. From web/:
+//   npx esbuild src/lib/scheduler.check.ts --bundle --platform=node --format=esm --outfile=check.mjs && node check.mjs
 import { isWorkTime } from "./conditions";
 import { schedule, type SchedTask, type Slot } from "./scheduler";
 
@@ -60,6 +61,13 @@ export function runChecks() {
   check(big.placements.length === 3, "big task makes 3 sessions");
   const days = new Set(big.placements.map((p) => p.start.getDate()));
   check(days.size === 3, "big task sessions are on distinct days");
+
+  // Spread: with a deadline, two sessions land three days apart (Oct 10 and Oct 13), not on back-to-back days.
+  const windowSlots = [10, 11, 12, 13, 14, 15].map((d) => slot(at(d, d === 10 ? 12 : 6), at(d, 23)));
+  const spread = schedule([task("long", { kind: "big", durationMinutes: 120, deadline: at(16, 0) })], windowSlots, now);
+  check(spread.placements.length === 2, "spread big task makes 2 sessions");
+  const gap = spread.placements[1].start.getDate() - spread.placements[0].start.getDate();
+  check(gap === 3, `big task sessions spread across the window (gap ${gap} days)`);
 
   // Two tasks share one slot without overlapping.
   const two = schedule(

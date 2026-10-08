@@ -23,12 +23,17 @@ export function TasksView() {
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
-    const { data, error } = await supabase!
-      .from("tasks")
-      .select("id, title, kind, duration_minutes, deadline, conditions")
-      .order("deadline", { ascending: true, nullsFirst: false });
-    if (error) setError(error.message);
-    else setRows((data ?? []) as Row[]);
+    setError(null);
+    try {
+      const { data, error } = await supabase!
+        .from("tasks")
+        .select("id, title, kind, duration_minutes, deadline, conditions")
+        .order("deadline", { ascending: true, nullsFirst: false });
+      if (error) setError(error.message);
+      else setRows((data ?? []) as Row[]);
+    } catch (e) {
+      setError(messageOf(e));
+    }
   }
 
   useEffect(() => {
@@ -36,9 +41,14 @@ export function TasksView() {
   }, []);
 
   async function remove(id: string) {
-    const { error } = await supabase!.from("tasks").delete().eq("id", id);
-    if (error) setError(error.message);
-    else await load();
+    setError(null);
+    try {
+      const { error } = await supabase!.from("tasks").delete().eq("id", id);
+      if (error) setError(error.message);
+      else await load();
+    } catch (e) {
+      setError(messageOf(e));
+    }
   }
 
   return (
@@ -68,7 +78,7 @@ export function TasksView() {
   );
 }
 
-function AddTask({ onAdded, onError }: { onAdded: () => void; onError: (msg: string) => void }) {
+function AddTask({ onAdded, onError }: { onAdded: () => void; onError: (msg: string | null) => void }) {
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState<TaskKind>("scheduled_small");
   const [minutes, setMinutes] = useState("60");
@@ -77,26 +87,37 @@ function AddTask({ onAdded, onError }: { onAdded: () => void; onError: (msg: str
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    const { error } = await supabase!.from("tasks").insert({
-      title: title.trim(),
-      kind,
-      duration_minutes: Number(minutes),
-      deadline: deadline ? new Date(deadline).toISOString() : null,
-      conditions: place ? { place } : {},
-    });
-    if (error) {
-      onError(error.message);
-      return;
+    onError(null);
+    try {
+      const { error } = await supabase!.from("tasks").insert({
+        title: title.trim(),
+        kind,
+        duration_minutes: Number(minutes),
+        deadline: deadline ? new Date(deadline).toISOString() : null,
+        conditions: place ? { place } : {},
+      });
+      if (error) {
+        onError(error.message);
+        return;
+      }
+      setTitle("");
+      setDeadline("");
+      onAdded();
+    } catch (err) {
+      onError(messageOf(err));
     }
-    setTitle("");
-    setDeadline("");
-    onAdded();
   }
 
   return (
     <form className="add-task" onSubmit={submit}>
-      <input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-      <select value={kind} onChange={(e) => setKind(e.target.value as TaskKind)}>
+      <input
+        aria-label="Title"
+        placeholder="Title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        required
+      />
+      <select aria-label="Kind" value={kind} onChange={(e) => setKind(e.target.value as TaskKind)}>
         {(Object.keys(KIND_LABEL) as TaskKind[]).map((k) => (
           <option key={k} value={k}>
             {KIND_LABEL[k]}
@@ -113,7 +134,7 @@ function AddTask({ onAdded, onError }: { onAdded: () => void; onError: (msg: str
         required
       />
       <input type="datetime-local" aria-label="Deadline" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
-      <select value={place} onChange={(e) => setPlace(e.target.value as Place | "")}>
+      <select aria-label="Place" value={place} onChange={(e) => setPlace(e.target.value as Place | "")}>
         <option value="">Any place</option>
         <option value="work">At work</option>
         <option value="home">At home</option>
@@ -121,4 +142,8 @@ function AddTask({ onAdded, onError }: { onAdded: () => void; onError: (msg: str
       <button type="submit">Add task</button>
     </form>
   );
+}
+
+function messageOf(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
 }
