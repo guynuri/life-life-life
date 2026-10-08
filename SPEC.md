@@ -37,6 +37,9 @@ Task model: title, kind (`big` = multi-session, `work_day` = any time on a work 
 - One color per day, set by tapping a day. This is optional, so days can be left blank.
 - Hourly logging is out of scope for v1.
 - Zoom-out view: show days, then weeks, months, and years. When a level has too many blocks for the screen, combine the blocks from the level below into one color for each parent block.
+  - Combining is a color average, not a majority. Several days combine into a week, weeks into a month, and months into a year. Each level averages the colors of the level directly below it.
+  - A week or month counts every day it touches, including days outside its own month. A week that straddles two months contributes to both.
+  - Week blocks are named by their number in the year: the first week is 1 and the last is 52. Open: a year that ends with a partial 53rd Sunday-start week (2026 does) currently shows 53; decide whether to fold it into 52.
 - Stored in the `moods` table, one row per user per day.
 
 ## 5. Reminders (`web/src/lib/push.ts`, `web/public/`, `supabase/functions/push/`)
