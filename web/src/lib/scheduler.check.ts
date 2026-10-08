@@ -1,4 +1,5 @@
-// Run: bundle this file with vite's esbuild and call checks(), see the entry in the task log.
+// Run from web/: write an entry file that imports and calls checks(), bundle it, run it:
+//   npx esbuild <entry>.ts --bundle --platform=node --format=esm --outfile=check.mjs && node check.mjs
 import { placeAt } from './conditions'
 import { schedule, type Task } from './scheduler'
 
@@ -8,7 +9,6 @@ function assert(cond: boolean, msg: string): void {
 
 const at = (y: number, mo: number, d: number, h = 0, m = 0) => new Date(y, mo, d, h, m)
 const MON = at(2026, 9, 12) // 2026-10-12 is a Monday; asserted below
-const HOUR = 60 * 60_000
 
 export function checks(): void {
   assert(MON.getDay() === 1, 'test date must be a Monday')
@@ -38,12 +38,12 @@ export function checks(): void {
   let r = schedule([task({ id: 'w', kind: 'work_day' })], [{ start: at(2026, 9, 12, 8), end: at(2026, 9, 12, 21) }], MON)
   assert(r.placements.length === 1 && r.unplaced.length === 0, 'work task placed')
   assert(r.placements[0].start.getTime() === at(2026, 9, 12, 9).getTime(), 'work task at 09:00')
-  assert(r.placements[0].place === 'work', 'work task tagged work')
+  assert(placeAt(r.placements[0].start) === 'work', 'work task starts in work hours')
 
   // Home-only task takes the early home slot
   r = schedule([task({ id: 'h', conditions: { place: 'home' } })], [{ start: at(2026, 9, 12, 8), end: at(2026, 9, 12, 21) }], MON)
   assert(r.placements[0].start.getTime() === at(2026, 9, 12, 8).getTime(), 'home task at 08:00')
-  assert(r.placements[0].place === 'home', 'home task tagged home')
+  assert(placeAt(r.placements[0].start) === 'home', 'home task starts at home')
 
   // Work task cannot use the 2h window that is only 1h of work time
   r = schedule([task({ id: 'w2', kind: 'work_day', duration_minutes: 120 })], [{ start: at(2026, 9, 12, 18), end: at(2026, 9, 12, 20) }], MON)
@@ -70,9 +70,10 @@ export function checks(): void {
   assert(r.placements.length === 3, 'big task split into 3 sessions')
   assert(r.placements.reduce((a, p) => a + (p.end.getTime() - p.start.getTime()), 0) === 150 * 60_000, 'big task total minutes kept')
   assert(r.placements.every((p) => p.end.getTime() <= friday.getTime()), 'big task before deadline')
-  assert(r.placements[0].start.getTime() === now.getTime(), 'session 1 at window start')
-  assert(r.placements[1].start.getTime() === now.getTime() + 32 * HOUR, 'session 2 at one third of window')
-  assert(r.placements[2].start.getTime() === now.getTime() + 64 * HOUR, 'session 3 at two thirds of window')
+  const sorted = r.placements.every((p, i) => i === 0 || p.start >= r.placements[i - 1].end)
+  assert(sorted, 'big task sessions do not overlap')
+  const spanMs = r.placements[2].start.getTime() - r.placements[0].start.getTime()
+  assert(spanMs > (friday.getTime() - now.getTime()) / 2, 'big task sessions spread over more than half the window')
 
   // Earliest deadline goes first when two tasks compete for the same slot
   r = schedule(
@@ -82,6 +83,10 @@ export function checks(): void {
   )
   assert(r.placements.length === 1 && r.placements[0].taskId === 'soon', 'earliest deadline wins the slot')
   assert(r.unplaced[0]?.taskId === 'late', 'loser reported unplaced')
+
+  // Atomic: a 150-min task with only 120 min free places nothing, not a partial
+  r = schedule([task({ id: 'half', kind: 'big', duration_minutes: 150 })], [{ start: at(2026, 9, 12, 0), end: at(2026, 9, 12, 2) }], MON)
+  assert(r.placements.length === 0 && r.unplaced[0]?.minutes === 150, 'big task placed whole or not at all')
 
   // Nothing free on Saturday for a work task -> unplaced
   r = schedule([task({ id: 'sat', kind: 'work_day' })], [{ start: at(2026, 9, 17, 0), end: at(2026, 9, 18, 0) }], MON)

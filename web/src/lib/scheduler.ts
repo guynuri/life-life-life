@@ -19,7 +19,6 @@ export interface Placement {
   taskId: string
   start: Date
   end: Date
-  place: Place
 }
 
 export interface ScheduleResult {
@@ -29,9 +28,12 @@ export interface ScheduleResult {
 
 // ponytail: big tasks are cut into fixed 60-minute sessions, add a per-task session length when that's not enough.
 const SESSION_MINUTES = 60
+// ponytail: a big task with no deadline spreads over 14 days, add a per-task horizon when the spec says how far out.
+const HORIZON_MS = 14 * 24 * 60 * 60_000
 const MIN = 60_000
 
-interface Span {
+// Epoch milliseconds, half-open: [start, end).
+interface MsRange {
   start: number
   end: number
 }
@@ -48,13 +50,14 @@ function staysIn(s: number, len: number, place: Place): boolean {
 }
 
 // Earliest start >= from where a run of `len` ms sits inside free time, ends by `until`, and is in `place` if one is set.
-function take(free: Span[], len: number, from: number, until: number, place?: Place): number | null {
+// Takes the run out of `free`.
+function reserve(free: MsRange[], len: number, from: number, until: number, place?: Place): number | null {
   for (let i = 0; i < free.length; i++) {
     const f = free[i]
     const limit = Math.min(f.end, until)
     for (let s = Math.max(f.start, from); s + len <= limit; s = nextHour(s)) {
       if (place && !staysIn(s, len, place)) continue
-      const rest: Span[] = []
+      const rest: MsRange[] = []
       if (s > f.start) rest.push({ start: f.start, end: s })
       if (f.end > s + len) rest.push({ start: s + len, end: f.end })
       free.splice(i, 1, ...rest)
@@ -64,17 +67,18 @@ function take(free: Span[], len: number, from: number, until: number, place?: Pl
   return null
 }
 
-function sessions(t: Task): number[] {
+function sessionMinutes(t: Task): number[] {
   if (t.kind !== 'big') return [t.duration_minutes]
   const out: number[] = []
   for (let left = t.duration_minutes; left > 0; left -= SESSION_MINUTES) out.push(Math.min(left, SESSION_MINUTES))
   return out
 }
 
-// Pure: no DOM, no network. Earliest deadline first; big tasks spread their sessions across the time before the deadline.
+// Pure: no DOM, no network. Earliest deadline first. A task is placed whole or not at all.
+// Big tasks spread their sessions across the time before the deadline.
 export function schedule(tasks: Task[], free: Interval[], now: Date): ScheduleResult {
   const start = now.getTime()
-  const spans: Span[] = free
+  let spans: MsRange[] = free
     .map((f) => ({ start: Math.max(f.start.getTime(), start), end: f.end.getTime() }))
     .filter((f) => f.end > f.start)
     .sort((a, b) => a.start - b.start)
@@ -86,16 +90,23 @@ export function schedule(tasks: Task[], free: Interval[], now: Date): ScheduleRe
   for (const task of order) {
     const place = task.kind === 'work_day' ? 'work' : task.conditions.place
     const until = byDeadline(task)
-    const lens = sessions(task)
-    for (let i = 0; i < lens.length; i++) {
+    const horizon = until === Infinity ? start + HORIZON_MS : until
+    const lens = sessionMinutes(task)
+    const trial = spans.slice()
+    const found: Placement[] = []
+    let failed = false
+    for (let i = 0; i < lens.length && !failed; i++) {
       const len = lens[i] * MIN
-      const from = until === Infinity ? start : start + (i * (until - start)) / lens.length
-      const s = take(spans, len, from, until, place) ?? take(spans, len, start, until, place)
-      if (s === null) {
-        unplaced.push({ taskId: task.id, minutes: lens.slice(i).reduce((a, b) => a + b, 0) })
-        break
-      }
-      placements.push({ taskId: task.id, start: new Date(s), end: new Date(s + len), place: placeAt(new Date(s)) })
+      const from = start + (i * (horizon - start)) / lens.length
+      const s = reserve(trial, len, from, until, place) ?? reserve(trial, len, start, until, place)
+      if (s === null) failed = true
+      else found.push({ taskId: task.id, start: new Date(s), end: new Date(s + len) })
+    }
+    if (failed) {
+      unplaced.push({ taskId: task.id, minutes: task.duration_minutes })
+    } else {
+      spans = trial
+      placements.push(...found)
     }
   }
   return { placements, unplaced }
