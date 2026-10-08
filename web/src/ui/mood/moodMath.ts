@@ -2,6 +2,9 @@ export type Zoom = "day" | "week" | "month" | "year";
 
 export type Block = { key: string; label: string; start: Date; end: Date };
 
+// The level one step finer than each zoom. Tapping a block zooms into it.
+export const CHILD_ZOOM: Partial<Record<Zoom, Zoom>> = { year: "month", month: "week", week: "day" };
+
 // Local calendar day as YYYY-MM-DD. Not toISOString, which is UTC and shifts the day.
 export function dayKey(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -10,6 +13,14 @@ export function dayKey(d: Date): string {
 }
 
 const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+
+// Week number in its year. Weeks are Sunday-start and judged by their Thursday, so the week
+// containing Jan 1 is 1. A year with a 53rd partial week (2026 ends with one) shows 53.
+export function weekNumber(start: Date): number {
+  const thu = addDays(start, 4);
+  const days = Math.round((thu.getTime() - new Date(thu.getFullYear(), 0, 1).getTime()) / 86400000);
+  return Math.floor(days / 7) + 1;
+}
 
 // Blocks for one zoom level around an anchor date.
 // day: every day of the anchor's month. week: Sunday-start weeks touching that month.
@@ -26,7 +37,7 @@ export function blocksFor(zoom: Zoom, anchor: Date): Block[] {
   } else if (zoom === "week") {
     const monthEnd = new Date(y, m + 1, 1);
     for (let start = addDays(new Date(y, m, 1), -new Date(y, m, 1).getDay()); start < monthEnd; start = addDays(start, 7)) {
-      blocks.push({ key: dayKey(start), label: String(start.getDate()), start, end: addDays(start, 7) });
+      blocks.push({ key: dayKey(start), label: String(weekNumber(start)), start, end: addDays(start, 7) });
     }
   } else if (zoom === "month") {
     for (let i = 0; i < 12; i++) {
@@ -41,31 +52,38 @@ export function blocksFor(zoom: Zoom, anchor: Date): Block[] {
   return blocks;
 }
 
-// Most common color; a tie goes to whichever color reached the top count first. Null if empty.
-export function summarize(colors: string[]): string | null {
-  const counts = new Map<string, number>();
-  let best: string | null = null;
-  let bestCount = 0;
-  for (const c of colors) {
-    const n = (counts.get(c) ?? 0) + 1;
-    counts.set(c, n);
-    if (n > bestCount) {
-      best = c;
-      bestCount = n;
-    }
+// The finer blocks that make up b: months of a year, weeks touching a month, days of a week.
+function childrenOf(b: Block, zoom: Zoom): Block[] {
+  if (zoom === "year") return blocksFor("month", b.start);
+  if (zoom === "month") return blocksFor("week", b.start);
+  const days: Block[] = [];
+  for (let d = b.start; d < b.end; d = addDays(d, 1)) {
+    days.push({ key: dayKey(d), label: String(d.getDate()), start: d, end: addDays(d, 1) });
   }
-  return best;
+  return days;
 }
 
-// One color for a block: summarize the colors of the set days inside it.
-// ponytail: scans every day per block per render; fine for one user, memoize if it lags.
-export function blockColor(b: Block, moods: Map<string, string>): string | null {
-  const colors: string[] = [];
-  for (let d = b.start; d < b.end; d = addDays(d, 1)) {
-    const c = moods.get(dayKey(d));
-    if (c) colors.push(c);
+// Channel-wise mean of #rrggbb colors. Null when there are none.
+export function averageColors(colors: string[]): string | null {
+  if (colors.length === 0) return null;
+  const sum = [0, 0, 0];
+  for (const c of colors) {
+    for (let i = 0; i < 3; i++) sum[i] += parseInt(c.slice(1 + 2 * i, 3 + 2 * i), 16);
   }
-  return summarize(colors);
+  return "#" + sum.map((s) => Math.round(s / colors.length).toString(16).padStart(2, "0")).join("");
+}
+
+// Color of a block at the given zoom level. A day is its own mood; any coarser block is the
+// average of its children's colors. Days outside the parent still count, so a week that
+// straddles two months contributes to both.
+// ponytail: recomputes every child on each render; memoize if a year view lags.
+export function colorOf(b: Block, zoom: Zoom, moods: Map<string, string>): string | null {
+  if (zoom === "day") return moods.get(b.key) ?? null;
+  const child = CHILD_ZOOM[zoom]!;
+  const colors = childrenOf(b, zoom)
+    .map((c) => colorOf(c, child, moods))
+    .filter((c): c is string => c !== null);
+  return averageColors(colors);
 }
 
 // Move the anchor one unit of the zoom: a month for day/week, a year for month, ten years for year.

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
-import { blockColor, blocksFor, step, type Block, type Zoom } from "./moodMath";
+import { CHILD_ZOOM, blocksFor, colorOf, step, type Block, type Zoom } from "./moodMath";
 
 const MOOD_COLORS = [
   { name: "coral", hex: "#e76f51" },
@@ -13,8 +13,6 @@ const MOOD_COLORS = [
 
 const ZOOMS: Zoom[] = ["day", "week", "month", "year"];
 const COLUMNS: Record<Zoom, number> = { day: 7, week: 5, month: 4, year: 5 };
-// Tapping a block zooms into the level below it.
-const CHILD: Partial<Record<Zoom, Zoom>> = { year: "month", month: "week", week: "day" };
 
 // "2026-10-09" -> "Fri, Oct 9". Built from parts so it stays on the local date.
 function formatDay(key: string) {
@@ -71,7 +69,7 @@ export function MoodView() {
     if (zoom === "day") return setPickedDay(b.key);
     // A week can start in the previous month; open the current month's part of it.
     const monthStart = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
-    setZoom(CHILD[zoom]!);
+    setZoom(CHILD_ZOOM[zoom]!);
     setAnchor(zoom === "week" && b.start < monthStart ? monthStart : b.start);
     setPickedDay(null);
   }
@@ -106,7 +104,7 @@ export function MoodView() {
       {error && <p className="status">{error}</p>}
       <div className="mood-grid" style={{ gridTemplateColumns: `repeat(${COLUMNS[zoom]}, 1fr)` }}>
         {blocksFor(zoom, anchor).map((b) => {
-          const color = blockColor(b, moods);
+          const color = colorOf(b, zoom, moods);
           return (
             <button
               key={b.key}
