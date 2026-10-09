@@ -37,10 +37,12 @@ test("dark mode, phone width", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ colorScheme: "dark" });
   await stubAll(page);
-  await page.goto("/#/today");
-  await expect(page.getByRole("tab", { name: "Today", exact: true })).toHaveAttribute("aria-selected", "true");
-  await page.waitForTimeout(700);
-  await page.screenshot({ path: `${SHOTS}/dark-390-today.png` });
+  for (const id of ["today", "tasks", "settings"]) {
+    await page.goto(`/#/${id}`);
+    await expect(page.getByRole("tab", { name: new RegExp(id, "i") })).toHaveAttribute("aria-selected", "true");
+    await page.waitForTimeout(700);
+    await page.screenshot({ path: `${SHOTS}/dark-390-${id}.png` });
+  }
 });
 
 test("the Tasks page has its styles applied", async ({ page }) => {

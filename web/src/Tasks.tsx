@@ -24,7 +24,8 @@ import { deleteTaskWithEvents, moveSessionWithEvent, placeTasks, replacePlacemen
 import { isGoogleAuthError } from "./lib/calendar";
 import type { Placement } from "./lib/scheduler";
 import { CalendarPlus, CalendarX, Check, Link2, Pencil, Plus, Trash2, X } from "lucide-react";
-import { Label } from "./ui";
+import { FieldLabel, Label, SelectField } from "./ui";
+import { CalendarClock, CalendarRange, Flag, MapPin, PenLine, Shapes, Tag, Timer } from "lucide-react";
 
 interface TasksProps {
   googleToken: string | null; // from the Supabase session; null when Google access is missing
@@ -255,12 +256,12 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
 
       <form className="task-form" aria-label="Add task" onSubmit={add}>
         <label>
-          Title
+          <FieldLabel icon={PenLine}>Title</FieldLabel>
           <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
         </label>
         <label>
-          Type
-          <select
+          <FieldLabel icon={Shapes}>Type</FieldLabel>
+          <SelectField
             value={form.type}
             onChange={(e) => setForm({ ...form, type: e.target.value as TaskType })}
           >
@@ -269,10 +270,10 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
                 {TYPE_LABELS[type]}
               </option>
             ))}
-          </select>
+          </SelectField>
         </label>
         <label>
-          Duration (minutes)
+          <FieldLabel icon={Timer}>Duration (minutes)</FieldLabel>
           <input
             inputMode="numeric"
             value={form.durationMin}
@@ -280,11 +281,11 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
           />
         </label>
         <label>
-          Topic (optional)
+          <FieldLabel icon={Tag}>Topic (optional)</FieldLabel>
           <input value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} />
         </label>
         <label>
-          Deadline (optional)
+          <FieldLabel icon={Flag}>Deadline (optional)</FieldLabel>
           <input
             type="datetime-local"
             value={form.deadline}
@@ -293,7 +294,7 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
         </label>
         {form.type === "big" && (
           <label>
-            Spread over (days)
+            <FieldLabel icon={CalendarRange}>Spread over (days)</FieldLabel>
             <input
               inputMode="numeric"
               value={form.spreadDays}
@@ -303,8 +304,8 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
         )}
         {form.type !== "work_day" && (
           <label>
-            Place
-            <select
+            <FieldLabel icon={MapPin}>Place</FieldLabel>
+            <SelectField
               value={form.conditionPlace}
               onChange={(e) => setForm({ ...form, conditionPlace: e.target.value as ConditionPlace })}
             >
@@ -313,7 +314,7 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
                   {PLACE_LABELS[place]}
                 </option>
               ))}
-            </select>
+            </SelectField>
           </label>
         )}
         <button type="submit"><Label icon={Plus}>Add task</Label></button>
@@ -334,11 +335,11 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
                 {editingId === task.id ? (
                   <div className="task-edit">
                     <label>
-                      Title
+                      <FieldLabel icon={PenLine}>Title</FieldLabel>
                       <input value={edit.title} onChange={(e) => setEdit({ ...edit, title: e.target.value })} />
                     </label>
                     <label>
-                      Duration (minutes)
+                      <FieldLabel icon={Timer}>Duration (minutes)</FieldLabel>
                       <input
                         inputMode="numeric"
                         value={edit.durationMin}
@@ -346,7 +347,7 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
                       />
                     </label>
                     <label>
-                      Deadline (optional)
+                      <FieldLabel icon={Flag}>Deadline (optional)</FieldLabel>
                       <input
                         type="datetime-local"
                         value={edit.deadline}
@@ -372,7 +373,7 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
                       movingId === session.id ? (
                         <div className="session-edit" key={session.id}>
                           <label>
-                            New start
+                            <FieldLabel icon={CalendarClock}>New start</FieldLabel>
                             <input
                               type="datetime-local"
                               value={moveValue}

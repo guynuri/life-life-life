@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { formatTimeOfDay, parseTimeOfDay } from "./lib/reminders";
 import { DEFAULT_CONTACT_REMINDER_MIN, getContactReminderMin, saveContactReminderMin } from "./lib/remindersData";
 import { deviceStatus, needsHomeScreen, turnOff, turnOn } from "./lib/push";
-import { Label } from "./ui";
+import { FieldLabel, Label } from "./ui";
 import { Bell, BellOff, Clock } from "lucide-react";
+import { BellRing } from "lucide-react";
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : typeof error === "object" && error !== null && "message" in error ? String(error.message) : String(error);
@@ -94,7 +95,7 @@ export function Reminders() {
 
       <div className="person-form">
         <label>
-          Contact reminder time
+          <FieldLabel icon={BellRing}>Contact reminder time</FieldLabel>
           <input type="time" value={draft} onChange={(e) => setDraft(e.target.value)} />
         </label>
         <button type="button" disabled={busy} onClick={saveTime}><Label icon={Clock}>Set time</Label></button>

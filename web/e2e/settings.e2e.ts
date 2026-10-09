@@ -24,3 +24,25 @@ test("Settings saves work hours and shows the result", async ({ page }) => {
   await expect(page.getByRole("alert")).toContainText("Lunch must fall inside work hours.");
   expect(saved).toHaveLength(1);
 });
+
+test("choosing Dark in Settings changes the page background, and the choice survives a reload", async ({ page }) => {
+  await signIn(page);
+  await fixClock(page);
+  await serveTable(page, "tasks", []);
+  await serveTable(page, "sessions", []);
+  await serveTable(page, "work_settings", []);
+  await serveGoogle(page, []);
+
+  await page.goto("/#/settings");
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(245, 235, 223)");
+  await page.getByRole("button", { name: "Dark", exact: true }).click();
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(29, 15, 46)");
+  await expect(page.getByRole("status")).toContainText("Theme set to Dark.");
+
+  await page.reload();
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(29, 15, 46)");
+  await expect(page.getByRole("button", { name: "Dark", exact: true })).toHaveAttribute("aria-pressed", "true");
+
+  await page.getByRole("button", { name: "Light", exact: true }).click();
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(245, 235, 223)");
+});

@@ -1,7 +1,8 @@
-/* Design tokens. Light is the default; dark applies when the system is in dark mode (SPEC Visual direction). */
+/* Design tokens. Light is the default. Dark applies when the system is dark, unless the reader chose Light; an explicit
+   choice in Settings sets data-theme on <html> and wins over the system (SPEC Visual direction). */
 :root {
-  color-scheme: light dark;
-  --bg: #fff6ee; /* warm apricot */
+  color-scheme: light;
+  --bg: #f5ebdf; /* warm, softened apricot (was #fff6ee, too white) */
   --surface: #f1eafb; /* light lavender */
   --ink: #22103a; /* plum ink: body text */
   --muted: #5d4a73;
@@ -18,7 +19,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --bg: #1d0f2e;
     --surface: #2a1a40;
     --ink: #f7f0ff;
@@ -31,6 +33,21 @@
     --line: rgba(196, 166, 247, 0.24);
     --shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
   }
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #1d0f2e;
+    --surface: #2a1a40;
+    --ink: #f7f0ff;
+    --muted: #cbbfe0;
+    --orange: #ff9a4d;
+    --on-orange: #1d0f2e;
+    --purple: #c4a6f7;
+    --error: #ff8a80;
+    --success: #7fe0a6;
+    --line: rgba(196, 166, 247, 0.24);
+    --shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 
 * {
@@ -148,7 +165,8 @@ p {
   margin: 8px 0 14px;
 }
 
-.segmented button[aria-selected="false"] {
+.segmented button[aria-selected="false"],
+.segmented button[aria-pressed="false"] {
   background: transparent;
   color: var(--purple);
   box-shadow: inset 0 0 0 1.5px var(--purple);
@@ -233,6 +251,46 @@ label {
   gap: 6px;
   font-weight: 600;
   font-size: 0.9rem;
+}
+
+.field-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+}
+
+/* Selects: the native list stays, the box and arrow are ours. */
+.select-wrap {
+  position: relative;
+  width: 100%;
+}
+
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 42px;
+  cursor: pointer;
+}
+
+.select-chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--purple);
+  pointer-events: none;
+}
+
+/* Date and time fields: same box as the text inputs. The native picker is kept; color-scheme follows the theme. */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
 }
 
 .form-grid {

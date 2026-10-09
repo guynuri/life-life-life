@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { dueNow, everyone, intervalDaysFor, type Person, type Tier, validatePersonInput } from "./lib/people";
 import { addPerson, listPeople, markContacted, removePerson, updatePerson } from "./lib/peopleStore";
 import { Check, ListTodo, Pencil, Trash2, UserCheck, UserMinus, UserPlus, Users, X } from "lucide-react";
-import { Label } from "./ui";
+import { FieldLabel, Label, SelectField } from "./ui";
+import { Layers, Repeat, User } from "lucide-react";
 
 type View = "due" | "all";
 type Editing = { mode: "new" } | { mode: "edit"; person: Person } | null;
@@ -154,19 +155,19 @@ function PersonForm({
       <h3>{person ? "Edit person" : "Add person"}</h3>
       {formError && <p className="error">{formError}</p>}
       <label>
-        Name
+        <FieldLabel icon={User}>Name</FieldLabel>
         <input value={name} onChange={(e) => setName(e.target.value)} />
       </label>
       <label>
-        Tier
-        <select value={tier} onChange={(e) => setTier(Number(e.target.value) as Tier)}>
+        <FieldLabel icon={Layers}>Tier</FieldLabel>
+        <SelectField value={tier} onChange={(e) => setTier(Number(e.target.value) as Tier)}>
           <option value={1}>1 (every 7 days)</option>
           <option value={2}>2 (every 14 days)</option>
           <option value={3}>3 (every 30 days)</option>
-        </select>
+        </SelectField>
       </label>
       <label>
-        Interval override in days (optional)
+        <FieldLabel icon={Repeat}>Interval override in days (optional)</FieldLabel>
         <input inputMode="numeric" value={intervalText} onChange={(e) => setIntervalText(e.target.value)} />
       </label>
       <div className="row-actions">
