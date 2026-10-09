@@ -168,6 +168,7 @@ Where this spec differs from the original spec, the change is listed under "Chan
 - [Decided] The combined color is the average of the colors of the blocks directly below. Each level averages the level below.
 - [Assumed] Blocks with no colored children have no color.
 - [Decided] A week that touches two months counts toward both months.
+- [Decided] A week's color is the average of all seven of its days, including days outside the month being viewed.
 - [Decided] Colors are averaged channel by channel in RGB for now. A perceptual color space may come later.
 - Each day's color is stored and survives reloads. [Decided]
 

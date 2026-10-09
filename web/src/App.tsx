@@ -4,6 +4,7 @@ import { GOOGLE_CALENDAR_SCOPE } from "./lib/config";
 import { configured, supabase } from "./lib/supabase";
 import { Tasks } from "./Tasks";
 import { People } from "./People";
+import { MoodScreen } from "./MoodScreen";
 
 export function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -42,6 +43,7 @@ export function App() {
       </button>
       <Tasks googleToken={session.provider_token ?? null} onReconnect={signIn} />
       <People />
+      <MoodScreen />
     </Shell>
   );
 }
