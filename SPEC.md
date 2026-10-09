@@ -16,7 +16,7 @@ Where this spec differs from the original spec, the change is listed under "Chan
 - Scheduling is automatic, but nothing happens silently. Every placement is announced, and I can move or undo it. [Decided]
 - Edits I make in Google Calendar win over the app for times. The app only changes events it created itself. [Decided]
 - A failed save or a failed read is shown to me. It is never swallowed, and the screen shows what is actually stored, not what I tried to save. [Assumed]
-- All times are the device's local time. [Decided]
+- All times are the device's local time. Sessions keep their wall-clock time across daylight-saving changes. [Decided]
 
 ## 1. Google Calendar
 
@@ -25,12 +25,13 @@ Where this spec differs from the original spec, the change is listed under "Chan
 - Create calendar events for scheduled tasks. Each app-created event links back to its task. [Decided]
   - One event per session, titled with the task's title. [Assumed]
 - Sync on each refresh: [Decided]
-  - If an app-created event was moved, the task's scheduled time moves to match.
+  - If an app-created event was moved, the task's scheduled time moves to match. The move is accepted even if the new time breaks the task's Condition (for example, a Work task moved to 21:00). [Decided]
   - If an app-created event was deleted, the task becomes unscheduled.
   - Other edits to events are ignored.
 - After I delete an app-created event, its task stays unscheduled and is held out of automatic placement until I reschedule it. [Decided]
 - Unscheduling or deleting a task updates Google Calendar: its calendar events are removed. [Decided]
 - Sign-in requests calendar access. [Decided]
+- The Google OAuth app is published (out of "Testing"), so access does not lapse after 7 days. [Decided]
 - If Google access can no longer be refreshed, the app shows a "Reconnect Google" prompt. It does not fail silently. [Decided]
 
 ## 2. Tasks and scheduling
@@ -52,7 +53,7 @@ Where this spec differs from the original spec, the change is listed under "Chan
 
 - [Decided] The spread window runs from now until the earlier of the deadline and now plus "Spread over (days)". A deadline earlier than the spread window wins.
 - [Assumed] The sessions are spaced evenly across the spread window.
-- [Decided] Sessions are 60 minutes by default. If the task does not fit that way, each session is made longer, on average, so the task fits.
+- [Decided] Sessions are 60 minutes by default. If the task does not fit that way, each session is made longer, on average, so the task fits. There is no maximum session length. [Decided]
 - [Assumed] No two sessions of the same big task fall on the same day.
 - [Assumed] If the task still cannot fit, none of its sessions are placed, and the task shows as unplaced.
 - [Assumed] If the spread window has fewer days than sessions, the sessions are made longer so that the task fits in the days available.
@@ -70,7 +71,9 @@ Where this spec differs from the original spec, the change is listed under "Chan
 - Friday and Saturday are days off. [Decided]
 - Any time outside work hours counts as home. [Decided]
 - **Work day** tasks have no time slot, so the lunch window does not apply to them. The scheduler assigns each one to a work day, and their durations add up within that day, so a day can hold several tasks and still have time left. [Decided]
-  - Each day leaves about 2 hours of work time open, if needed. [Decided]
+  - Each work day keeps about 2 hours of work time open as a hard reserve (assumed to be the last 2 hours before 19:00). Work day tasks never fill it. [Decided, reserve window Assumed]
+  - If a Work day task does not fit on its assigned day, it moves to another day in its window, before its deadline if one is set. [Decided]
+  - If it still cannot fit by its deadline, it is unplaced and I am notified (section 5). [Decided]
 - The **Place** condition limits where a task goes. [Assumed]
   - Work: every minute of the placement falls in work hours.
   - Home: every minute falls outside work hours.
@@ -134,7 +137,7 @@ Where this spec differs from the original spec, the change is listed under "Chan
 
 ### 4.1 Setting a day
 
-- One color per day. Tap a day to choose a color, or clear it. [Assumed] Days can be left blank. [Decided] Blank days are never counted as a color. [Assumed]
+- One color per day. Tap a day to choose a color, or clear it. [Assumed] Days can be left blank. [Decided] Blank days are never counted as a color. [Decided]
 - The palette is six pastel colors: coral, orange, yellow, green, blue, purple. [Decided]
 - The day picker shows the date in a readable form, for example "Friday, October 9". [Assumed]
 - A color is shown as saved only after it is stored. If the save fails, the day shows its previous stored state and the error stays visible until my next successful save. [Assumed]
@@ -165,11 +168,13 @@ Where this spec differs from the original spec, the change is listed under "Chan
 
 - [Decided] Reminders arrive as phone notifications, even when the app is closed.
 - [Decided] Notifications work only after the app is added to the Home Screen (iOS 16.4 or newer). The app explains this when notifications are turned on.
+- [Decided] Reminders keep working while the app is unused. The backend is kept awake, so it does not pause from inactivity.
 - [Assumed] Each device that turns on notifications is registered separately.
 - [Decided] Reminders cover:
   - [Decided] A task session, 10 minutes before it starts.
   - [Decided] New placements are announced. [Assumed] They are batched as one message per scheduler run.
-  - [Decided] A person who becomes due, at 19:00 on the due day.
+  - [Decided] A person who becomes due, at the contact reminder time on the due day. The default is 19:00, and I can change it in settings. [Decided]
+  - [Decided] Tasks that become unplaced because they cannot fit by their deadline. They are batched into the same message as new placements, once per scheduler run in which they newly become unplaced.
 
 ## 6. Today view
 
