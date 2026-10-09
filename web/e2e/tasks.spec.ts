@@ -130,3 +130,25 @@ test("Refresh places new tasks and reloads the stored list", async ({ page }) =>
   await expect(page.getByRole("listitem").filter({ hasText: "Pay rent" })).toContainText("Placed");
   expect(sessions).toHaveLength(1);
 });
+
+test("each tab has a URL; back and reload keep the open tab", async ({ page }) => {
+  await signIn(page);
+  await fixClock(page);
+  await serveTable(page, "tasks", []);
+  await serveTable(page, "sessions", []);
+  await serveTable(page, "work_settings", []);
+  await serveGoogle(page, []);
+
+  await page.goto("/#/tasks");
+  const tasksTab = page.getByRole("tab", { name: "Tasks", exact: true });
+  await expect(tasksTab).toHaveAttribute("aria-selected", "true");
+
+  await page.getByRole("tab", { name: "People", exact: true }).click();
+  await expect(page).toHaveURL(/#\/people$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/#\/tasks$/);
+  await expect(tasksTab).toHaveAttribute("aria-selected", "true");
+
+  await page.reload();
+  await expect(tasksTab).toHaveAttribute("aria-selected", "true");
+});

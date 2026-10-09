@@ -8,6 +8,7 @@ import { MoodScreen } from "./MoodScreen";
 import { Reminders } from "./Reminders";
 import { placeTasks } from "./lib/calendarSync";
 import { placementQueue } from "./lib/serialQueue";
+import { formatPage, parsePage, type PageId } from "./lib/route";
 
 // [Assumed] Four pages behind a tab bar, all in one page with no router. Each page stays mounted and is hidden
 // when another tab is open, so its state and effects keep running.
@@ -17,15 +18,22 @@ const pages = [
   { id: "people", label: "People" },
   { id: "mood", label: "Mood" },
 ] as const;
-type PageId = (typeof pages)[number]["id"];
 
 export function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(!configured);
-  const [page, setPage] = useState<PageId>("today");
+  // The open tab lives only in the URL hash, so back, forward, and reload keep it (SPEC Pages).
+  const [hash, setHash] = useState(location.hash);
+  const page: PageId = parsePage(hash);
   const [refreshTick, setRefreshTick] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onHash = () => setHash(location.hash);
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
   useEffect(() => {
     if (!supabase) return;
@@ -81,7 +89,9 @@ export function App() {
       {refreshError && <p className="error" role="alert">{refreshError}</p>}
       <nav className="tabs" role="tablist" aria-label="Pages">
         {pages.map((p) => (
-          <button key={p.id} type="button" role="tab" aria-selected={page === p.id} onClick={() => setPage(p.id)}>
+          <button key={p.id} type="button" role="tab" aria-selected={page === p.id} onClick={() => {
+              location.hash = formatPage(p.id);
+            }}>
             {p.label}
           </button>
         ))}
