@@ -39,7 +39,7 @@ export function App() {
       <button type="button" onClick={() => supabase!.auth.signOut()}>
         Sign out
       </button>
-      <Tasks />
+      <Tasks googleToken={session.provider_token ?? null} onReconnect={signIn} />
     </Shell>
   );
 }

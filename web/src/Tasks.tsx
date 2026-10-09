@@ -12,20 +12,23 @@ import {
   type TaskType,
 } from "./lib/tasks";
 import {
-  deleteTask,
   getWorkHours,
-  holdTask,
-  insertSessions,
   insertTask,
   listSessions,
   listTasks,
-  moveSession,
   releaseHold,
   saveWorkHours,
   updateTaskEdit,
   type StoredSession,
 } from "./lib/tasksData";
-import { schedule, type Placement, type WorkHours } from "./lib/scheduler";
+import { deleteTaskWithEvents, moveSessionWithEvent, placeTasks, unscheduleTask } from "./lib/calendarSync";
+import { isGoogleAuthError } from "./lib/calendar";
+import type { Placement, WorkHours } from "./lib/scheduler";
+
+interface TasksProps {
+  googleToken: string | null; // from the Supabase session; null when Google access is missing
+  onReconnect: () => void;
+}
 
 const TYPE_LABELS: Record<TaskType, string> = {
   big: "Big",
@@ -85,10 +88,11 @@ function describeSession(task: Task, session: StoredSession): string {
   return `${day} to ${new Date(session.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
 
-export function Tasks() {
+export function Tasks({ googleToken, onReconnect }: TasksProps) {
   // Holds what was last read from the database. Writes never change it locally; the data is reloaded after each save.
   const [data, setData] = useState<Loaded | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
+  const [reconnect, setReconnect] = useState(false);
   const [notices, setNotices] = useState<string[]>([]);
   const [form, setForm] = useState<TaskInput>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -99,21 +103,25 @@ export function Tasks() {
   // Refreshes run one at a time, so two runs never both place the same task (React StrictMode runs effects twice).
   const queue = useRef<Promise<void>>(Promise.resolve());
 
-  // Places unplaced, unheld tasks (SPEC 2.3), then shows what is stored. Never throws.
+  // Shows a failed action. Google auth failures also offer Reconnect. Never throws.
+  function fail(message: string, error: unknown) {
+    setErrors([`${message}: ${messageOf(error)}`]);
+    setReconnect(isGoogleAuthError(error));
+  }
+
+  // Syncs with Google, places unplaced, unheld tasks (SPEC 2.3), then shows what is stored. Never throws.
   async function placeAndLoad() {
     let placed: Placement[] = [];
-    let titles = new Map<string, string>();
     try {
-      const loaded = await loadAll();
-      titles = new Map(loaded.tasks.map((task) => [task.id, task.title]));
-      placed = schedule(loaded.tasks, loaded.sessions, Date.now(), loaded.work);
-      if (placed.length > 0) await insertSessions(placed);
+      placed = await placeTasks(googleToken, Date.now());
+      setReconnect(false);
     } catch (error) {
-      placed = [];
-      setErrors([`Could not place tasks: ${messageOf(error)}`]);
+      fail("Could not place tasks", error);
     }
     try {
-      setData(await loadAll());
+      const loaded = await loadAll();
+      setData(loaded);
+      const titles = new Map(loaded.tasks.map((task) => [task.id, task.title]));
       // Announce new placements (SPEC 2.5). A run that places nothing keeps the last announcement visible.
       if (placed.length > 0) {
         setNotices(
@@ -174,13 +182,12 @@ export function Tasks() {
     await refresh();
   }
 
+  // Google is called before the database, so a failure here leaves the stored state on screen unchanged.
   async function unschedule(id: string) {
-    // Phase 3 hook: remove the task's calendar events from Google Calendar here, before the database change.
     try {
-      await holdTask(id);
+      await unscheduleTask(googleToken, id);
     } catch (error) {
-      setErrors([`Could not unschedule task: ${messageOf(error)}`]);
-      return refresh(); // the hold may have been saved; show what is stored
+      return fail("Could not unschedule task", error);
     }
     setErrors([]);
     await refresh();
@@ -205,9 +212,9 @@ export function Tasks() {
     const start = Date.parse(moveValue);
     if (Number.isNaN(start)) return setErrors(["Choose a valid date and time for the session."]);
     try {
-      await moveSession(session.id, start, start + (session.end - session.start));
+      await moveSessionWithEvent(googleToken, session, start, start + (session.end - session.start));
     } catch (error) {
-      return setErrors([`Could not move session: ${messageOf(error)}`]);
+      return fail("Could not move session", error);
     }
     setMovingId(null);
     setErrors([]);
@@ -215,11 +222,10 @@ export function Tasks() {
   }
 
   async function remove(id: string) {
-    // Phase 3 hook: remove the task's calendar events from Google Calendar here, before the database change.
     try {
-      await deleteTask(id);
+      await deleteTaskWithEvents(googleToken, id);
     } catch (error) {
-      return setErrors([`Could not delete task: ${messageOf(error)}`]);
+      return fail("Could not delete task", error);
     }
     setConfirmingId(null);
     setErrors([]);
@@ -252,6 +258,11 @@ export function Tasks() {
           {message}
         </p>
       ))}
+      {reconnect && (
+        <p className="reconnect">
+          Google Calendar access is missing or has expired. <button type="button" onClick={onReconnect}>Reconnect Google</button>
+        </p>
+      )}
       {notices.map((message) => (
         <p role="status" className="notice" key={message}>
           {message}

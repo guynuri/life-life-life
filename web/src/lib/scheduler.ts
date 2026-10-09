@@ -20,15 +20,22 @@ const SESSION_MIN = 60; // [Decided] default session length
 const HORIZON_DAYS = 14; // [Assumed] window for tasks with no deadline (short fixed and Work day)
 const STEP_MS = 15 * 60_000; // candidate starts and the work/home check use a 15-minute grid
 
-interface Interval {
+export interface Interval {
   start: number;
   end: number;
 }
 
 // Places every task that has no sessions and is not held. Returns only new placements; a task with none is unplaced.
-export function schedule(tasks: readonly Task[], sessions: readonly Session[], now: number, work: WorkHours): Placement[] {
+// `external` is busy time from outside the app (Google Calendar events); none by default.
+export function schedule(
+  tasks: readonly Task[],
+  sessions: readonly Session[],
+  now: number,
+  work: WorkHours,
+  external: readonly Interval[] = [],
+): Placement[] {
   const typeOf = new Map(tasks.map((task) => [task.id, task.type]));
-  const busy: Interval[] = [];
+  const busy: Interval[] = [...external];
   const dayUse = new Map<string, number>(); // Work day minutes already assigned, per local day
   for (const session of sessions) {
     if (typeOf.get(session.taskId) === "work_day") {

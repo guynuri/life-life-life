@@ -130,3 +130,12 @@ describe("work day tasks", () => {
     expect(run([task({ id: "a", type: "work_day", durationMin: 60, deadline })])).toEqual([]);
   });
 });
+
+describe("external busy time", () => {
+  it("keeps placements out of busy time from outside the app", () => {
+    // Monday 08:00 to 09:00 is busy in Google Calendar; a 60-minute task then starts at 09:00 or later.
+    const external = [{ start: at(MON, 8), end: at(MON, 9) }];
+    const [placed] = schedule([task({ durationMin: 60 })], [], now, DEFAULT_WORK_HOURS, external);
+    expect(placed?.start).toBeGreaterThanOrEqual(at(MON, 9));
+  });
+});
