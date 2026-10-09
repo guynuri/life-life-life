@@ -3,6 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import { GOOGLE_CALENDAR_SCOPE } from "./lib/config";
 import { configured, supabase } from "./lib/supabase";
 import { Tasks } from "./Tasks";
+import { People } from "./People";
 
 export function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -40,6 +41,7 @@ export function App() {
         Sign out
       </button>
       <Tasks googleToken={session.provider_token ?? null} onReconnect={signIn} />
+      <People />
     </Shell>
   );
 }
