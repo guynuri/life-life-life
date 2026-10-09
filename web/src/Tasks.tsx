@@ -28,6 +28,7 @@ import type { Placement, WorkHours } from "./lib/scheduler";
 interface TasksProps {
   googleToken: string | null; // from the Supabase session; null when Google access is missing
   onReconnect: () => void;
+  refreshTick: number; // bumped by the shell's Refresh, after it has placed (SPEC Pages)
 }
 
 const TYPE_LABELS: Record<TaskType, string> = {
@@ -88,7 +89,7 @@ function describeSession(task: Task, session: StoredSession): string {
   return `${day} to ${new Date(session.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
 
-export function Tasks({ googleToken, onReconnect }: TasksProps) {
+export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
   // Holds what was last read from the database. Writes never change it locally; the data is reloaded after each save.
   const [data, setData] = useState<Loaded | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -118,6 +119,11 @@ export function Tasks({ googleToken, onReconnect }: TasksProps) {
     } catch (error) {
       fail("Could not place tasks", error);
     }
+    await loadStored(placed);
+  }
+
+  // Shows what is stored (SPEC 2.5). Announces new placements from this run only.
+  async function loadStored(placed: Placement[] = []) {
     try {
       const loaded = await loadAll();
       setData(loaded);
@@ -141,9 +147,11 @@ export function Tasks({ googleToken, onReconnect }: TasksProps) {
     return queue.current;
   }
 
+  // First mount places and loads. A later tick comes from the shell after it has placed, so this page only reloads.
   useEffect(() => {
-    void refresh();
-  }, []);
+    if (refreshTick === 0) void refresh();
+    else queue.current = queue.current.then(() => loadStored());
+  }, [refreshTick]);
 
   async function add(event: FormEvent) {
     event.preventDefault();

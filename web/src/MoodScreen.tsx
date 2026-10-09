@@ -21,7 +21,7 @@ const rgbCss = (c: Rgb) => `rgb(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math
 // Supabase errors are plain objects, not Error instances, so read .message by shape.
 const message = (e: unknown) => (typeof e === "object" && e !== null && "message" in e ? String(e.message) : String(e));
 
-export function MoodScreen() {
+export function MoodScreen({ refreshTick }: { refreshTick: number }) {
   const now = new Date();
   const [view, setView] = useState<View>({ zoom: "day", year: now.getFullYear(), month: now.getMonth() });
   const [stored, setStored] = useState<Map<string, MoodColor>>(new Map());
@@ -50,7 +50,7 @@ export function MoodScreen() {
     return () => {
       live = false;
     };
-  }, [range.from, range.to]);
+  }, [range.from, range.to, refreshTick]);
 
   const colorOf = (day: string) => stored.get(day) ?? null;
   const blocks = blocksFor(view, colorOf);
