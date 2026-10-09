@@ -103,12 +103,16 @@ describe("parseTaskEdit", () => {
 });
 
 describe("taskStatus", () => {
-  it("is unplaced when there is no placement and no hold", () => {
-    expect(taskStatus(task({}))).toBe("unplaced");
+  it("is unplaced when there are no sessions and no hold", () => {
+    expect(taskStatus(task({}), false)).toBe("unplaced");
   });
 
-  it("is unscheduled when held, even without a placement", () => {
-    expect(taskStatus(task({ held: true }))).toBe("unscheduled");
+  it("is placed when there are sessions", () => {
+    expect(taskStatus(task({}), true)).toBe("placed");
+  });
+
+  it("is unscheduled when held, even without sessions", () => {
+    expect(taskStatus(task({ held: true }), false)).toBe("unscheduled");
   });
 });
 

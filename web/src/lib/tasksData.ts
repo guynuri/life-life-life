@@ -1,6 +1,8 @@
-// Thin Supabase access for tasks. Every failure throws so the screen can show it.
+// Thin Supabase access for tasks, sessions and work hours. Every failure throws so the screen can show it.
 import { supabase } from "./supabase";
 import type { NewTask, Task, TaskEdit, TaskType, ConditionPlace } from "./tasks";
+import type { Placement, WorkHours } from "./scheduler";
+import { DEFAULT_WORK_HOURS } from "./scheduler";
 
 interface TaskRow {
   id: string;
@@ -12,6 +14,20 @@ interface TaskRow {
   spread_days: number | null;
   condition_place: ConditionPlace;
   held: boolean;
+}
+
+interface SessionRow {
+  id: string;
+  task_id: string;
+  start_at: string;
+  end_at: string;
+}
+
+export interface StoredSession {
+  id: string;
+  taskId: string;
+  start: number;
+  end: number;
 }
 
 function client() {
@@ -62,13 +78,58 @@ export async function updateTaskEdit(id: string, edit: TaskEdit): Promise<void> 
   check(await client().from("tasks").update(row).eq("id", id).select());
 }
 
-// Clears the placement and holds the task out of automatic placement (SPEC 2.5).
+// Holds the task out of automatic placement (SPEC 2.5) and removes its sessions.
+// The hold is saved first: if the session delete fails, the task is still held and the error is shown.
 export async function holdTask(id: string): Promise<void> {
-  const row = { held: true };
-  check(await client().from("tasks").update(row).eq("id", id).select());
+  check(await client().from("tasks").update({ held: true }).eq("id", id).select());
+  const result = await client().from("sessions").delete().eq("task_id", id);
+  if (result.error) throw new Error(result.error.message);
+}
+
+// A "Schedule" action: releases the hold so the next placement run can place the task (SPEC 2.5).
+export async function releaseHold(id: string): Promise<void> {
+  check(await client().from("tasks").update({ held: false }).eq("id", id).select());
 }
 
 export async function deleteTask(id: string): Promise<void> {
   const result = await client().from("tasks").delete().eq("id", id);
   if (result.error) throw new Error(result.error.message);
+}
+
+export async function listSessions(): Promise<StoredSession[]> {
+  const result = await client().from("sessions").select("*").order("start_at", { ascending: true });
+  return check<SessionRow[]>(result).map((row) => ({
+    id: row.id,
+    taskId: row.task_id,
+    start: Date.parse(row.start_at),
+    end: Date.parse(row.end_at),
+  }));
+}
+
+export async function insertSessions(placements: Placement[]): Promise<void> {
+  const rows = placements.map((p) => ({
+    task_id: p.taskId,
+    start_at: new Date(p.start).toISOString(),
+    end_at: new Date(p.end).toISOString(),
+  }));
+  check(await client().from("sessions").insert(rows).select());
+}
+
+export async function moveSession(id: string, start: number, end: number): Promise<void> {
+  const row = { start_at: new Date(start).toISOString(), end_at: new Date(end).toISOString() };
+  check(await client().from("sessions").update(row).eq("id", id).select());
+}
+
+// Work hours (SPEC 2.4). With no saved row, the defaults apply.
+export async function getWorkHours(): Promise<WorkHours> {
+  const rows = check<{ start_min: number; end_min: number }[]>(
+    await client().from("work_settings").select("start_min, end_min"),
+  );
+  const row = rows[0];
+  return row ? { startMin: row.start_min, endMin: row.end_min } : DEFAULT_WORK_HOURS;
+}
+
+export async function saveWorkHours(hours: WorkHours): Promise<void> {
+  const row = { start_min: hours.startMin, end_min: hours.endMin };
+  check(await client().from("work_settings").upsert(row, { onConflict: "owner_id" }).select());
 }

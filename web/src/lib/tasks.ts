@@ -38,10 +38,10 @@ export type TaskEdit = Pick<Task, "title" | "durationMin" | "deadline">;
 
 export type ParseResult<T> = { ok: true; value: T } | { ok: false; errors: string[] };
 
-// Status: held tasks are unscheduled; otherwise unplaced (placements arrive with the scheduler).
-export function taskStatus(task: Pick<Task, "held">): TaskStatus {
+// Status: held tasks are unscheduled; otherwise placed if they have sessions, else unplaced.
+export function taskStatus(task: Pick<Task, "held">, placed: boolean): TaskStatus {
   if (task.held) return "unscheduled";
-  return "unplaced";
+  return placed ? "placed" : "unplaced";
 }
 
 // Earliest deadline first, tasks without a deadline last. Ties keep their input order.
