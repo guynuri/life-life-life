@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatTimeOfDay, localMinutes, parseTimeOfDay, personReminders, placementReminder, sessionReminders, SESSION_LEAD_MS } from "./reminders";
+import { afterAttempt, formatTimeOfDay, localMinutes, MAX_ATTEMPTS, newlyUnplacedTitles, parseTimeOfDay, personReminders, placementReminder, sessionReminders, SESSION_LEAD_MS } from "./reminders";
 import type { Person } from "./people";
 
 const ZONE = "UTC";
@@ -87,5 +87,31 @@ describe("time of day", () => {
     expect(parseTimeOfDay("24:00")).toBeNull();
     expect(parseTimeOfDay("soon")).toBeNull();
     expect(formatTimeOfDay(19 * 60)).toBe("19:00");
+  });
+});
+
+describe("delivery attempts", () => {
+  it("is sent once any push works", () => {
+    expect(afterAttempt(0, true)).toEqual({ state: "sent" });
+    expect(afterAttempt(2, true)).toEqual({ state: "sent" });
+  });
+
+  it("retries a run that delivered nothing until the third attempt, then fails", () => {
+    expect(MAX_ATTEMPTS).toBe(3);
+    expect(afterAttempt(0, false)).toEqual({ state: "retry", attempts: 1 });
+    expect(afterAttempt(1, false)).toEqual({ state: "retry", attempts: 2 });
+    expect(afterAttempt(2, false)).toEqual({ state: "failed" });
+  });
+});
+
+describe("unplaced announcements", () => {
+  it("announces only deadline tasks that newly became unplaced", () => {
+    expect(
+      newlyUnplacedTitles([
+        { title: "Taxes", deadline: "2026-10-20T00:00:00Z", wasUnplaced: false },
+        { title: "Read book", deadline: null, wasUnplaced: false },
+        { title: "Old deadline", deadline: "2026-10-20T00:00:00Z", wasUnplaced: true },
+      ]),
+    ).toEqual(["Taxes"]);
   });
 });

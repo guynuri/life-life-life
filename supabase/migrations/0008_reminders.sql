@@ -1,5 +1,5 @@
 -- Phase 6: reminders (SPEC 5). Requires 0001 (push_subscriptions), 0003 (tasks), 0006 (work_settings).
--- Each row in reminders is one notification. The unique key makes each reminder go out at most once.
+-- Each row in reminders is one notification. The unique key makes each reminder go out at most once. attempts counts failed runs; failed_at is set after MAX_ATTEMPTS (SPEC 5).
 -- The send-reminders Edge Function (service role) creates session and person rows; the app inserts placement rows.
 -- The pg_cron job that calls the function is NOT here: see supabase/reminders_cron.sql.
 
@@ -22,6 +22,8 @@ create table if not exists public.reminders (
   body text not null,
   fire_at timestamptz not null,
   sent_at timestamptz,
+  attempts integer not null default 0,
+  failed_at timestamptz,
   created_at timestamptz not null default now(),
   unique (owner_id, dedupe_key)
 );

@@ -2,7 +2,7 @@
 // The rules are in web/src/lib/reminders.ts and the due rule in web/src/lib/people.ts. This file only reads, sends and records.
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.117.3";
 import webpush from "npm:web-push@3.6.7";
-import { personReminders, sessionReminders, type Reminder } from "../../../web/src/lib/reminders.ts";
+import { afterAttempt, personReminders, sessionReminders, type Reminder } from "../../../web/src/lib/reminders.ts";
 import type { Person, Tier } from "../../../web/src/lib/people.ts";
 
 const DEFAULT_CONTACT_REMINDER_MIN = 19 * 60;
@@ -33,6 +33,7 @@ interface ReminderRow {
   id: string;
   title: string;
   body: string;
+  attempts: number;
 }
 
 const iso = (ms: number) => new Date(ms).toISOString();
@@ -129,18 +130,21 @@ async function runForOwner(
 
   const { data: due, error: dueError } = await admin
     .from("reminders")
-    .select("id, title, body")
+    .select("id, title, body, attempts")
     .eq("owner_id", owner)
     .is("sent_at", null)
+    .is("failed_at", null)
     .lte("fire_at", iso(now));
   if (dueError) throw dueError;
 
   let sent = 0;
   for (const reminder of (due ?? []) as ReminderRow[]) {
     const payload = JSON.stringify({ title: reminder.title, body: reminder.body, url: "./" });
+    let delivered = false;
     for (const sub of subs) {
       try {
         await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, payload, { TTL: 3600 });
+        delivered = true;
       } catch (error) {
         const status = (error as { statusCode?: number }).statusCode;
         // 404 or 410: the device unsubscribed or the subscription expired. Remove it so it is not tried again.
@@ -151,10 +155,17 @@ async function runForOwner(
         }
       }
     }
-    // Marked sent after the attempt, so a reminder never repeats. A failed device is not retried (ponytail: no retry queue).
-    const { error } = await admin.from("reminders").update({ sent_at: iso(Date.now()) }).eq("id", reminder.id);
+    // Sent once any device accepts it (SPEC 5). Until then each run is one attempt; the third failed attempt marks it failed.
+    // A retry only happens while no device has accepted, so no device gets the same reminder twice.
+    const outcome = afterAttempt(reminder.attempts, delivered);
+    const at = iso(Date.now());
+    const change =
+      outcome.state === "sent"
+        ? { sent_at: at }
+        : { attempts: reminder.attempts + 1, ...(outcome.state === "failed" ? { failed_at: at } : {}) };
+    const { error } = await admin.from("reminders").update(change).eq("id", reminder.id);
     if (error) throw error;
-    sent++;
+    if (outcome.state === "sent") sent++;
   }
   return sent;
 }

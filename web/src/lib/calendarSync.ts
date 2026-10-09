@@ -4,7 +4,7 @@ import { busyHorizon, busySpans, decideSync, eventBody } from "./calendarEvents"
 import { createEvent, deleteEvent, getEvent, listEvents, moveEvent } from "./calendar";
 import { deleteSessionsOf, deleteTask, getWorkHours, holdTask, insertSessions, listSessions, listTasks, moveSession, setUnplaced, type NewSession, type StoredSession } from "./tasksData";
 import { schedule, type Placement } from "./scheduler";
-import { placementReminder } from "./reminders";
+import { newlyUnplacedTitles, placementReminder } from "./reminders";
 import { insertReminder } from "./remindersData";
 import type { Task } from "./tasks";
 
@@ -63,11 +63,11 @@ async function insertPlacements(token: string | null, tasks: Task[], placed: Pla
 async function announceUnplaced(tasks: Task[], sessions: StoredSession[], placedRows: NewSession[], now: number): Promise<void> {
   const placedIds = new Set([...sessions.map((s) => s.taskId), ...placedRows.map((r) => r.taskId)]);
   const unplaced = tasks.filter((t) => !t.held && !placedIds.has(t.id));
-  const newly = unplaced.filter((t) => !t.unplaced && t.deadline !== null);
+  const newly = newlyUnplacedTitles(unplaced.map((t) => ({ title: t.title, deadline: t.deadline, wasUnplaced: t.unplaced })));
   const titles = new Map(tasks.map((t) => [t.id, t.title]));
   const reminder = placementReminder(
     placedRows.map((r) => ({ taskTitle: titles.get(r.taskId) ?? "task", start: r.start })),
-    newly.map((t) => t.title),
+    newly,
     now,
     Intl.DateTimeFormat().resolvedOptions().timeZone,
     crypto.randomUUID(),

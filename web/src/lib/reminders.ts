@@ -102,3 +102,26 @@ export function formatTimeOfDay(minutes: number): string {
   const hour = Math.floor(minutes / 60);
   return `${String(hour).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 }
+
+// SPEC 5: a task with no deadline that becomes unplaced is not announced. Only deadline tasks that newly became unplaced are.
+export interface UnplacedTask {
+  title: string;
+  deadline: string | null;
+  wasUnplaced: boolean;
+}
+
+export function newlyUnplacedTitles(tasks: readonly UnplacedTask[]): string[] {
+  return tasks.filter((t) => !t.wasUnplaced && t.deadline !== null).map((t) => t.title);
+}
+
+// SPEC 5: a reminder is sent once a push works. Each failed run is one attempt; the third failed attempt marks it failed.
+export const MAX_ATTEMPTS = 3;
+
+export type AttemptOutcome = { state: "sent" } | { state: "failed" } | { state: "retry"; attempts: number };
+
+// attempts: attempts made before this run. delivered: at least one device accepted the push in this run.
+export function afterAttempt(attempts: number, delivered: boolean): AttemptOutcome {
+  if (delivered) return { state: "sent" };
+  const next = attempts + 1;
+  return next >= MAX_ATTEMPTS ? { state: "failed" } : { state: "retry", attempts: next };
+}

@@ -191,8 +191,8 @@ Where this spec differs from the original spec, the change is listed under "Chan
 - [Assumed] Reminder times use the time zone the device reports when it registers. The function uses the first registered device's zone for the owner.
 - [Assumed] A session reminder is made when the session is 10 minutes or less from its start. Moving the session after that makes a new reminder.
 - [Assumed] A due person is reminded once per due date (the first check at or after the reminder time on or after the due moment). Contacting them starts a new cycle.
-- [Assumed] A task with no deadline that becomes unplaced is not announced. Only deadline tasks are, per the decided text.
-- [Assumed] A reminder is marked sent after the send attempt, even if one device fails. Failed sends are not retried. Expired device subscriptions are removed.
+- [Decided] A task with no deadline that becomes unplaced is not announced separately. Placement keeps retrying on each run, and a successful placement is covered by the normal placement message. Deadline tasks keep the unplaced message.
+- [Decided] A reminder is marked sent only after at least one push succeeds. A reminder gets up to 3 attempts (one per run in which it fails), then it is marked failed. Expired device subscriptions are removed.
 - [Assumed] The contact reminder time is stored with the work hours settings.
 
 ## 6. Today view
