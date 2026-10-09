@@ -18,6 +18,11 @@ Where this spec differs from the original spec, the change is listed under "Chan
 - A failed save or a failed read is shown to me. It is never swallowed, and the screen shows what is actually stored, not what I tried to save. [Assumed]
 - All times are the device's local time. Sessions keep their wall-clock time across daylight-saving changes. [Decided]
 
+## Pages
+
+- [Decided] The app is one page with four tabs: Today, Tasks, People, Mood. Each tab has its own URL: #/today, #/tasks, #/people, #/mood. Opening a tab adds a history entry, so back, forward, and reload keep the open tab. An empty or unknown hash opens Today. Sign-in and sign-out stay at the top of the page.
+- [Decided] The top bar has a Refresh button on every page. It re-reads Google, runs placement, and then reloads the stored data on every page.
+
 ## 1. Google Calendar
 
 - Read events from my primary calendar. A refresh re-reads Google, so edits I make there appear in the app. [Decided]
@@ -30,6 +35,10 @@ Where this spec differs from the original spec, the change is listed under "Chan
   - Other edits to events are ignored.
 - After I delete an app-created event, its task stays unscheduled and is held out of automatic placement until I reschedule it. [Decided]
 - Unscheduling or deleting a task updates Google Calendar: its calendar events are removed. [Decided]
+- Editing the duration or deadline of a placed task removes its calendar events first, then the sessions, and placement runs again. [Decided]
+- Busy times are read for the whole window in which each unplaced task can be placed, not a fixed span. [Decided]
+- Work day tasks create no calendar events. [Decided]
+- With no Google access, no placement runs, including for Work day tasks. [Decided]
 - Sign-in requests calendar access. [Decided]
 - The Google OAuth app is published (out of "Testing"), so access does not lapse after 7 days. [Decided]
 - If Google access can no longer be refreshed, the app shows a "Reconnect Google" prompt. It does not fail silently. [Decided]
@@ -87,6 +96,8 @@ Where this spec differs from the original spec, the change is listed under "Chan
 - [Decided] I can move or undo any placement.
 - [Decided] Undo returns the task to unscheduled. The task is then held out of automatic placement until I reschedule it. The same hold applies after I delete its calendar event (section 1).
 - [Decided] I move a session by tapping it and choosing a new time. Undo unschedules it. A "Schedule" action on the task releases the hold.
+- [Decided] Editing the duration or deadline of a placed task replaces its placement: its sessions are removed and the task is placed again in the next placement run.
+- [Decided] Work day sessions cannot be moved to another day in the UI, for now.
 - [Decided] Each task has an "Unschedule" button and a "Delete task" button. Both update Google Calendar accordingly.
 
 ### 2.6 Unplaced and unscheduled tasks
@@ -102,6 +113,7 @@ Where this spec differs from the original spec, the change is listed under "Chan
 - Deleting asks for confirmation. [Assumed]
 - Topics are a label only. Grouping tasks under topics is not built. [Decided]
 - Editing a task after creation: title, duration, and deadline. [Decided]
+- Type and spread days are set at creation and cannot be changed afterward. [Decided]
 
 ## 3. People and reach-outs
 
@@ -161,6 +173,7 @@ Where this spec differs from the original spec, the change is listed under "Chan
 - [Decided] The combined color is the average of the colors of the blocks directly below. Each level averages the level below.
 - [Assumed] Blocks with no colored children have no color.
 - [Decided] A week that touches two months counts toward both months.
+- [Decided] A week's color is the average of all seven of its days, including days outside the month being viewed.
 - [Decided] Colors are averaged channel by channel in RGB for now. A perceptual color space may come later.
 - Each day's color is stored and survives reloads. [Decided]
 

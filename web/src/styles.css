@@ -50,3 +50,192 @@ button {
 .status {
   color: var(--muted);
 }
+
+.muted {
+  color: var(--muted);
+  margin: 4px 0 12px;
+}
+
+.error {
+  color: #ff453a;
+}
+
+.mood {
+  margin-top: 24px;
+}
+
+.mood h2 {
+  font-size: 1.2rem;
+  margin: 0 0 12px;
+}
+
+.mood-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.mood-nav button {
+  padding: 8px 12px;
+}
+
+/* touch-action: none keeps iOS from zooming the page on pinch, so the app gets the gesture. */
+.mood-grid {
+  display: grid;
+  gap: 4px;
+  touch-action: none;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.mood-grid.zoom-week {
+  grid-template-columns: 1fr;
+}
+
+.mood-grid.zoom-month {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.mood-grid.zoom-year {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.block {
+  aspect-ratio: 1;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  font-size: 0.8rem;
+}
+
+.zoom-week .block,
+.zoom-month .block,
+.zoom-year .block {
+  aspect-ratio: auto;
+  min-height: 44px;
+}
+
+.block.pad {
+  border: 0;
+  pointer-events: none;
+}
+
+.picker {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(128, 128, 128, 0.12);
+}
+
+.picker h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.swatches {
+  display: flex;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.swatch {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+}
+
+.picker-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.picker-actions button:disabled,
+.swatch:disabled {
+  opacity: 0.5;
+}
+
+h2 {
+  font-size: 1.2rem;
+  margin: 24px 0 8px;
+}
+
+.error {
+  color: #ff453a;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tabs button[aria-selected="false"],
+button.secondary {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+button.danger {
+  background: #ff453a;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+}
+
+.list li {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--muted);
+}
+
+.row-title {
+  font-weight: 600;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.row-actions button {
+  padding: 8px 12px;
+}
+
+.person-form {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.person-form label {
+  display: grid;
+  gap: 4px;
+}
+
+.person-form input,
+.person-form select {
+  font: inherit;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--muted);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
