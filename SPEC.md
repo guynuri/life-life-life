@@ -87,6 +87,8 @@ Where this spec differs from the original spec, the change is listed under "Chan
 - [Decided] I can move or undo any placement.
 - [Decided] Undo returns the task to unscheduled. The task is then held out of automatic placement until I reschedule it. The same hold applies after I delete its calendar event (section 1).
 - [Decided] I move a session by tapping it and choosing a new time. Undo unschedules it. A "Schedule" action on the task releases the hold.
+- [Decided] Editing the duration or deadline of a placed task replaces its placement: its sessions are removed and the task is placed again in the next placement run.
+- [Decided] Work day sessions cannot be moved to another day in the UI, for now.
 - [Decided] Each task has an "Unschedule" button and a "Delete task" button. Both update Google Calendar accordingly.
 
 ### 2.6 Unplaced and unscheduled tasks
