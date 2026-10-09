@@ -1,5 +1,5 @@
-// Hash routing for the four tabs (SPEC Pages): #/today, #/tasks, #/people, #/mood. No router, no server fallback.
-export const PAGE_IDS = ["today", "tasks", "people", "mood"] as const;
+// Hash routing for the five tabs (SPEC Pages): #/today, #/tasks, #/people, #/mood, #/settings. No router, no server fallback.
+export const PAGE_IDS = ["today", "tasks", "people", "mood", "settings"] as const;
 export type PageId = (typeof PAGE_IDS)[number];
 
 // Unknown or empty hashes go to today.

@@ -4,6 +4,8 @@ import { sortTasks, type Task } from "./tasks";
 export interface WorkHours {
   startMin: number; // minutes after local midnight
   endMin: number;
+  lunchStartMin: number; // [Decided] lunch is not work time; editable in settings
+  lunchEndMin: number;
 }
 export interface Session {
   taskId: string;
@@ -12,9 +14,8 @@ export interface Session {
 }
 export type Placement = Session;
 
-export const DEFAULT_WORK_HOURS: WorkHours = { startMin: 9 * 60, endMin: 19 * 60 };
+export const DEFAULT_WORK_HOURS: WorkHours = { startMin: 9 * 60, endMin: 19 * 60, lunchStartMin: 12 * 60, lunchEndMin: 13 * 60 + 30 };
 
-const LUNCH = { startMin: 12 * 60, endMin: 13 * 60 + 30 }; // [Decided] excluded from work time; counts as home
 const RESERVE_MIN = 120; // [Assumed] last 2 hours of work time, never filled by Work day tasks
 const SESSION_MIN = 60; // [Decided] default session length
 const HORIZON_DAYS = 14; // [Assumed] window for tasks with no deadline (short fixed and Work day)
@@ -152,7 +153,7 @@ function placeWorkDay(task: Task, now: number, work: WorkHours, dayUse: Map<stri
 function workDayCapacity(work: WorkHours): number {
   let minutes = 0;
   for (let m = work.startMin; m < work.endMin - RESERVE_MIN; m++) {
-    if (m < LUNCH.startMin || m >= LUNCH.endMin) minutes++;
+    if (m < work.lunchStartMin || m >= work.lunchEndMin) minutes++;
   }
   return minutes;
 }
@@ -171,7 +172,7 @@ function fitsPlace(place: Task["conditionPlace"], start: number, end: number, wo
 function isWorkTime(time: number, work: WorkHours): boolean {
   const date = new Date(time);
   const minute = date.getHours() * 60 + date.getMinutes();
-  const inLunch = minute >= LUNCH.startMin && minute < LUNCH.endMin;
+  const inLunch = minute >= work.lunchStartMin && minute < work.lunchEndMin;
   return date.getDay() <= 4 && minute >= work.startMin && minute < work.endMin && !inLunch;
 }
 

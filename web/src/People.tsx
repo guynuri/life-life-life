@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { dueNow, everyone, intervalDaysFor, type Person, type Tier, validatePersonInput } from "./lib/people";
 import { addPerson, listPeople, markContacted, removePerson, updatePerson } from "./lib/peopleStore";
+import { Check, ListTodo, Pencil, Trash2, UserCheck, UserMinus, UserPlus, Users, X } from "lucide-react";
+import { Label } from "./ui";
 
 type View = "due" | "all";
 type Editing = { mode: "new" } | { mode: "edit"; person: Person } | null;
@@ -72,12 +74,12 @@ export function People({ refreshTick }: { refreshTick: number }) {
       {loadError && <p className="error">{loadError}</p>}
       {saveError && <p className="error">{saveError}</p>}
 
-      <div className="tabs" role="tablist">
+      <div className="segmented" role="tablist">
         <button type="button" role="tab" aria-selected={view === "due"} onClick={() => setView("due")}>
-          Due now ({dueList.length})
+          <Label icon={ListTodo}>Due now ({dueList.length})</Label>
         </button>
         <button type="button" role="tab" aria-selected={view === "all"} onClick={() => setView("all")}>
-          Everyone ({people.length})
+          <Label icon={Users}>Everyone ({people.length})</Label>
         </button>
       </div>
 
@@ -92,25 +94,15 @@ export function People({ refreshTick }: { refreshTick: number }) {
               {p.lastContactedAt ? new Date(p.lastContactedAt).toLocaleDateString() : "never"}
             </div>
             <div className="row-actions">
-              <button type="button" onClick={() => void write(() => markContacted(p.id))}>
-                Contacted
-              </button>
-              <button type="button" className="secondary" onClick={() => setEditing({ mode: "edit", person: p })}>
-                Edit
-              </button>
+              <button type="button" onClick={() => void write(() => markContacted(p.id))}><Label icon={UserCheck}>Contacted</Label></button>
+              <button type="button" className="secondary" onClick={() => setEditing({ mode: "edit", person: p })}><Label icon={Pencil}>Edit</Label></button>
               {confirmRemoveId === p.id ? (
                 <>
-                  <button type="button" className="danger" onClick={() => void write(() => removePerson(p.id))}>
-                    Confirm remove
-                  </button>
-                  <button type="button" className="secondary" onClick={() => setConfirmRemoveId(null)}>
-                    Cancel
-                  </button>
+                  <button type="button" className="danger" onClick={() => void write(() => removePerson(p.id))}><Label icon={Trash2}>Confirm remove</Label></button>
+                  <button type="button" className="secondary" onClick={() => setConfirmRemoveId(null)}><Label icon={X}>Cancel</Label></button>
                 </>
               ) : (
-                <button type="button" className="secondary" onClick={() => setConfirmRemoveId(p.id)}>
-                  Remove
-                </button>
+                <button type="button" className="secondary" onClick={() => setConfirmRemoveId(p.id)}><Label icon={UserMinus}>Remove</Label></button>
               )}
             </div>
           </li>
@@ -131,9 +123,7 @@ export function People({ refreshTick }: { refreshTick: number }) {
           }}
         />
       ) : (
-        <button type="button" onClick={() => setEditing({ mode: "new" })}>
-          Add person
-        </button>
+        <button type="button" onClick={() => setEditing({ mode: "new" })}><Label icon={UserPlus}>Add person</Label></button>
       )}
     </section>
   );
@@ -180,10 +170,8 @@ function PersonForm({
         <input inputMode="numeric" value={intervalText} onChange={(e) => setIntervalText(e.target.value)} />
       </label>
       <div className="row-actions">
-        <button type="submit">Save</button>
-        <button type="button" className="secondary" onClick={onCancel}>
-          Cancel
-        </button>
+        <button type="submit"><Label icon={Check}>Save</Label></button>
+        <button type="button" className="secondary" onClick={onCancel}><Label icon={X}>Cancel</Label></button>
       </div>
     </form>
   );

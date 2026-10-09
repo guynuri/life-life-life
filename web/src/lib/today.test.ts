@@ -1,5 +1,5 @@
-import { expect, test } from "vitest";
-import { dayBounds, formatSessionTime, todaySessions } from "./today";
+import { describe, expect, it, test } from "vitest";
+import { dayBounds, formatSessionTime, greeting, nextSession, todaySessions, type TodaySession } from "./today";
 import type { Task } from "./tasks";
 
 const at = (y: number, m: number, d: number, h = 0, min = 0) => new Date(y, m, d, h, min).getTime();
@@ -14,6 +14,7 @@ const task = (id: string, title: string, topic: string | null = null): Task => (
   spreadDays: null,
   conditionPlace: "any",
   held: false,
+  unplaced: false,
 });
 
 test("day bounds run from local midnight to the next local midnight, across a month end", () => {
@@ -45,4 +46,29 @@ test("a session whose task is missing is still shown, with a fallback title", ()
 
 test("session time is HH:MM to HH:MM with zero padding", () => {
   expect(formatSessionTime(at(2026, 9, 12, 9, 5), at(2026, 9, 12, 13, 30))).toBe("09:05–13:30");
+});
+
+describe("greeting", () => {
+  it("follows the local hour", () => {
+    expect(greeting(0)).toBe("Good morning");
+    expect(greeting(11)).toBe("Good morning");
+    expect(greeting(12)).toBe("Good afternoon");
+    expect(greeting(17)).toBe("Good afternoon");
+    expect(greeting(18)).toBe("Good evening");
+  });
+});
+
+describe("nextSession", () => {
+  const session = (id: string, start: number, end: number): TodaySession => ({ id, start, end, title: id, topic: null });
+  const sessions = [session("a", 100, 200), session("b", 300, 400)];
+
+  it("is the session in progress, else the next one", () => {
+    expect(nextSession(sessions, 150)?.id).toBe("a");
+    expect(nextSession(sessions, 250)?.id).toBe("b");
+  });
+
+  it("is null when every session has ended", () => {
+    expect(nextSession(sessions, 500)).toBeNull();
+    expect(nextSession([], 0)).toBeNull();
+  });
 });

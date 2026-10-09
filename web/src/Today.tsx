@@ -3,7 +3,7 @@ import { dueNow, type Person } from "./lib/people";
 import { listPeople } from "./lib/peopleStore";
 import { dayKey, dayLabel, MOOD_COLORS, type MoodColor } from "./lib/moodView";
 import { loadMoods } from "./lib/moodStore";
-import { dayBounds, formatSessionTime, todaySessions, type TodaySession } from "./lib/today";
+import { dayBounds, formatSessionTime, greeting, nextSession, todaySessions, type TodaySession } from "./lib/today";
 import { listSessions, listTasks } from "./lib/tasksData";
 
 // Each part loads on its own, so a failed read shows an error for that part only (SPEC principles).
@@ -66,7 +66,26 @@ export function Today({ refreshTick }: { refreshTick: number }) {
 
   return (
     <section className="today">
-      <h2>Today</h2>
+      <div className="hero">
+        <h2>{greeting(new Date().getHours())}</h2>
+        {sessions.data ? (
+          (() => {
+            const next = nextSession(sessions.data, Date.now());
+            if (!next) return <p>No more sessions today.</p>;
+            const inProgress = next.start <= Date.now();
+            return (
+              <p>
+                {inProgress ? "Now: " : "Up next: "}
+                <strong>{next.title}</strong>, {formatSessionTime(next.start, next.end)}
+              </p>
+            );
+          })()
+        ) : sessions.error ? (
+          <p>Could not load sessions.</p>
+        ) : (
+          <p>Loading...</p>
+        )}
+      </div>
       <p className="status">{dayLabel(new Date())}</p>
 
       <h3>Sessions</h3>

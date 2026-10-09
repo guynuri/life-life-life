@@ -48,3 +48,15 @@ export function formatClock(ms: number): string {
 export function formatSessionTime(start: number, end: number): string {
   return `${formatClock(start)}–${formatClock(end)}`;
 }
+
+// Greeting for the Today hero, from the local hour.
+export function greeting(hour: number): string {
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+// The session in progress, or the next one to start. Null when none is left today.
+export function nextSession(sessions: readonly TodaySession[], now: number): TodaySession | null {
+  return sessions.find((s) => s.end > now) ?? null;
+}

@@ -13,18 +13,18 @@ import {
   type TaskType,
 } from "./lib/tasks";
 import {
-  getWorkHours,
   insertTask,
   listSessions,
   listTasks,
   releaseHold,
-  saveWorkHours,
   updateTaskEdit,
   type StoredSession,
 } from "./lib/tasksData";
 import { deleteTaskWithEvents, moveSessionWithEvent, placeTasks, replacePlacement, unscheduleTask } from "./lib/calendarSync";
 import { isGoogleAuthError } from "./lib/calendar";
-import type { Placement, WorkHours } from "./lib/scheduler";
+import type { Placement } from "./lib/scheduler";
+import { CalendarPlus, CalendarX, Check, Link2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Label } from "./ui";
 
 interface TasksProps {
   googleToken: string | null; // from the Supabase session; null when Google access is missing
@@ -59,7 +59,6 @@ const emptyForm: TaskInput = {
 interface Loaded {
   tasks: Task[];
   sessions: StoredSession[];
-  work: WorkHours;
 }
 
 function messageOf(error: unknown): string {
@@ -67,18 +66,8 @@ function messageOf(error: unknown): string {
 }
 
 async function loadAll(): Promise<Loaded> {
-  const [tasks, sessions, work] = await Promise.all([listTasks(), listSessions(), getWorkHours()]);
-  return { tasks, sessions, work };
-}
-
-// Parses "HH:MM" from a time input into minutes after midnight.
-function timeToMinutes(value: string): number {
-  const [hours = NaN, minutes = NaN] = value.split(":").map(Number);
-  return hours * 60 + minutes;
-}
-
-function minutesToTime(min: number): string {
-  return `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+  const [tasks, sessions] = await Promise.all([listTasks(), listSessions()]);
+  return { tasks, sessions };
 }
 
 function describeSession(task: Task, session: StoredSession): string {
@@ -243,23 +232,6 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
     await refresh();
   }
 
-  async function saveWork(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const fields = new FormData(event.currentTarget);
-    const startMin = timeToMinutes(String(fields.get("start")));
-    const endMin = timeToMinutes(String(fields.get("end")));
-    if (Number.isNaN(startMin) || Number.isNaN(endMin) || endMin <= startMin) {
-      return setErrors(["Work hours must end after they start."]);
-    }
-    try {
-      await saveWorkHours({ startMin, endMin });
-    } catch (error) {
-      return setErrors([`Could not save work hours: ${messageOf(error)}`]);
-    }
-    setErrors([]);
-    await refresh();
-  }
-
   return (
     <section className="tasks" aria-labelledby="tasks-heading">
       <h2 id="tasks-heading">Tasks</h2>
@@ -271,7 +243,7 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
       ))}
       {reconnect && (
         <p className="reconnect">
-          Google Calendar access is missing or has expired. <button type="button" onClick={onReconnect}>Reconnect Google</button>
+          Google Calendar access is missing or has expired. <button type="button" onClick={onReconnect}><Label icon={Link2}>Reconnect Google</Label></button>
         </p>
       )}
       {notices.map((message) => (
@@ -280,19 +252,6 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
         </p>
       ))}
 
-      {data && (
-        <form className="work-hours" aria-label="Work hours" onSubmit={saveWork}>
-          <label>
-            Work starts
-            <input name="start" type="time" defaultValue={minutesToTime(data.work.startMin)} />
-          </label>
-          <label>
-            Work ends
-            <input name="end" type="time" defaultValue={minutesToTime(data.work.endMin)} />
-          </label>
-          <button type="submit">Save work hours</button>
-        </form>
-      )}
 
       <form className="task-form" aria-label="Add task" onSubmit={add}>
         <label>
@@ -357,7 +316,7 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
             </select>
           </label>
         )}
-        <button type="submit">Add task</button>
+        <button type="submit"><Label icon={Plus}>Add task</Label></button>
       </form>
 
       {data === null ? (
@@ -394,12 +353,8 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
                         onChange={(e) => setEdit({ ...edit, deadline: e.target.value })}
                       />
                     </label>
-                    <button type="button" onClick={() => saveEdit(task.id)}>
-                      Save
-                    </button>
-                    <button type="button" onClick={() => setEditingId(null)}>
-                      Cancel
-                    </button>
+                    <button type="button" onClick={() => saveEdit(task.id)}><Label icon={Check}>Save</Label></button>
+                    <button type="button" onClick={() => setEditingId(null)}><Label icon={X}>Cancel</Label></button>
                   </div>
                 ) : (
                   <>
@@ -424,12 +379,8 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
                               onChange={(e) => setMoveValue(e.target.value)}
                             />
                           </label>
-                          <button type="button" onClick={() => saveMove(session)}>
-                            Save time
-                          </button>
-                          <button type="button" onClick={() => setMovingId(null)}>
-                            Cancel
-                          </button>
+                          <button type="button" onClick={() => saveMove(session)}><Label icon={Check}>Save time</Label></button>
+                          <button type="button" onClick={() => setMovingId(null)}><Label icon={X}>Cancel</Label></button>
                         </div>
                       ) : task.type === "work_day" ? (
                         <div className="session" key={session.id}>
@@ -448,31 +399,19 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
                       ),
                     )}
                     <div className="task-actions">
-                      <button type="button" onClick={() => startEdit(task)}>
-                        Edit
-                      </button>
+                      <button type="button" className="secondary" onClick={() => startEdit(task)}><Label icon={Pencil}>Edit</Label></button>
                       {task.held ? (
-                        <button type="button" onClick={() => releaseTask(task.id)}>
-                          Schedule
-                        </button>
+                        <button type="button" className="secondary" onClick={() => releaseTask(task.id)}><Label icon={CalendarPlus}>Schedule</Label></button>
                       ) : (
-                        <button type="button" onClick={() => unschedule(task.id)}>
-                          Unschedule
-                        </button>
+                        <button type="button" className="secondary" onClick={() => unschedule(task.id)}><Label icon={CalendarX}>Unschedule</Label></button>
                       )}
-                      <button type="button" onClick={() => setConfirmingId(task.id)}>
-                        Delete task
-                      </button>
+                      <button type="button" className="danger" onClick={() => setConfirmingId(task.id)}><Label icon={Trash2}>Delete task</Label></button>
                     </div>
                     {confirmingId === task.id && (
                       <div className="task-confirm">
                         <span>Delete "{task.title}"?</span>
-                        <button type="button" onClick={() => remove(task.id)}>
-                          Yes, delete
-                        </button>
-                        <button type="button" onClick={() => setConfirmingId(null)}>
-                          Cancel
-                        </button>
+                        <button type="button" onClick={() => remove(task.id)}><Label icon={Trash2}>Yes, delete</Label></button>
+                        <button type="button" onClick={() => setConfirmingId(null)}><Label icon={X}>Cancel</Label></button>
                       </div>
                     )}
                   </>

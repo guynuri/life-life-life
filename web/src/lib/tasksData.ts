@@ -137,15 +137,17 @@ export async function moveSession(id: string, start: number, end: number): Promi
 
 // Work hours (SPEC 2.4). With no saved row, the defaults apply.
 export async function getWorkHours(): Promise<WorkHours> {
-  const rows = check<{ start_min: number; end_min: number }[]>(
-    await client().from("work_settings").select("start_min, end_min"),
+  const rows = check<{ start_min: number; end_min: number; lunch_start_min: number; lunch_end_min: number }[]>(
+    await client().from("work_settings").select("start_min, end_min, lunch_start_min, lunch_end_min"),
   );
   const row = rows[0];
-  return row ? { startMin: row.start_min, endMin: row.end_min } : DEFAULT_WORK_HOURS;
+  return row
+    ? { startMin: row.start_min, endMin: row.end_min, lunchStartMin: row.lunch_start_min, lunchEndMin: row.lunch_end_min }
+    : DEFAULT_WORK_HOURS;
 }
 
 export async function saveWorkHours(hours: WorkHours): Promise<void> {
-  const row = { start_min: hours.startMin, end_min: hours.endMin };
+  const row = { start_min: hours.startMin, end_min: hours.endMin, lunch_start_min: hours.lunchStartMin, lunch_end_min: hours.lunchEndMin };
   check(await client().from("work_settings").upsert(row, { onConflict: "owner_id" }).select());
 }
 

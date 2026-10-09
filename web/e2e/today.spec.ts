@@ -42,7 +42,7 @@ test("Today shows today's sessions in time order, due people, and the mood color
   await page.goto("/");
 
   const today = page.locator("section.today");
-  await expect(today.getByRole("heading", { name: "Today" })).toBeVisible();
+  await expect(today.getByRole("heading", { name: /Good (morning|afternoon|evening)/ })).toBeVisible();
 
   const sessionItems = today.locator(".today-session");
   await expect(sessionItems).toHaveCount(2);

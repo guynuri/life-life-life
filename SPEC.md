@@ -20,8 +20,20 @@ Where this spec differs from the original spec, the change is listed under "Chan
 
 ## Pages
 
-- [Decided] The app is one page with four tabs: Today, Tasks, People, Mood. Each tab has its own URL: #/today, #/tasks, #/people, #/mood. Opening a tab adds a history entry, so back, forward, and reload keep the open tab. An empty or unknown hash opens Today. Sign-in and sign-out stay at the top of the page.
-- [Decided] The top bar has a Refresh button on every page. It re-reads Google, runs placement, and then reloads the stored data on every page.
+- [Decided] The app is one page with five tabs: Today, Tasks, People, Mood, Settings. Each tab has its own URL: #/today, #/tasks, #/people, #/mood, #/settings. Opening a tab adds a history entry, so back, forward, and reload keep the open tab. An empty or unknown hash opens Today.
+- [Decided] The five tabs sit in a bottom tab bar. Each tab shows an icon with a short label. The tab bar is the only navigation.
+- [Decided] The top bar is slim: the app name and an icon-only Refresh button (labelled "Refresh" for screen readers) on every page. Refresh re-reads Google, runs placement, and then reloads the stored data on every page.
+- [Decided] Sign-in and sign-out stay on the page. Sign-out is on the Settings page.
+- [Decided] Layout is phone first: one column, about 390px wide, with touch targets of at least 44px. On wider screens the content is centred at about 480px, and the tab bar matches that width.
+- [Decided] Visual direction: vivid orange (#FF7A1A) for primary actions and highlights, deep purple (#4B1F7A) for structure and headings, plum ink (#22103A) for text, a warm apricot background (#FFF6EE), and a light lavender surface (#F1EAFB). The six mood colours in section 4 are unchanged. Dark mode follows the system setting. Headings use Bricolage Grotesque and body text uses Figtree. Primary buttons are orange and secondary buttons are purple outlines. Each page has a clear type scale, and text stays under about 80 characters a line.
+- [Decided] The Today page opens with a hero card: a time-appropriate greeting and the session in progress or the next one.
+- [Assumed] The hero card gradient runs from a deeper orange (#E0560A) to deep purple, so white text meets contrast requirements. The vivid orange is used for buttons and highlights.
+- [Assumed] Cards (list rows and settings sections) use a restrained radius and a faint purple-tinted shadow. Other elements are not cards.
+- [Assumed] A single entrance animation plays on the Today hero. Motion is turned off when the system asks for reduced motion.
+- [Decided] Settings page contents, in order: work hours (start and end, editable); lunch (start and end, editable); contact reminder time (default 19:00); notifications (turn on or off, with the current state); Google Calendar (connection status and a Reconnect Google action); account (sign out).
+- [Assumed] Lunch must fall inside work hours, and each lunch end must come after its start. Work must end after it starts.
+- [Assumed] Google Calendar status reads as connected when the signed-in session carries a Google provider token.
+- [Decided] Each Settings section saves on its own. A successful save shows a visible success message; a failed save shows the error. Nothing fails silently.
 
 ## 1. Google Calendar
 
