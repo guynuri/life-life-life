@@ -20,7 +20,7 @@ Where this spec differs from the original spec, the change is listed under "Chan
 
 ## Pages
 
-- [Assumed] The app is one page with four tabs: Today, Tasks, People, Mood. The open tab is kept in memory, so a reload returns to Today. Sign-in and sign-out stay at the top of the page.
+- [Decided] The app is one page with four tabs: Today, Tasks, People, Mood. Each tab has its own URL: #/today, #/tasks, #/people, #/mood. Opening a tab adds a history entry, so back, forward, and reload keep the open tab. An empty or unknown hash opens Today. Sign-in and sign-out stay at the top of the page.
 - [Decided] The top bar has a Refresh button on every page. It re-reads Google, runs placement, and then reloads the stored data on every page.
 
 ## 1. Google Calendar
