@@ -14,6 +14,7 @@ test("placed sessions show; a session can be moved; unschedule holds; Schedule r
   await serveGoogle(page, googleEvents);
 
   await page.goto("/");
+  await page.getByRole("tab", { name: "Tasks", exact: true }).click();
   const item = page.getByRole("listitem").filter({ hasText: "Pay rent" });
   await expect(item).toContainText("Placed");
   await expect(page.getByRole("status")).toContainText('Placed "Pay rent": 1 session.');
@@ -60,6 +61,7 @@ test("a big task is placed as several sessions; tasks stay in deadline order; ed
   await serveGoogle(page, googleEvents);
 
   await page.goto("/");
+  await page.getByRole("tab", { name: "Tasks", exact: true }).click();
   await expect(page.getByRole("listitem").nth(0)).toContainText("Write report");
   await expect(page.getByRole("listitem").nth(1)).toContainText("Pay rent");
   expect(sessions.filter((s) => s.task_id === "report")).toHaveLength(5);
@@ -96,6 +98,7 @@ test("a failed save is shown and the list keeps the stored state", async ({ page
   await serveGoogle(page, []);
 
   await page.goto("/");
+  await page.getByRole("tab", { name: "Tasks", exact: true }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "Existing" })).toBeVisible();
 
   const addForm = page.getByRole("form", { name: "Add task" });

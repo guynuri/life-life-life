@@ -19,6 +19,7 @@ test("placement creates one event per session, linked to the task; a move update
   await serveGoogle(page, googleEvents);
 
   await page.goto("/");
+  await page.getByRole("tab", { name: "Tasks", exact: true }).click();
   const item = page.getByRole("listitem").filter({ hasText: "Pay rent" });
   await expect(item).toContainText("Placed");
   expect(googleEvents).toHaveLength(1);
@@ -57,11 +58,13 @@ test("sync on refresh: a moved event moves the session (even outside work hours)
   await serveGoogle(page, googleEvents);
 
   await page.goto("/");
+  await page.getByRole("tab", { name: "Tasks", exact: true }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "Pay rent" })).toContainText("Placed");
 
   // Edit the time in Google Calendar, then refresh: the session follows, and nothing new is placed.
   googleEvents[0] = { ...googleEvents[0], start: { dateTime: iso(21) }, end: { dateTime: iso(21, 20) } };
   await page.reload();
+  await page.getByRole("tab", { name: "Tasks", exact: true }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "Pay rent" }).getByRole("button", { name: /Move session/ })).toContainText("09:00 PM");
   expect(sessions).toHaveLength(1);
   expect(sessions[0]?.start_at).toBe(iso(21));
@@ -70,6 +73,7 @@ test("sync on refresh: a moved event moves the session (even outside work hours)
   // Delete the event in Google Calendar, then refresh: the task is unscheduled and held, not placed again.
   googleEvents.splice(0, 1);
   await page.reload();
+  await page.getByRole("tab", { name: "Tasks", exact: true }).click();
   const item = page.getByRole("listitem").filter({ hasText: "Pay rent" });
   await expect(item).toContainText("Unscheduled");
   expect(sessions).toHaveLength(0);
@@ -94,6 +98,7 @@ test("a Google error on move is shown and the session keeps its stored time", as
   await serveGoogle(page, googleEvents, { failWrites: true });
 
   await page.goto("/");
+  await page.getByRole("tab", { name: "Tasks", exact: true }).click();
   const item = page.getByRole("listitem").filter({ hasText: "Pay rent" });
   await item.getByRole("button", { name: /Move session/ }).click();
   await item.getByLabel("New start").fill("2026-10-12T10:00");
@@ -115,6 +120,7 @@ test("without Google access the screen offers Reconnect Google and places nothin
   await serveGoogle(page, []);
 
   await page.goto("/");
+  await page.getByRole("tab", { name: "Tasks", exact: true }).click();
   await expect(page.getByRole("button", { name: "Reconnect Google" })).toBeVisible();
   await expect(page.getByRole("alert")).toContainText("Could not place tasks");
   await expect(page.getByRole("listitem").filter({ hasText: "Pay rent" })).toBeVisible();
@@ -131,6 +137,7 @@ test("an expired Google token (401) shows Reconnect Google", async ({ page }) =>
   await serveGoogle(page, [], { unauthorized: true });
 
   await page.goto("/");
+  await page.getByRole("tab", { name: "Tasks", exact: true }).click();
   await expect(page.getByRole("button", { name: "Reconnect Google" })).toBeVisible();
   await expect(page.getByRole("listitem").filter({ hasText: "Pay rent" })).toContainText("Unplaced");
 });
