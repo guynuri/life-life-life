@@ -50,3 +50,76 @@ button {
 .status {
   color: var(--muted);
 }
+
+h2 {
+  font-size: 1.2rem;
+  margin: 24px 0 8px;
+}
+
+.error {
+  color: #ff453a;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tabs button[aria-selected="false"],
+button.secondary {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+button.danger {
+  background: #ff453a;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+}
+
+.list li {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--muted);
+}
+
+.row-title {
+  font-weight: 600;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.row-actions button {
+  padding: 8px 12px;
+}
+
+.person-form {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.person-form label {
+  display: grid;
+  gap: 4px;
+}
+
+.person-form input,
+.person-form select {
+  font: inherit;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--muted);
+  background: var(--bg);
+  color: var(--fg);
+}
