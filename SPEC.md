@@ -102,6 +102,7 @@ Where this spec differs from the original spec, the change is listed under "Chan
 - Deleting asks for confirmation. [Assumed]
 - Topics are a label only. Grouping tasks under topics is not built. [Decided]
 - Editing a task after creation: title, duration, and deadline. [Decided]
+- Type and spread days are set at creation and cannot be changed afterward. [Decided]
 
 ## 3. People and reach-outs
 

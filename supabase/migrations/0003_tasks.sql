@@ -19,9 +19,6 @@ alter table public.tasks
   add column topic text,
   add column spread_days integer,
   add column condition_place text not null default 'any',
-  add column scheduled_start timestamptz,
-  add column scheduled_end timestamptz,
-  add column calendar_event_id text,
   add column held boolean not null default false;
 
 alter table public.tasks add constraint tasks_spread_days_check check (spread_days is null or spread_days > 0);

@@ -11,9 +11,6 @@ interface TaskRow {
   deadline: string | null;
   spread_days: number | null;
   condition_place: ConditionPlace;
-  scheduled_start: string | null;
-  scheduled_end: string | null;
-  calendar_event_id: string | null;
   held: boolean;
 }
 
@@ -32,9 +29,6 @@ function fromRow(row: TaskRow): Task {
     deadline: row.deadline,
     spreadDays: row.spread_days,
     conditionPlace: row.condition_place,
-    scheduledStart: row.scheduled_start,
-    scheduledEnd: row.scheduled_end,
-    calendarEventId: row.calendar_event_id,
     held: row.held,
   };
 }
@@ -70,7 +64,7 @@ export async function updateTaskEdit(id: string, edit: TaskEdit): Promise<void> 
 
 // Clears the placement and holds the task out of automatic placement (SPEC 2.5).
 export async function holdTask(id: string): Promise<void> {
-  const row = { scheduled_start: null, scheduled_end: null, calendar_event_id: null, held: true };
+  const row = { held: true };
   check(await client().from("tasks").update(row).eq("id", id).select());
 }
 

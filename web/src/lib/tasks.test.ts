@@ -29,9 +29,6 @@ function task(overrides: Partial<Task>): Task {
     deadline: null,
     spreadDays: null,
     conditionPlace: "any",
-    scheduledStart: null,
-    scheduledEnd: null,
-    calendarEventId: null,
     held: false,
     ...overrides,
   };
@@ -108,10 +105,6 @@ describe("parseTaskEdit", () => {
 describe("taskStatus", () => {
   it("is unplaced when there is no placement and no hold", () => {
     expect(taskStatus(task({}))).toBe("unplaced");
-  });
-
-  it("is placed when there is a placement", () => {
-    expect(taskStatus(task({ scheduledStart: "2026-10-12T10:00:00Z" }))).toBe("placed");
   });
 
   it("is unscheduled when held, even without a placement", () => {
