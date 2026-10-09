@@ -254,3 +254,10 @@ button.danger {
   background: var(--bg);
   color: var(--fg);
 }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}

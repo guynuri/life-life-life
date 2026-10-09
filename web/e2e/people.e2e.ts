@@ -101,6 +101,7 @@ test("due list, contacted, and add person", async ({ page }) => {
   const rows = structuredClone(seed);
   await fakeSupabase(page, rows);
   await page.goto("/");
+  await page.getByRole("tab", { name: "People", exact: true }).click();
 
   const items = page.getByRole("listitem");
   await expect(page.getByRole("heading", { name: "People" })).toBeVisible();
@@ -136,6 +137,7 @@ test("a failed contacted save shows the error and the stored state", async ({ pa
   const rows = structuredClone(seed);
   await fakeSupabase(page, rows, "database unavailable");
   await page.goto("/");
+  await page.getByRole("tab", { name: "People", exact: true }).click();
 
   const items = page.getByRole("listitem");
   await expect(items).toHaveCount(2);

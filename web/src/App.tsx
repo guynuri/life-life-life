@@ -4,12 +4,23 @@ import { GOOGLE_CALENDAR_SCOPE } from "./lib/config";
 import { configured, supabase } from "./lib/supabase";
 import { Tasks } from "./Tasks";
 import { People } from "./People";
-import { Today } from "./Today";
 import { MoodScreen } from "./MoodScreen";
+import { Today } from "./Today";
+
+// [Assumed] Four pages behind a tab bar, all in one page with no router. Each page stays mounted and is hidden
+// when another tab is open, so its state and effects keep running.
+const pages = [
+  { id: "today", label: "Today" },
+  { id: "tasks", label: "Tasks" },
+  { id: "people", label: "People" },
+  { id: "mood", label: "Mood" },
+] as const;
+type PageId = (typeof pages)[number]["id"];
 
 export function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(!configured);
+  const [page, setPage] = useState<PageId>("today");
 
   useEffect(() => {
     if (!supabase) return;
@@ -38,14 +49,31 @@ export function App() {
 
   return (
     <Shell>
-      <p>Signed in as {session.user.email}</p>
-      <button type="button" onClick={() => supabase!.auth.signOut()}>
-        Sign out
-      </button>
-      <Today />
-      <Tasks googleToken={session.provider_token ?? null} onReconnect={signIn} />
-      <People />
-      <MoodScreen />
+      <header className="topbar">
+        <p>Signed in as {session.user.email}</p>
+        <button type="button" onClick={() => supabase!.auth.signOut()}>
+          Sign out
+        </button>
+      </header>
+      <nav className="tabs" role="tablist" aria-label="Pages">
+        {pages.map((p) => (
+          <button key={p.id} type="button" role="tab" aria-selected={page === p.id} onClick={() => setPage(p.id)}>
+            {p.label}
+          </button>
+        ))}
+      </nav>
+      <div hidden={page !== "today"}>
+        <Today />
+      </div>
+      <div hidden={page !== "tasks"}>
+        <Tasks googleToken={session.provider_token ?? null} onReconnect={signIn} />
+      </div>
+      <div hidden={page !== "people"}>
+        <People />
+      </div>
+      <div hidden={page !== "mood"}>
+        <MoodScreen />
+      </div>
     </Shell>
   );
 }

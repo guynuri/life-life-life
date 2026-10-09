@@ -83,6 +83,7 @@ test("choose, save, fail, and reload a day's mood", async ({ page }) => {
   const fake: Fake = { rows: new Map(), failSaves: false };
   await setUp(page, fake);
   await page.goto("/");
+  await page.getByRole("tab", { name: "Mood", exact: true }).click();
   await expect(page.getByText("Signed in as owner@example.com")).toBeVisible();
 
   const dayOne = page.locator(`.mood-grid button[data-key="${firstOfMonth}"]`);
@@ -111,6 +112,7 @@ test("choose, save, fail, and reload a day's mood", async ({ page }) => {
 
   // Stored colors survive a reload.
   await page.reload();
+  await page.getByRole("tab", { name: "Mood", exact: true }).click();
   await expect(page.locator(`.mood-grid button[data-key="${firstOfMonth}"]`)).toHaveCSS("background-color", "rgb(174, 213, 129)");
 
   await page.locator(`.mood-grid button[data-key="${firstOfMonth}"]`).click();
@@ -123,6 +125,7 @@ test("pinch in zooms out to weeks, pinch out on a week drills into that month's 
   const fake: Fake = { rows: new Map(), failSaves: false };
   await setUp(page, fake);
   await page.goto("/");
+  await page.getByRole("tab", { name: "Mood", exact: true }).click();
   await expect(page.getByText("Signed in as owner@example.com")).toBeVisible();
 
   const grid = page.locator(".mood-grid");
