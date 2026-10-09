@@ -7,6 +7,7 @@ import { People } from "./People";
 import { MoodScreen } from "./MoodScreen";
 import { Today } from "./Today";
 import { placeTasks } from "./lib/calendarSync";
+import { placementQueue } from "./lib/serialQueue";
 
 // [Assumed] Four pages behind a tab bar, all in one page with no router. Each page stays mounted and is hidden
 // when another tab is open, so its state and effects keep running.
@@ -40,7 +41,7 @@ export function App() {
   async function refreshAll() {
     setRefreshing(true);
     try {
-      await placeTasks(session?.provider_token ?? null, Date.now());
+      await placementQueue(() => placeTasks(session?.provider_token ?? null, Date.now()));
       setRefreshError(null);
     } catch (error) {
       setRefreshError(`Refresh failed: ${error instanceof Error ? error.message : String(error)}`);

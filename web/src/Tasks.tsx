@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { placementQueue } from "./lib/serialQueue";
 import {
   parseTaskEdit,
   parseTaskInput,
@@ -101,8 +102,6 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [moveValue, setMoveValue] = useState("");
-  // Refreshes run one at a time, so two runs never both place the same task (React StrictMode runs effects twice).
-  const queue = useRef<Promise<void>>(Promise.resolve());
 
   // Shows a failed action. Google auth failures also offer Reconnect. Never throws.
   function fail(message: string, error: unknown) {
@@ -142,15 +141,15 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
     }
   }
 
+  // Placement runs go through the shared queue, so they never overlap (see serialQueue.ts).
   function refresh(): Promise<void> {
-    queue.current = queue.current.then(placeAndLoad);
-    return queue.current;
+    return placementQueue(placeAndLoad);
   }
 
   // First mount places and loads. A later tick comes from the shell after it has placed, so this page only reloads.
   useEffect(() => {
     if (refreshTick === 0) void refresh();
-    else queue.current = queue.current.then(() => loadStored());
+    else void placementQueue(() => loadStored());
   }, [refreshTick]);
 
   async function add(event: FormEvent) {
