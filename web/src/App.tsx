@@ -6,6 +6,7 @@ import { Tasks } from "./Tasks";
 import { People } from "./People";
 import { MoodScreen } from "./MoodScreen";
 import { Today } from "./Today";
+import { Reminders } from "./Reminders";
 import { placeTasks } from "./lib/calendarSync";
 import { placementQueue } from "./lib/serialQueue";
 import { formatPage, parsePage, type PageId } from "./lib/route";
@@ -98,6 +99,7 @@ export function App() {
       </nav>
       <div hidden={page !== "today"}>
         <Today refreshTick={refreshTick} />
+        <Reminders />
       </div>
       <div hidden={page !== "tasks"}>
         <Tasks googleToken={session.provider_token ?? null} onReconnect={signIn} refreshTick={refreshTick} />

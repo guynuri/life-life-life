@@ -10,6 +10,7 @@ test("placed sessions show; a session can be moved; unschedule holds; Schedule r
   await serveTable(page, "tasks", tasks);
   await serveTable(page, "sessions", sessions);
   await serveTable(page, "work_settings", []);
+  await serveTable(page, "reminders", []);
   await serveGoogle(page, googleEvents);
 
   await page.goto("/");
@@ -56,6 +57,7 @@ test("a big task is placed as several sessions; tasks stay in deadline order; ed
   await serveTable(page, "tasks", tasks, { defaults: taskDefaults });
   await serveTable(page, "sessions", sessions);
   await serveTable(page, "work_settings", []);
+  await serveTable(page, "reminders", []);
   await serveGoogle(page, googleEvents);
 
   await page.goto("/");
@@ -92,6 +94,7 @@ test("a failed save is shown and the list keeps the stored state", async ({ page
   await serveTable(page, "tasks", tasks, { defaults: taskDefaults, failWrites: true });
   await serveTable(page, "sessions", []);
   await serveTable(page, "work_settings", []);
+  await serveTable(page, "reminders", []);
   await serveGoogle(page, []);
 
   await page.goto("/");
