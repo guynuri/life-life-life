@@ -103,18 +103,21 @@ test("a failed save is shown and the list keeps the stored state", async ({ page
   await expect(page.getByRole("listitem")).toHaveCount(1);
 });
 
-test("completing a task hides it until shown; marking it not done places it again", async ({ page }) => {
+test("completing a task moves it at once; the done list is an accordion; marking it not done places it again", async ({ page }) => {
   const sessions: Row[] = [];
   const tasks = [taskRow({ id: "pay", title: "Pay rent", duration_min: 20 })];
   await openTasks(page, tasks, sessions);
   await expect(item(page, "Pay rent")).toContainText("Placed");
 
+  // Optimistic: the row leaves the list as soon as it is pressed; the accordion header counts it.
   await page.getByRole("checkbox", { name: "Complete Pay rent" }).click();
   await expect(item(page, "Pay rent")).toHaveCount(0);
-  expect(tasks[0]?.done).toBe(true);
+  await expect(page.getByText("Done (1)")).toBeVisible();
+  await expect.poll(() => tasks[0]?.done).toBe(true);
   expect(sessions).toHaveLength(0);
 
-  await page.getByRole("button", { name: "Show done (1)" }).click();
+  // The accordion is collapsed by default; opening it shows the done row in place.
+  await page.getByText("Done (1)").click();
   await expect(item(page, "Pay rent")).toContainText("Done");
 
   await menu(page, "Pay rent").click();
@@ -122,6 +125,17 @@ test("completing a task hides it until shown; marking it not done places it agai
   await expect(item(page, "Pay rent")).toContainText("Placed");
   expect(tasks[0]?.done).toBe(false);
   expect(sessions).toHaveLength(1);
+});
+
+test("a failed complete puts the row back and shows the error in the list", async ({ page }) => {
+  const tasks = [taskRow({ id: "old", title: "Existing", held: true })];
+  await openTasks(page, tasks, [], [], true);
+  await expect(item(page, "Existing")).toContainText("Unscheduled");
+
+  await page.getByRole("checkbox", { name: "Complete Existing" }).click();
+  await expect(page.getByRole("alert")).toContainText('Could not complete "Existing"');
+  await expect(item(page, "Existing")).toContainText("Unscheduled");
+  await expect(page.getByText("Done (")).toHaveCount(0);
 });
 
 test("Move up and Move down reorder the list; placement ignores the order", async ({ page }) => {

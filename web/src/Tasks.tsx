@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -7,6 +7,7 @@ import {
   CalendarRange,
   CalendarX,
   Check,
+  ChevronDown,
   Flag,
   GripVertical,
   Link2,
@@ -24,11 +25,14 @@ import {
 } from "lucide-react";
 import { placementQueue } from "./lib/serialQueue";
 import {
+  dragShift,
+  dropIndex,
   moveSteps,
   moveToSteps,
   ORDER_STEP,
   parseTaskEdit,
   parseTaskInput,
+  slotTops,
   sortTasks,
   taskStatus,
   toLocalInputValue,
@@ -83,6 +87,20 @@ const emptyForm: TaskInput = {
 // The sheet is either adding a task, or editing one (only title, duration, deadline and priority change; SPEC 2.7).
 type SheetState = { mode: "add" } | { mode: "edit"; task: Task } | null;
 
+// A drag in progress: the row, where it started, the row heights, how far the pointer moved it, and where it lands.
+interface DragState {
+  id: string;
+  from: number;
+  heights: number[];
+  startY: number;
+  dy: number;
+  to: number;
+  settling: boolean;
+}
+
+// The time a drop takes to settle, in milliseconds. Matches the CSS transition on the dragged row.
+const SETTLE_MS = 180;
+
 interface Loaded {
   tasks: Task[];
   sessions: StoredSession[];
@@ -125,11 +143,13 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
   const [form, setForm] = useState<TaskInput>(emptyForm);
   const [edit, setEdit] = useState<TaskEditInput>({ title: "", durationMin: "", deadline: "", priority: "normal" });
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const [showDone, setShowDone] = useState(false);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [moveValue, setMoveValue] = useState("");
-  // A drag from the grip: the row being moved, where it started, and the row it is over now (display order only).
-  const [drag, setDrag] = useState<{ id: string; from: number; over: number } | null>(null);
+  // Optimistic done state (SPEC 2.7): the row shows the new state at once; the save runs in the background.
+  const [pending, setPending] = useState<Record<string, boolean>>({});
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const dragRef = useRef<DragState | null>(null);
+  const activeListRef = useRef<HTMLUListElement>(null);
 
   // Shows a failed action. Google auth failures also offer Reconnect. Never throws.
   function fail(message: string, error: unknown) {
@@ -251,14 +271,27 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
     await refresh();
   }
 
+  // Done state as shown: a pending change wins until its save has finished.
+  function isDone(task: Task): boolean {
+    return pending[task.id] ?? task.done;
+  }
+
+  // Done or not done, optimistically (SPEC 2.7, assumed): the row moves at once, the save runs in the background, and a
+  // failed save puts the row back and shows the error in the list (SPEC principles: no silent failures).
   async function toggleDone(task: Task) {
-    try {
-      await completeTask(googleToken, task.id, !task.done);
-    } catch (error) {
-      return fail(task.done ? "Could not mark the task not done" : "Could not complete the task", error);
-    }
+    const next = !isDone(task);
     setErrors([]);
-    await refresh();
+    setPending((p) => ({ ...p, [task.id]: next }));
+    try {
+      await completeTask(googleToken, task.id, next);
+    } catch (error) {
+      setPending((p) => withoutKey(p, task.id));
+      return fail(next ? `Could not complete "${task.title}"` : `Could not reopen "${task.title}"`, error);
+    }
+    // Reopening a task may place it again, so that path runs a placement; completing does not need one.
+    if (next) await placementQueue(() => loadStored());
+    else await refresh();
+    setPending((p) => withoutKey(p, task.id));
   }
 
   // Manual order (SPEC 2.7, assumed): swaps the row with its neighbour. Display only; placement does not read it.
@@ -270,6 +303,62 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
     }
     setErrors([]);
     await loadStored();
+  }
+
+  // Writes the manual order for a drop from one index to another (display only).
+  async function reorder(list: Task[], from: number, to: number) {
+    try {
+      for (const step of moveToSteps(list, from, to)) await setPosition(step.id, step.position);
+    } catch (error) {
+      return setErrors([`Could not move the task: ${messageOf(error)}`]);
+    }
+    setErrors([]);
+    await loadStored();
+  }
+
+  // Drag by the grip (SPEC 2.7, assumed). Pointer capture keeps the events on the grip, so it works with a finger on iPhone.
+  // The row follows the pointer; the rows in between move out of the way; a drop settles into the slot, then commits.
+  function beginDrag(event: ReactPointerEvent<HTMLButtonElement>, from: number) {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const rows = Array.from(activeListRef.current?.querySelectorAll<HTMLElement>(":scope > li") ?? []);
+    const next: DragState = {
+      id: active[from]?.id ?? "",
+      from,
+      heights: rows.map((row) => row.offsetHeight),
+      startY: event.clientY,
+      dy: 0,
+      to: from,
+      settling: false,
+    };
+    dragRef.current = next;
+    setDrag(next);
+  }
+
+  function moveDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    const current = dragRef.current;
+    if (!current || current.settling) return;
+    const dy = event.clientY - current.startY;
+    const next = { ...current, dy, to: dropIndex(current.heights, current.from, dy) };
+    dragRef.current = next;
+    setDrag(next);
+  }
+
+  function endDrag() {
+    const current = dragRef.current;
+    if (!current || current.settling) return;
+    const tops = slotTops(current.heights);
+    const landing = current.to;
+    // The dragged row settles into its new slot, then the order is written.
+    const settled = { ...current, dy: (tops[landing] ?? 0) - (tops[current.from] ?? 0), settling: true };
+    dragRef.current = settled;
+    setDrag(settled);
+    const order = active;
+    window.setTimeout(() => {
+      dragRef.current = null;
+      setDrag(null);
+      if (landing !== current.from) void reorder(order, current.from, landing);
+    }, SETTLE_MS);
   }
 
   function startMove(session: StoredSession) {
@@ -303,47 +392,14 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
 
   const tasks = data?.tasks ?? [];
   // One list in manual order (SPEC 2.7, assumed). Tasks with the same position keep the deadline order.
-  const active = sortTasks(tasks.filter((t) => !t.done)).sort((a, b) => a.position - b.position);
-  // Move a task in the manual order; only the rows that change are written (SPEC 2.7, assumed).
-  async function reorder(from: number, to: number) {
-    try {
-      for (const step of moveToSteps(active, from, to)) await setPosition(step.id, step.position);
-    } catch (error) {
-      return setErrors([`Could not move the task: ${messageOf(error)}`]);
-    }
-    setErrors([]);
-    await loadStored();
-  }
-
-  // Drag by the grip with pointer events, so it works with a finger on iPhone. The row under the pointer when it lifts is the drop place.
-  function startDrag(event: ReactPointerEvent<HTMLButtonElement>, from: number) {
-    event.preventDefault();
-    setDrag({ id: active[from]?.id ?? "", from, over: from });
-    const rowAt = (x: number, y: number) => {
-      const row = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-order]");
-      return row ? Number(row.dataset.order) : null;
-    };
-    const onMove = (e: PointerEvent) => {
-      const over = rowAt(e.clientX, e.clientY);
-      if (over !== null) setDrag((d) => (d ? { ...d, over } : d));
-    };
-    const onUp = (e: PointerEvent) => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      const to = rowAt(e.clientX, e.clientY) ?? from;
-      setDrag(null);
-      if (to !== from) void reorder(from, to);
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  }
-
-  const done = sortTasks(tasks.filter((t) => t.done));
+  const active = sortTasks(tasks.filter((t) => !isDone(t))).sort((a, b) => a.position - b.position);
+  const done = sortTasks(tasks.filter((t) => isDone(t)));
   const sessionsOf = (task: Task) => (data?.sessions ?? []).filter((session) => session.taskId === task.id).sort((a, b) => a.start - b.start);
 
   function renderRow(task: Task, list: Task[], index: number) {
+    const isDoneNow = isDone(task);
     const sessions = sessionsOf(task);
-    const status = taskStatus(task, sessions.length > 0);
+    const status = taskStatus({ held: task.held, done: isDoneNow }, sessions.length > 0);
     const statusText = { placed: "Placed", unplaced: "Unplaced", unscheduled: "Unscheduled", done: "Done" }[status];
     const meta = [
       task.topic,
@@ -354,7 +410,7 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
     ].filter((part): part is string => part !== null && part !== "");
     const items = [
       { key: "edit", label: "Edit", icon: Pencil, onSelect: () => openEdit(task) },
-      ...(task.done
+      ...(isDoneNow
         ? [{ key: "undo", label: "Mark not done", icon: Undo2, onSelect: () => toggleDone(task) }]
         : [
             ...(index > 0 ? [{ key: "up", label: "Move up", icon: ArrowUp, onSelect: () => moveTask(list, index, -1) }] : []),
@@ -365,17 +421,20 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
           ]),
       { key: "delete", label: "Delete task", icon: Trash2, danger: true, onSelect: () => setConfirmingId(task.id) },
     ];
+    // While a drag is on, the dragged row follows the pointer and the rows in between make room (display only).
+    const moving = drag && !isDoneNow ? drag : null;
+    const style =
+      moving === null
+        ? undefined
+        : index === moving.from
+          ? { transform: `translateY(${moving.dy}px)`, transition: moving.settling ? `transform ${SETTLE_MS}ms ease-out` : "none", zIndex: 5, position: "relative" as const }
+          : { transform: `translateY(${dragShift(moving.heights, moving.from, moving.to, index)}px)`, transition: `transform ${SETTLE_MS}ms ease` };
     return (
       <li
         key={task.id}
-        className={[
-          task.done ? "task-row done" : "task-row",
-          drag?.id === task.id ? "dragging" : "",
-          drag && !task.done && drag.over === index && drag.from !== index ? "drop-target" : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-        data-order={task.done ? undefined : index}
+        className={[isDoneNow ? "task-row done" : "task-row", moving?.id === task.id ? "dragging" : ""].filter(Boolean).join(" ")}
+        data-order={isDoneNow ? undefined : index}
+        style={style}
       >
         {task.priority !== "normal" && (
           <span className={`priority-edge ${task.priority}`} role="img" aria-label={`${PRIORITY_LABELS[task.priority]} priority`} />
@@ -383,17 +442,15 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
         <button
           type="button"
           role="checkbox"
-          aria-checked={task.done}
+          aria-checked={isDoneNow}
           aria-label={`Complete ${task.title}`}
           className="check"
           onClick={() => toggleDone(task)}
         >
-          {task.done && <Check aria-hidden="true" size={16} strokeWidth={3} />}
+          {isDoneNow && <Check aria-hidden="true" size={16} strokeWidth={3} />}
         </button>
         <div className="task-body">
-          <p className="task-title">
-            {task.title}
-          </p>
+          <p className="task-title">{task.title}</p>
           <p className="task-meta">{meta.join(" · ")}</p>
           {sessions.map((session) =>
             movingId === session.id ? (
@@ -426,8 +483,16 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
             ),
           )}
         </div>
-        {!task.done && (
-          <button type="button" className="grip" aria-label={`Drag ${task.title} to reorder`} onPointerDown={(e) => startDrag(e, index)}>
+        {!isDoneNow && (
+          <button
+            type="button"
+            className="grip"
+            aria-label={`Drag ${task.title} to reorder`}
+            onPointerDown={(e) => beginDrag(e, index)}
+            onPointerMove={moveDrag}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+          >
             <GripVertical aria-hidden="true" size={20} strokeWidth={2} />
           </button>
         )}
@@ -481,21 +546,19 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
         <p className="status">No tasks yet. Use the plus button to add one.</p>
       ) : (
         <>
-          {active.length > 0 && <ul className="task-list">{active.map((t, i) => renderRow(t, active, i))}</ul>}
-          {done.length > 0 && (
-            <div className="done-toggle">
-              <button type="button" className="secondary" aria-pressed={showDone} onClick={() => setShowDone(!showDone)}>
-                <Label icon={Check}>{showDone ? "Hide done" : `Show done (${done.length})`}</Label>
-              </button>
-            </div>
+          {active.length > 0 && (
+            <ul className="task-list" ref={activeListRef}>
+              {active.map((t, i) => renderRow(t, active, i))}
+            </ul>
           )}
-          {showDone && done.length > 0 && (
-            <section className="done-section" aria-labelledby="done-heading">
-              <h3 id="done-heading">
-                Done <span className="count">{done.length}</span>
-              </h3>
+          {done.length > 0 && (
+            <details className="done-accordion">
+              <summary>
+                <span>Done ({done.length})</span>
+                <ChevronDown aria-hidden="true" size={18} strokeWidth={2.25} className="chev" />
+              </summary>
               <ul className="task-list">{done.map((t, i) => renderRow(t, done, i))}</ul>
-            </section>
+            </details>
           )}
         </>
       )}
@@ -617,4 +680,11 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
       </Sheet>
     </section>
   );
+}
+
+// A copy of the map without one key.
+function withoutKey(map: Record<string, boolean>, key: string): Record<string, boolean> {
+  const next = { ...map };
+  delete next[key];
+  return next;
 }

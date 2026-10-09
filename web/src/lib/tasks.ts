@@ -74,6 +74,37 @@ export function moveSteps(tasks: readonly Task[], index: number, direction: -1 |
   return moveToSteps(tasks, index, index + direction);
 }
 
+// Top of each row's slot, for rows of the given heights stacked in order.
+export function slotTops(heights: readonly number[]): number[] {
+  const tops: number[] = [];
+  let y = 0;
+  for (const h of heights) {
+    tops.push(y);
+    y += h;
+  }
+  return tops;
+}
+
+// The index a dragged row lands on, given the rows' heights and how far the pointer moved it (display only).
+export function dropIndex(heights: readonly number[], from: number, dy: number): number {
+  const tops = slotTops(heights);
+  const mid = (tops[from] ?? 0) + (heights[from] ?? 0) / 2 + dy;
+  let to = 0;
+  heights.forEach((h, i) => {
+    if (i !== from && (tops[i] ?? 0) + h / 2 < mid) to++;
+  });
+  return to;
+}
+
+// How far a row that is not being dragged moves, to make room for the dragged row (display only).
+export function dragShift(heights: readonly number[], from: number, to: number, index: number): number {
+  const height = heights[from] ?? 0;
+  if (index === from) return 0;
+  if (from < to && index > from && index <= to) return -height;
+  if (to < from && index >= to && index < from) return height;
+  return 0;
+}
+
 // The rows to write when the task at from is dropped at to (drag, or Move up and down). Display only.
 export function moveToSteps(tasks: readonly Task[], from: number, to: number): { id: string; position: number }[] {
   const moved = tasks[from];

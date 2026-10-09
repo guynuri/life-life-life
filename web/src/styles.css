@@ -1,150 +1,144 @@
-/* Design tokens. Light is the default. Dark applies when the system is dark, unless the reader chose Light; an explicit
-   choice in Settings sets data-theme on <html> and wins over the system (SPEC Visual direction).
-   Each page sets an accent (--accent, --accent-ink, --accent-text) on its root class; Settings and the tab bar use the base. */
+/* Palette: pastel accent families, one per page, on neutral surfaces. Light is the default; dark applies when the system
+   is dark, unless the reader chose Light. An explicit choice in Settings sets data-theme on <html> and wins over the system.
+   The page sets its accent on its root class; Settings and the tab bar use the base (peach). See SPEC Pages. */
+/* Shape and type, the same in both themes. */
 :root {
-  color-scheme: light;
-  --bg: #f4f4f1; /* neutral base: the page accent carries the colour */
-  --surface: #e7e7e3; /* neutral surface: menus and rows */
-  --ink: #1b1b1f; /* ink: body text */
-  --muted: #5b5b62;
-  --orange: #ff7a1a; /* base accent: Settings, tab bar, primary actions by default */
-  --on-orange: #22103a; /* text on orange: plum ink, not white (contrast) */
-  --purple: #4b1f7a; /* structure and text accents */
-  --error: #b3261e;
-  --success: #1e7a4c;
-  --heart: #d62b3d;
-  --line: rgba(27, 27, 31, 0.14);
-  --shadow: 0 6px 18px rgba(27, 27, 31, 0.08);
   --radius: 14px;
-  --accent: var(--orange);
-  --accent-ink: var(--on-orange);
-  --accent-text: var(--purple);
-  --hero-a: #e0560a;
-  --hero-b: #4b1f7a;
   --font-display: "Bricolage Grotesque", system-ui, sans-serif;
   --font-body: "Figtree", system-ui, sans-serif;
 }
 
+:root {
+color-scheme: light;
+--bg: #faf8f5;
+--surface: #f0ece7;
+--ink: #2f2a33;
+--muted: #6e6772;
+--line: rgba(47, 42, 51, 0.13);
+--shadow: 0 6px 16px rgba(47, 42, 51, 0.07);
+--error: #b0413e;
+--success: #2d7550;
+--coral: #e98a78;
+--accent: #f6c4a5;
+--accent-ink: #4a2a1a;
+--accent-text: #a0522d;
+--hero-a: #f6c4a5;
+--hero-b: #a0522d;
+--hero-ink: var(--accent-ink);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --bg: #111113;
-    --surface: #1f1f23;
-    --ink: #f2f2f5;
-    --muted: #a6a6ae;
-    --orange: #ff9a4d;
-    --on-orange: #1d0f2e;
-    --purple: #c4a6f7;
-    --error: #ff8a80;
-    --success: #7fe0a6;
-  --heart: #ff7b86;
-    --line: rgba(255, 255, 255, 0.14);
-    --shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
-    --accent: var(--orange);
-    --accent-ink: var(--on-orange);
-    --accent-text: var(--purple);
-    --hero-a: #b8500f;
-    --hero-b: #4b1f7a;
-  }
+:root:not([data-theme="light"]) {
+  color-scheme: dark;
+  --bg: #17141a;
+  --surface: #231e27;
+  --ink: #f2eef4;
+  --muted: #b6aebb;
+  --line: rgba(242, 238, 244, 0.14);
+  --shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  --error: #ff9a94;
+  --success: #9ed9b8;
+  --coral: #f5a193;
+  --accent: #edb08a;
+  --accent-ink: #3a1e0f;
+  --accent-text: #f3c2a3;
+  --hero-a: #edb08a;
+  --hero-b: #f3c2a3;
+  --hero-ink: var(--accent-ink);
+}
 }
 
 :root[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #111113;
-  --surface: #1f1f23;
-  --ink: #f2f2f5;
-  --muted: #a6a6ae;
-  --orange: #ff9a4d;
-  --on-orange: #1d0f2e;
-  --purple: #c4a6f7;
-  --error: #ff8a80;
-  --success: #7fe0a6;
-  --heart: #ff7b86;
-  --line: rgba(255, 255, 255, 0.14);
-  --shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
-  --accent: var(--orange);
-  --accent-ink: var(--on-orange);
-  --accent-text: var(--purple);
-  --hero-a: #b8500f;
-  --hero-b: #4b1f7a;
+color-scheme: dark;
+--bg: #17141a;
+--surface: #231e27;
+--ink: #f2eef4;
+--muted: #b6aebb;
+--line: rgba(242, 238, 244, 0.14);
+--shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+--error: #ff9a94;
+--success: #9ed9b8;
+--coral: #f5a193;
+--accent: #edb08a;
+--accent-ink: #3a1e0f;
+--accent-text: #f3c2a3;
+--hero-a: #edb08a;
+--hero-b: #f3c2a3;
+--hero-ink: var(--accent-ink);
 }
 
-/* Per-page accents. Light values first; dark values repeat under the same two conditions as the tokens above. */
 .page-today {
-  --accent: #2563c9;
-  --accent-ink: #ffffff;
-  --accent-text: #1f55b5;
-  --hero-a: #2563c9;
-  --hero-b: #14307a;
+--accent: #b5d0f7;
+--accent-ink: #1b2c4d;
+--accent-text: #3a66b3;
+--hero-a: #b5d0f7;
+--hero-b: #7fa8e6;
+--hero-ink: var(--accent-ink);
 }
-
-.page-tasks {
-  --accent: #17794b;
-  --accent-ink: #ffffff;
-  --accent-text: #17794b;
-}
-
 .page-people {
-  --accent: #c2185b;
-  --accent-ink: #ffffff;
-  --accent-text: #b0154f;
+--accent: #f7c6d2;
+--accent-ink: #4d1c2c;
+--accent-text: #a23b5f;
 }
-
 .page-mood {
-  --accent: #9b7fd4;
-  --accent-ink: #22103a;
-  --accent-text: #6f4bb5;
+--accent: #d7c8f5;
+--accent-ink: #2f1f52;
+--accent-text: #6a4aae;
+}
+.page-tasks {
+--accent: #bde8d0;
+--accent-ink: #163d2a;
+--accent-text: #2d7550;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .page-today {
-    --accent: #7fb0ff;
-    --accent-ink: #0b1a33;
-    --accent-text: #9cc2ff;
-    --hero-a: #2b5fbf;
-    --hero-b: #0e2456;
-  }
-  :root:not([data-theme="light"]) .page-tasks {
-    --accent: #6fe0a0;
-    --accent-ink: #0c2417;
-    --accent-text: #8ff0b8;
+  --accent: #8fb4ee;
+  --accent-ink: #0f1e38;
+  --accent-text: #a9c8f5;
+  --hero-a: #35598f;
+  --hero-b: #22406e;
+  --hero-ink: #f4f7ff;
   }
   :root:not([data-theme="light"]) .page-people {
-    --accent: #ff7fa8;
-    --accent-ink: #2a0a18;
-    --accent-text: #ff9dbd;
+  --accent: #eda6b8;
+  --accent-ink: #3c1222;
+  --accent-text: #f5b7c7;
   }
   :root:not([data-theme="light"]) .page-mood {
-    --accent: #c4a6f7;
-    --accent-ink: #1d0f2e;
-    --accent-text: #d6c2fa;
+  --accent: #b9a4e8;
+  --accent-ink: #1f1338;
+  --accent-text: #d3c3f7;
+  }
+  :root:not([data-theme="light"]) .page-tasks {
+  --accent: #9ed9b8;
+  --accent-ink: #0e2a1c;
+  --accent-text: #b5eacb;
   }
 }
 
 :root[data-theme="dark"] .page-today {
-  --accent: #7fb0ff;
-  --accent-ink: #0b1a33;
-  --accent-text: #9cc2ff;
-  --hero-a: #2b5fbf;
-  --hero-b: #0e2456;
+--accent: #8fb4ee;
+--accent-ink: #0f1e38;
+--accent-text: #a9c8f5;
+--hero-a: #35598f;
+--hero-b: #22406e;
+--hero-ink: #f4f7ff;
 }
-
-:root[data-theme="dark"] .page-tasks {
-  --accent: #6fe0a0;
-  --accent-ink: #0c2417;
-  --accent-text: #8ff0b8;
-}
-
 :root[data-theme="dark"] .page-people {
-  --accent: #ff7fa8;
-  --accent-ink: #2a0a18;
-  --accent-text: #ff9dbd;
+--accent: #eda6b8;
+--accent-ink: #3c1222;
+--accent-text: #f5b7c7;
 }
-
 :root[data-theme="dark"] .page-mood {
-  --accent: #c4a6f7;
-  --accent-ink: #1d0f2e;
-  --accent-text: #d6c2fa;
+--accent: #b9a4e8;
+--accent-ink: #1f1338;
+--accent-text: #d3c3f7;
+}
+:root[data-theme="dark"] .page-tasks {
+--accent: #9ed9b8;
+--accent-ink: #0e2a1c;
+--accent-text: #b5eacb;
 }
 
 * {
@@ -164,7 +158,7 @@ body {
 }
 
 :focus-visible {
-  outline: 3px solid var(--orange);
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -209,7 +203,7 @@ h2 {
   margin: 24px 0 10px;
   font-size: 1.3rem;
   font-weight: 700;
-  color: var(--purple);
+  color: var(--accent-text);
 }
 
 h3 {
@@ -252,7 +246,7 @@ p {
   padding: 6px 6px calc(env(safe-area-inset-bottom) + 6px);
   background: var(--surface);
   border-top: 1px solid var(--line);
-  box-shadow: 0 -6px 18px rgba(75, 31, 122, 0.08);
+  box-shadow: 0 -6px 18px rgba(47, 42, 51, 0.08);
 }
 
 .tabs button {
@@ -267,8 +261,8 @@ p {
 }
 
 .tabs button[aria-selected="true"] {
-  color: var(--purple);
-  background: color-mix(in srgb, var(--orange) 24%, transparent);
+  color: var(--accent-text);
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
 /* Buttons: compact, icon plus short label. Primary takes the page accent; secondary is a purple outline. */
@@ -294,8 +288,8 @@ button:disabled {
 
 button.secondary {
   background: transparent;
-  color: var(--purple);
-  box-shadow: inset 0 0 0 1.5px var(--purple);
+  color: var(--accent-text);
+  box-shadow: inset 0 0 0 1.5px var(--accent-text);
 }
 
 button.danger {
@@ -309,14 +303,14 @@ button.danger {
   min-width: 44px;
   padding: 0;
   background: transparent;
-  color: var(--purple);
+  color: var(--accent-text);
 }
 
 .text-button {
   min-height: 36px;
   padding: 0 4px;
   background: transparent;
-  color: var(--purple);
+  color: var(--accent-text);
   font-weight: 600;
   font-size: 0.9rem;
   justify-self: start;
@@ -504,12 +498,12 @@ input[type="time"] {
   height: 40px;
   padding: 0;
   background: transparent;
-  color: var(--purple);
+  color: var(--accent-text);
   box-shadow: none;
 }
 
 .cal-nav-button svg {
-  color: var(--purple);
+  color: var(--accent-text);
   fill: currentColor;
   stroke: currentColor;
 }
@@ -627,14 +621,14 @@ input[type="time"] {
   margin: 8px 0 16px;
   border-radius: 20px;
   background: linear-gradient(135deg, var(--hero-a) 0%, var(--hero-b) 100%);
-  color: #fff;
+  color: var(--hero-ink);
   box-shadow: var(--shadow);
   animation: rise 520ms ease-out both;
 }
 
 .hero h2 {
   margin: 0 0 6px;
-  color: #fff;
+  color: var(--hero-ink);
   font-size: 1.6rem;
 }
 
@@ -808,7 +802,7 @@ button.session {
   min-height: 40px;
   padding: 0 12px;
   background: transparent;
-  color: var(--purple);
+  color: var(--accent-text);
   box-shadow: inset 0 0 0 1px var(--line);
   font-weight: 600;
   margin-top: 6px;
@@ -825,7 +819,7 @@ button.session {
 }
 
 .topic {
-  color: var(--purple);
+  color: var(--accent-text);
   font-weight: 600;
 }
 
@@ -839,12 +833,12 @@ button.session {
   border-radius: 22px 22px 0 0;
   background: var(--bg);
   color: var(--ink);
-  box-shadow: 0 -10px 30px rgba(20, 8, 32, 0.25);
+  box-shadow: 0 -10px 30px rgba(20, 20, 24, 0.22);
   overflow: auto;
 }
 
 .sheet::backdrop {
-  background: rgba(20, 8, 32, 0.45);
+  background: rgba(20, 20, 24, 0.4);
 }
 
 .sheet-head {
@@ -1045,8 +1039,8 @@ button.session {
 
 .segmented button[aria-pressed="false"] {
   background: transparent;
-  color: var(--purple);
-  box-shadow: inset 0 0 0 1.5px var(--purple);
+  color: var(--accent-text);
+  box-shadow: inset 0 0 0 1.5px var(--accent-text);
 }
 
 @keyframes rise {
@@ -1164,7 +1158,7 @@ button.session {
 }
 
 .priority-edge.high {
-  background: var(--orange);
+  background: var(--coral);
 }
 
 .priority-edge.low {
@@ -1201,7 +1195,7 @@ button.session {
 }
 
 .priority-option.high .priority-dot {
-  background: var(--orange);
+  background: var(--coral);
 }
 
 .priority-option.normal .priority-dot {
@@ -1222,7 +1216,7 @@ button.session {
 }
 
 .contact.recent {
-  color: var(--heart);
+  color: var(--accent-text);
 }
 
 .float-hearts {
@@ -1238,7 +1232,7 @@ button.session {
   position: absolute;
   left: 0;
   top: 0;
-  color: var(--heart);
+  color: var(--accent-text);
   opacity: 0;
   animation: float-up 800ms ease-out both;
 }
@@ -1269,4 +1263,73 @@ button.session {
     opacity: 0;
     transform: translate(calc(-50% + var(--dx)), calc(-50% - 30px)) scale(1);
   }
+}
+
+/* Tasks: a row that is being dragged lifts off the list; the priority edge stays on it. */
+.task-row {
+  position: relative;
+  padding-left: 12px;
+}
+
+.task-row.dragging {
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+/* Done: an accordion at the bottom, collapsed by default. */
+.done-accordion {
+  margin-top: 18px;
+}
+
+.done-accordion > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--accent-text);
+  list-style: none;
+}
+
+.done-accordion > summary::-webkit-details-marker {
+  display: none;
+}
+
+.done-accordion .chev {
+  transition: transform 180ms ease;
+}
+
+.done-accordion[open] .chev {
+  transform: rotate(180deg);
+}
+
+/* People: the heart is the state. Empty outline when due; filled when not due (SPEC 3.4). */
+.contact {
+  position: relative;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  background: transparent;
+  color: var(--accent-text);
+  box-shadow: none;
+}
+
+/* The heart is filled when pressed (not due). */
+.contact[aria-pressed="true"] svg {
+  fill: currentColor;
+}
+
+/* Group two (not due) is greyed as a block: muted text on a lower-contrast surface. */
+.person-row.settled {
+  padding-left: 10px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+}
+
+.person-row.settled .person-name,
+.person-row.settled .person-meta {
+  color: var(--muted);
 }

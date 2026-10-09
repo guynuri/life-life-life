@@ -97,7 +97,7 @@ const seed: Row[] = [
   { id: "cy", name: "Cy", tier: 2, interval_days: 2, last_contacted_at: null, created_at: daysAgo(3) },
 ];
 
-test("due people sit at the top with a Due mark; contacted resets the timer; add person", async ({ page }) => {
+test("hearts: due people first with an empty heart; pressing it contacts them and moves them down", async ({ page }) => {
   const rows = structuredClone(seed);
   await fakeSupabase(page, rows);
   await page.goto("/");
@@ -105,22 +105,25 @@ test("due people sit at the top with a Due mark; contacted resets the timer; add
 
   const items = page.getByRole("listitem");
   await expect(page.getByRole("heading", { name: "People" })).toBeVisible();
-  // One list: due people first (Ann, tier 1, then Cy), then everyone else (Bob, not due).
+  // Due people first, oldest contact first: Ann (8 days, interval 7), then Cy (added 3 days ago, interval 2).
+  // Bob is not due, so he is greyed out at the bottom with a full heart.
   await expect(items).toHaveCount(3);
   await expect(items.nth(0)).toContainText("Ann");
   await expect(items.nth(0)).toContainText("Due");
   await expect(items.nth(1)).toContainText("Cy");
   await expect(items.nth(2)).toContainText("Bob");
-  await expect(items.nth(2)).not.toContainText("Due");
+  await expect(items.nth(2)).toHaveClass(/settled/);
+  await expect(page.getByRole("button", { name: "Mark Ann contacted" })).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByRole("button", { name: "Mark Bob contacted" })).toHaveAttribute("aria-pressed", "true");
 
-  // The Contacted icon resets Ann's timer, so she is no longer due and moves down the list.
+  // Pressing Ann's heart contacts her: she moves below Bob (contacted a day ago), and her heart is full.
   await page.getByRole("button", { name: "Mark Ann contacted" }).click();
   await expect(items.nth(0)).toContainText("Cy");
-  // Ann is contacted within her interval now: below the people not yet contacted, with a red heart.
-  await expect(items.nth(1)).toContainText("Ann");
-  await expect(items.nth(2)).toContainText("Bob");
-  await expect(items.filter({ hasText: "Ann" })).not.toContainText("Due");
+  await expect(items.nth(1)).toContainText("Bob");
+  await expect(items.nth(2)).toContainText("Ann");
+  await expect(items.nth(2)).toHaveClass(/settled/);
   await expect(page.getByRole("button", { name: "Mark Ann contacted" })).toHaveAttribute("aria-pressed", "true");
+  await expect(items.filter({ hasText: "Ann" })).not.toContainText("Due");
 
   // Add a person from the plus button; a bad interval is rejected before saving.
   await page.getByRole("button", { name: "Add person", exact: true }).click();
@@ -136,7 +139,7 @@ test("due people sit at the top with a Due mark; contacted resets the timer; add
   await expect(items.filter({ hasText: "Dee" })).toContainText("Tier 2 · every 14 days");
 });
 
-test("a failed contacted save shows the error and the stored state", async ({ page }) => {
+test("a failed contacted save puts the person back where they were, with the error", async ({ page }) => {
   const rows = structuredClone(seed);
   await fakeSupabase(page, rows, "database unavailable");
   await page.goto("/");
@@ -147,7 +150,7 @@ test("a failed contacted save shows the error and the stored state", async ({ pa
   await page.getByRole("button", { name: "Mark Ann contacted" }).click();
 
   await expect(page.getByText("Save failed: database unavailable")).toBeVisible();
-  // Ann was not saved as contacted, so she is still due and still first.
+  // The save failed, so Ann is still due and back at the top.
   await expect(items.first()).toContainText("Ann");
   await expect(items.first()).toContainText("Due");
 });

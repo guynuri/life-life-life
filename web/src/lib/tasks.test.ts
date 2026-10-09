@@ -6,6 +6,8 @@ import {
   taskStatus,
   toLocalInputValue,
   type Task,
+  dragShift,
+  dropIndex,
   moveSteps,
   moveToSteps,
   type TaskInput,
@@ -187,5 +189,23 @@ describe("moveToSteps", () => {
     const list = [row("a", 0), row("b", 10)];
     expect(moveToSteps(list, 1, 1)).toEqual([]);
     expect(moveToSteps(list, 0, 5)).toEqual([]);
+  });
+});
+
+describe("drag geometry", () => {
+  it("lands the dragged row where the pointer has taken it", () => {
+    expect(dropIndex([50, 50, 50], 0, 0)).toBe(0);
+    expect(dropIndex([50, 50, 50], 0, 60)).toBe(1);
+    expect(dropIndex([50, 50, 50], 2, -100)).toBe(0);
+    expect(dropIndex([50, 50, 50], 0, 500)).toBe(2);
+  });
+
+  it("moves the rows in between out of the way", () => {
+    expect(dragShift([50, 50, 50], 0, 2, 1)).toBe(-50);
+    expect(dragShift([50, 50, 50], 0, 2, 2)).toBe(-50);
+    expect(dragShift([50, 50, 50], 0, 2, 0)).toBe(0);
+    expect(dragShift([50, 50, 50], 2, 0, 0)).toBe(50);
+    expect(dragShift([50, 50, 50], 2, 0, 1)).toBe(50);
+    expect(dragShift([50, 50, 50], 1, 1, 0)).toBe(0);
   });
 });

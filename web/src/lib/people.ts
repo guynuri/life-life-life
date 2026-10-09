@@ -35,6 +35,15 @@ export function isDue(person: Person, nowMs: number): boolean {
 }
 
 // Tier 1 first, then most overdue (earliest due time) first.
+// SPEC 3.3: the order on the People page. Due people first, then the rest. Each group is ordered by last contact,
+// oldest first; a person never contacted counts from the day they were added (3.2). Ties go by name.
+export function orderPeople(people: readonly Person[], nowMs: number): { person: Person; due: boolean }[] {
+  const reference = (p: Person) => Date.parse(p.lastContactedAt ?? p.createdAt);
+  return people
+    .map((person) => ({ person, due: isDue(person, nowMs) }))
+    .sort((a, b) => Number(b.due) - Number(a.due) || reference(a.person) - reference(b.person) || a.person.name.localeCompare(b.person.name));
+}
+
 export function dueNow(people: Person[], nowMs: number): Person[] {
   return people
     .filter((p) => isDue(p, nowMs))

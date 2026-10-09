@@ -59,7 +59,7 @@ test("the Tasks page has its styles applied", async ({ page }) => {
   await expect(row).toBeVisible();
   await expect(row).toHaveCSS("border-bottom-style", "solid");
   const add = page.getByRole("button", { name: "Add task", exact: true });
-  await expect(add).toHaveCSS("background-color", "rgb(23, 121, 75)"); // the Tasks page accent (green)
+  await expect(add).toHaveCSS("background-color", "rgb(189, 232, 208)"); // the Tasks page accent (green)
   await expect(page.getByRole("tablist", { name: "Pages" })).toHaveCSS("position", "fixed");
 });
 

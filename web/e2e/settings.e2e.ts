@@ -34,15 +34,15 @@ test("choosing Dark in Settings changes the page background, and the choice surv
   await serveGoogle(page, []);
 
   await page.goto("/#/settings");
-  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(244, 244, 241)");
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(250, 248, 245)");
   await page.getByRole("button", { name: "Dark", exact: true }).click();
-  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(17, 17, 19)");
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(23, 20, 26)");
   await expect(page.getByRole("status")).toContainText("Theme set to Dark.");
 
   await page.reload();
-  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(17, 17, 19)");
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(23, 20, 26)");
   await expect(page.getByRole("button", { name: "Dark", exact: true })).toHaveAttribute("aria-pressed", "true");
 
   await page.getByRole("button", { name: "Light", exact: true }).click();
-  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(244, 244, 241)");
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(250, 248, 245)");
 });
