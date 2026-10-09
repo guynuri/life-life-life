@@ -60,6 +60,28 @@ button {
   color: #ff453a;
 }
 
+.today {
+  margin-bottom: 24px;
+}
+
+.today h3 {
+  font-size: 1rem;
+  margin: 16px 0 8px;
+}
+
+.today-mood {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: capitalize;
+}
+
+.today-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+
 .mood {
   margin-top: 24px;
 }

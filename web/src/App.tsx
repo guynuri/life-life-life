@@ -5,6 +5,7 @@ import { configured, supabase } from "./lib/supabase";
 import { Tasks } from "./Tasks";
 import { People } from "./People";
 import { MoodScreen } from "./MoodScreen";
+import { Today } from "./Today";
 import { Reminders } from "./Reminders";
 import { placeTasks } from "./lib/calendarSync";
 import { placementQueue } from "./lib/serialQueue";
@@ -97,7 +98,7 @@ export function App() {
         ))}
       </nav>
       <div hidden={page !== "today"}>
-        <p>Today is added in phase 7.</p>
+        <Today refreshTick={refreshTick} />
         <Reminders />
       </div>
       <div hidden={page !== "tasks"}>
