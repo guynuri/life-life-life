@@ -2,6 +2,7 @@
 import { supabase } from "./supabase";
 import type { Person, PersonInput, Tier } from "./people";
 
+import { notifyDataChanged } from "./dataEvents";
 interface PersonRow {
   id: string;
   name: string;
@@ -47,16 +48,20 @@ export async function listPeople(): Promise<Person[]> {
 
 export async function addPerson(input: PersonInput): Promise<void> {
   check(await client().from("people").insert(toRow(input)));
+  notifyDataChanged();
 }
 
 export async function updatePerson(id: string, input: PersonInput): Promise<void> {
   check(await client().from("people").update(toRow(input)).eq("id", id));
+  notifyDataChanged();
 }
 
 export async function markContacted(id: string): Promise<void> {
   check(await client().from("people").update({ last_contacted_at: new Date().toISOString() }).eq("id", id));
+  notifyDataChanged();
 }
 
 export async function removePerson(id: string): Promise<void> {
   check(await client().from("people").delete().eq("id", id));
+  notifyDataChanged();
 }

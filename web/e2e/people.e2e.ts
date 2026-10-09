@@ -114,10 +114,13 @@ test("due people sit at the top with a Due mark; contacted resets the timer; add
   await expect(items.nth(2)).not.toContainText("Due");
 
   // The Contacted icon resets Ann's timer, so she is no longer due and moves down the list.
-  await page.getByRole("button", { name: "Person actions: Ann" }).click();
-  await page.getByRole("menuitem", { name: "Mark contacted" }).click();
+  await page.getByRole("button", { name: "Mark Ann contacted" }).click();
   await expect(items.nth(0)).toContainText("Cy");
+  // Ann is contacted within her interval now: below the people not yet contacted, with a red heart.
+  await expect(items.nth(1)).toContainText("Ann");
+  await expect(items.nth(2)).toContainText("Bob");
   await expect(items.filter({ hasText: "Ann" })).not.toContainText("Due");
+  await expect(page.getByRole("button", { name: "Mark Ann contacted" })).toHaveAttribute("aria-pressed", "true");
 
   // Add a person from the plus button; a bad interval is rejected before saving.
   await page.getByRole("button", { name: "Add person", exact: true }).click();
@@ -141,8 +144,7 @@ test("a failed contacted save shows the error and the stored state", async ({ pa
 
   const items = page.getByRole("listitem");
   await expect(items).toHaveCount(3);
-  await page.getByRole("button", { name: "Person actions: Ann" }).click();
-  await page.getByRole("menuitem", { name: "Mark contacted" }).click();
+  await page.getByRole("button", { name: "Mark Ann contacted" }).click();
 
   await expect(page.getByText("Save failed: database unavailable")).toBeVisible();
   // Ann was not saved as contacted, so she is still due and still first.

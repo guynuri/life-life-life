@@ -71,12 +71,16 @@ export const ORDER_STEP = 10;
 
 // The rows to write when the task at index moves up (-1) or down (+1) in the displayed list. Display only.
 export function moveSteps(tasks: readonly Task[], index: number, direction: -1 | 1): { id: string; position: number }[] {
-  const target = index + direction;
-  const moved = tasks[index];
-  if (!moved || target < 0 || target >= tasks.length) return [];
+  return moveToSteps(tasks, index, index + direction);
+}
+
+// The rows to write when the task at from is dropped at to (drag, or Move up and down). Display only.
+export function moveToSteps(tasks: readonly Task[], from: number, to: number): { id: string; position: number }[] {
+  const moved = tasks[from];
+  if (!moved || from === to || to < 0 || to >= tasks.length) return [];
   const next = [...tasks];
-  next.splice(index, 1);
-  next.splice(target, 0, moved);
+  next.splice(from, 1);
+  next.splice(to, 0, moved);
   return next.flatMap((t, i) => (t.position === i * ORDER_STEP ? [] : [{ id: t.id, position: i * ORDER_STEP }]));
 }
 

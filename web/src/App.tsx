@@ -120,7 +120,7 @@ export function App() {
         </p>
       )}
       <div hidden={page !== "today"}>
-        <Today refreshTick={refreshTick} />
+        <Today refreshTick={refreshTick} active={page === "today"} />
       </div>
       <div hidden={page !== "tasks"}>
         <Tasks googleToken={session.provider_token ?? null} onReconnect={signIn} refreshTick={refreshTick} />

@@ -278,6 +278,41 @@ export function DateTimeField({
   );
 }
 
+// Priority as three visual choices with a coloured dot each (SPEC 2.7, assumed), not a plain select.
+const PRIORITY_CHOICES = [
+  { value: "high", label: "High" },
+  { value: "normal", label: "Normal" },
+  { value: "low", label: "Low" },
+] as const;
+
+export function PriorityChoice({
+  labelId,
+  value,
+  onChange,
+}: {
+  labelId: string;
+  value: "high" | "normal" | "low";
+  onChange: (value: "high" | "normal" | "low") => void;
+}) {
+  return (
+    <div className="priority-choice" role="radiogroup" aria-labelledby={labelId}>
+      {PRIORITY_CHOICES.map((choice) => (
+        <button
+          key={choice.value}
+          type="button"
+          role="radio"
+          aria-checked={value === choice.value}
+          className={`priority-option ${choice.value}`}
+          onClick={() => onChange(choice.value)}
+        >
+          <span className="priority-dot" aria-hidden="true" />
+          <span>{choice.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // A row's three-dot menu. Items run and close the menu.
 export function RowMenu({
   label,

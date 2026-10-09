@@ -7,6 +7,7 @@ import {
   toLocalInputValue,
   type Task,
   moveSteps,
+  moveToSteps,
   type TaskInput,
 } from "./tasks";
 
@@ -167,5 +168,24 @@ describe("moveSteps", () => {
     expect(moveSteps(list, 0, -1)).toEqual([]);
     expect(moveSteps(list, 1, 1)).toEqual([]);
     expect(moveSteps([row("a", 0), row("b", 10), row("c", 20)], 2, 0 as never)).toEqual([]);
+  });
+});
+
+describe("moveToSteps", () => {
+  const row = (id: string, position: number): Task => ({ ...task({ id, title: id }), position });
+
+  it("drops a row further down the list", () => {
+    const list = [row("a", 0), row("b", 10), row("c", 20)];
+    expect(moveToSteps(list, 0, 2)).toEqual([
+      { id: "b", position: 0 },
+      { id: "c", position: 10 },
+      { id: "a", position: 20 },
+    ]);
+  });
+
+  it("writes nothing when dropped where it already is or off the list", () => {
+    const list = [row("a", 0), row("b", 10)];
+    expect(moveToSteps(list, 1, 1)).toEqual([]);
+    expect(moveToSteps(list, 0, 5)).toEqual([]);
   });
 });

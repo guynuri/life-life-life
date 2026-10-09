@@ -156,10 +156,11 @@ test("the optional fields are under More details; priority shows on the row", as
   await addForm.getByLabel("Duration (minutes)").fill("15");
   await addForm.getByText("More details").click();
   await expect(addForm.getByLabel("Topic (optional)")).toBeVisible();
-  await addForm.getByRole("button", { name: "Priority" }).click();
-  await page.getByRole("option", { name: "High", exact: true }).click();
+  await addForm.getByRole("radio", { name: "High" }).click();
   await addForm.getByRole("button", { name: "Add task" }).click();
-  await expect(item(page, "Call mum")).toContainText("High");
+  // Priority shows as a coloured edge on the row, with a name for screen readers.
+  await expect(item(page, "Call mum").getByRole("img", { name: "High priority" })).toHaveCount(1);
+  await expect(item(page, "Plan trip").getByRole("img", { name: /priority/ })).toHaveCount(0);
 });
 
 test("Refresh places new tasks and reloads the stored list", async ({ page }) => {
@@ -209,4 +210,43 @@ test("the deadline date is picked in a calendar popover; the time stays a native
   await expect(addForm.getByLabel("Time")).toHaveText("23:59");
   await addForm.getByRole("button", { name: "Add task" }).click();
   await expect(item(page, "Taxes")).toContainText("due");
+});
+
+test("drag the grip to reorder; the order is display only", async ({ page }) => {
+  const tasks = [
+    taskRow({ id: "pay", title: "Pay rent", duration_min: 20, position: 0 }),
+    taskRow({ id: "report", title: "Write report", duration_min: 30, position: 10 }),
+  ];
+  await openTasks(page, tasks, []);
+  await expect(page.getByRole("listitem").nth(0)).toContainText("Pay rent");
+
+  const grip = page.getByRole("button", { name: "Drag Pay rent to reorder" });
+  const from = await grip.boundingBox();
+  const below = await page.getByRole("listitem").nth(1).boundingBox();
+  if (!from || !below) throw new Error("rows not visible");
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(from.x + from.width / 2, below.y + below.height - 4, { steps: 10 });
+  await page.mouse.up();
+
+  await expect(page.getByRole("listitem").nth(0)).toContainText("Write report");
+  expect(tasks.find((t) => t.id === "report")?.position).toBe(0);
+  expect(tasks.find((t) => t.id === "pay")?.position).toBe(10);
+});
+
+test("Today updates without Refresh when a task is added on Tasks", async ({ page }) => {
+  await openTasks(page, [], []);
+  await page.getByRole("tab", { name: "Today", exact: true }).click();
+  await expect(page.getByText("No sessions today.")).toBeVisible();
+
+  await page.getByRole("tab", { name: "Tasks", exact: true }).click();
+  await page.getByRole("button", { name: "Add task", exact: true }).click();
+  const addForm = page.getByRole("form", { name: "Add task form" });
+  await addForm.getByLabel("Title").fill("Plan trip");
+  await addForm.getByLabel("Duration (minutes)").fill("20");
+  await addForm.getByRole("button", { name: "Add task" }).click();
+  await expect(item(page, "Plan trip")).toContainText("Placed");
+
+  await page.getByRole("tab", { name: "Today", exact: true }).click();
+  await expect(page.locator("section.today .today-session", { hasText: "Plan trip" })).toBeVisible();
 });

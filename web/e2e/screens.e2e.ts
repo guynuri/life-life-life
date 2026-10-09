@@ -6,9 +6,15 @@ const SHOTS = "C:/Users/LIOZ/AppData/Local/Temp/ui-work-shots";
 async function stubAll(page: Page) {
   await signIn(page);
   await fixClock(page);
-  const tasks: Row[] = [taskRow({ id: "pay", title: "Pay rent", duration_min: 20, topic: "Home", created_at: new Date(2026, 9, 1).toISOString() })];
+  const tasks: Row[] = [
+    taskRow({ id: "pay", title: "Pay rent", duration_min: 20, topic: "Home", created_at: new Date(2026, 9, 1).toISOString(), position: 0 }),
+    taskRow({ id: "call", title: "Call mum", duration_min: 15, priority: "high", position: 10 }),
+    taskRow({ id: "read", title: "Read book", duration_min: 30, priority: "low", position: 20 }),
+  ];
   const sessions: Row[] = [
     { id: "s1", task_id: "pay", start_at: new Date(2026, 9, 12, 10, 0).toISOString(), end_at: new Date(2026, 9, 12, 10, 20).toISOString(), calendar_event_id: null },
+    { id: "s2", task_id: "call", start_at: new Date(2026, 9, 12, 8, 0).toISOString(), end_at: new Date(2026, 9, 12, 8, 15).toISOString(), calendar_event_id: null },
+    { id: "s3", task_id: "read", start_at: new Date(2026, 9, 12, 8, 15).toISOString(), end_at: new Date(2026, 9, 12, 8, 45).toISOString(), calendar_event_id: null },
   ];
   await serveTable(page, "tasks", tasks);
   await serveTable(page, "sessions", sessions);
@@ -93,4 +99,24 @@ test("the time popover on Settings, light and dark, phone width", async ({ page 
     await page.screenshot({ path: `${SHOTS}/time-390-${scheme}.png` });
     await page.keyboard.press("Escape");
   }
+});
+
+test("Today after a change, light and dark, phone width", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await stubAll(page);
+  await page.goto("/#/today");
+  await expect(page.getByRole("tab", { name: "Today", exact: true })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: "Tasks", exact: true }).click();
+  await page.getByRole("button", { name: "Add task", exact: true }).click();
+  const form = page.getByRole("form", { name: "Add task form" });
+  await form.getByLabel("Title").fill("Plan trip");
+  await form.getByLabel("Duration (minutes)").fill("20");
+  await form.getByRole("button", { name: "Add task" }).click();
+  await expect(page.getByRole("listitem").filter({ hasText: "Plan trip" })).toContainText("Placed");
+  await page.getByRole("tab", { name: "Today", exact: true }).click();
+  await expect(page.locator("section.today .today-session", { hasText: "Plan trip" })).toBeVisible();
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: `${SHOTS}/today-after-change-390-light.png` });
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.screenshot({ path: `${SHOTS}/today-after-change-390-dark.png` });
 });

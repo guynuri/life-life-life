@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -8,6 +8,7 @@ import {
   CalendarX,
   Check,
   Flag,
+  GripVertical,
   Link2,
   MapPin,
   PenLine,
@@ -24,10 +25,10 @@ import {
 import { placementQueue } from "./lib/serialQueue";
 import {
   moveSteps,
+  moveToSteps,
   ORDER_STEP,
   parseTaskEdit,
   parseTaskInput,
-  PRIORITIES,
   sortTasks,
   taskStatus,
   toLocalInputValue,
@@ -49,7 +50,7 @@ import {
 } from "./lib/calendarSync";
 import { isGoogleAuthError } from "./lib/calendar";
 import type { Placement } from "./lib/scheduler";
-import { DateTimeField, Dropdown, FieldLabel, Label, RowMenu, Sheet, type Option } from "./ui";
+import { DateTimeField, Dropdown, FieldLabel, Label, PriorityChoice, RowMenu, Sheet, type Option } from "./ui";
 
 interface TasksProps {
   googleToken: string | null; // from the Supabase session; null when Google access is missing
@@ -67,7 +68,6 @@ const PLACE_LABELS: Record<ConditionPlace, string> = { any: "Any", work: "Work",
 const PRIORITY_LABELS: Record<Priority, string> = { high: "High", normal: "Normal", low: "Low" };
 const TYPE_OPTIONS: Option<TaskType>[] = (Object.keys(TYPE_LABELS) as TaskType[]).map((value) => ({ value, label: TYPE_LABELS[value] }));
 const PLACE_OPTIONS: Option<ConditionPlace>[] = (Object.keys(PLACE_LABELS) as ConditionPlace[]).map((value) => ({ value, label: PLACE_LABELS[value] }));
-const PRIORITY_OPTIONS: Option<Priority>[] = PRIORITIES.map((value) => ({ value, label: PRIORITY_LABELS[value] }));
 
 const emptyForm: TaskInput = {
   title: "",
@@ -128,6 +128,8 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
   const [showDone, setShowDone] = useState(false);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [moveValue, setMoveValue] = useState("");
+  // A drag from the grip: the row being moved, where it started, and the row it is over now (display order only).
+  const [drag, setDrag] = useState<{ id: string; from: number; over: number } | null>(null);
 
   // Shows a failed action. Google auth failures also offer Reconnect. Never throws.
   function fail(message: string, error: unknown) {
@@ -302,6 +304,40 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
   const tasks = data?.tasks ?? [];
   // One list in manual order (SPEC 2.7, assumed). Tasks with the same position keep the deadline order.
   const active = sortTasks(tasks.filter((t) => !t.done)).sort((a, b) => a.position - b.position);
+  // Move a task in the manual order; only the rows that change are written (SPEC 2.7, assumed).
+  async function reorder(from: number, to: number) {
+    try {
+      for (const step of moveToSteps(active, from, to)) await setPosition(step.id, step.position);
+    } catch (error) {
+      return setErrors([`Could not move the task: ${messageOf(error)}`]);
+    }
+    setErrors([]);
+    await loadStored();
+  }
+
+  // Drag by the grip with pointer events, so it works with a finger on iPhone. The row under the pointer when it lifts is the drop place.
+  function startDrag(event: ReactPointerEvent<HTMLButtonElement>, from: number) {
+    event.preventDefault();
+    setDrag({ id: active[from]?.id ?? "", from, over: from });
+    const rowAt = (x: number, y: number) => {
+      const row = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-order]");
+      return row ? Number(row.dataset.order) : null;
+    };
+    const onMove = (e: PointerEvent) => {
+      const over = rowAt(e.clientX, e.clientY);
+      if (over !== null) setDrag((d) => (d ? { ...d, over } : d));
+    };
+    const onUp = (e: PointerEvent) => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      const to = rowAt(e.clientX, e.clientY) ?? from;
+      setDrag(null);
+      if (to !== from) void reorder(from, to);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
   const done = sortTasks(tasks.filter((t) => t.done));
   const sessionsOf = (task: Task) => (data?.sessions ?? []).filter((session) => session.taskId === task.id).sort((a, b) => a.start - b.start);
 
@@ -310,7 +346,6 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
     const status = taskStatus(task, sessions.length > 0);
     const statusText = { placed: "Placed", unplaced: "Unplaced", unscheduled: "Unscheduled", done: "Done" }[status];
     const meta = [
-      PRIORITY_LABELS[task.priority],
       task.topic,
       TYPE_LABELS[task.type],
       task.spreadDays !== null ? `${task.spreadDays} days` : null,
@@ -331,7 +366,20 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
       { key: "delete", label: "Delete task", icon: Trash2, danger: true, onSelect: () => setConfirmingId(task.id) },
     ];
     return (
-      <li key={task.id} className={task.done ? "task-row done" : "task-row"}>
+      <li
+        key={task.id}
+        className={[
+          task.done ? "task-row done" : "task-row",
+          drag?.id === task.id ? "dragging" : "",
+          drag && !task.done && drag.over === index && drag.from !== index ? "drop-target" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        data-order={task.done ? undefined : index}
+      >
+        {task.priority !== "normal" && (
+          <span className={`priority-edge ${task.priority}`} role="img" aria-label={`${PRIORITY_LABELS[task.priority]} priority`} />
+        )}
         <button
           type="button"
           role="checkbox"
@@ -344,7 +392,6 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
         </button>
         <div className="task-body">
           <p className="task-title">
-            {task.priority !== "normal" && <span className={`priority-mark ${task.priority}`} aria-hidden="true" />}
             {task.title}
           </p>
           <p className="task-meta">{meta.join(" · ")}</p>
@@ -379,6 +426,11 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
             ),
           )}
         </div>
+        {!task.done && (
+          <button type="button" className="grip" aria-label={`Drag ${task.title} to reorder`} onPointerDown={(e) => startDrag(e, index)}>
+            <GripVertical aria-hidden="true" size={20} strokeWidth={2} />
+          </button>
+        )}
         <RowMenu label={`Task actions: ${task.title}`} items={items} />
         {confirmingId === task.id && (
           <div className="task-confirm">
@@ -504,12 +556,7 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
               <span id="add-priority-label">
                 <FieldLabel icon={Signal}>Priority</FieldLabel>
               </span>
-              <Dropdown
-                labelId="add-priority-label"
-                value={form.priority}
-                options={PRIORITY_OPTIONS}
-                onChange={(priority) => setForm({ ...form, priority })}
-              />
+              <PriorityChoice labelId="add-priority-label" value={form.priority} onChange={(priority) => setForm({ ...form, priority })} />
             </div>
           </details>
           {errors.map((message) => (
@@ -555,12 +602,7 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
               <span id="edit-priority-label">
                 <FieldLabel icon={Signal}>Priority</FieldLabel>
               </span>
-              <Dropdown
-                labelId="edit-priority-label"
-                value={edit.priority}
-                options={PRIORITY_OPTIONS}
-                onChange={(priority) => setEdit({ ...edit, priority })}
-              />
+              <PriorityChoice labelId="edit-priority-label" value={edit.priority} onChange={(priority) => setEdit({ ...edit, priority })} />
             </div>
             {errors.map((message) => (
               <p role="alert" className="error" key={message}>

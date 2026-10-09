@@ -9,7 +9,8 @@ function classesUsed(text: string): string[] {
   const found: string[] = [];
   for (const m of text.matchAll(/className="([^"]*)"/g)) found.push(...(m[1] ?? "").split(/\s+/));
   for (const m of text.matchAll(/className=\{([^}]*)\}/g)) for (const q of m[1]?.matchAll(/"([^"]+)"/g) ?? []) found.push(...(q[1] ?? "").split(/\s+/));
-  return found.filter((c) => c.length > 0 && !c.includes("$"));
+  // Only plain class names; expressions such as .join(" ") are not classes.
+  return found.filter((c) => /^[A-Za-z][\w-]*$/.test(c));
 }
 
 describe("styles", () => {
@@ -20,7 +21,7 @@ describe("styles", () => {
       for (const c of classesUsed(readFileSync(dir + file, "utf8"))) used.add(c);
     }
     expect(used.size).toBeGreaterThan(10);
-    const missing = [...used].filter((c) => !new RegExp(`\.${c}(?![\w-])`).test(css));
+    const missing = [...used].filter((c) => !new RegExp(`\.${c}(?![w-])`).test(css));
     expect(missing).toEqual([]);
   });
 });

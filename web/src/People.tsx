@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { dueNow, everyone, intervalDaysFor, isDue, type Person, type Tier, validatePersonInput } from "./lib/people";
 import { addPerson, listPeople, markContacted, removePerson, updatePerson } from "./lib/peopleStore";
-import { Check, Heart, Layers, Pencil, Repeat, Trash2, User, UserCheck, UserMinus, UserPlus, X } from "lucide-react";
+import { Check, Heart, Layers, Pencil, Repeat, Trash2, User, UserMinus, UserPlus, X } from "lucide-react";
 import { Dropdown, FieldLabel, Label, RowMenu, Sheet, type Option } from "./ui";
 
 // One list, no sub-tabs (SPEC 3.3). Due people sit at the top with a visible mark.
@@ -25,6 +25,8 @@ export function People({ refreshTick }: { refreshTick: number }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   // Kept until the next successful save, so a later successful re-read does not hide it.
   const [saveError, setSaveError] = useState<string | null>(null);
+  // The person whose heart is floating hearts right now (a short burst after Mark contacted).
+  const [burst, setBurst] = useState<string | null>(null);
 
   // Re-reads the stored list, so the screen shows what is saved, not what was attempted.
   const reload = useCallback(async () => {
@@ -50,6 +52,13 @@ export function People({ refreshTick }: { refreshTick: number }) {
     };
   }, [reload, refreshTick]);
 
+  // Mark contacted from the row heart: a short burst, then the list reorders (SPEC 3.4).
+  function contact(p: Person) {
+    setBurst(p.id);
+    window.setTimeout(() => setBurst((current) => (current === p.id ? null : current)), 900);
+    void write(() => markContacted(p.id));
+  }
+
   async function write(action: () => Promise<void>) {
     try {
       await action();
@@ -70,11 +79,12 @@ export function People({ refreshTick }: { refreshTick: number }) {
     );
   }
 
-  // Due people first (tier, then most overdue), then everyone else by name.
+  // SPEC 3.3: due people first (tier, then most overdue); then people never contacted; then people contacted within
+  // their interval. The last two groups are by name, so a person marked contacted drops below the others.
   const due = dueNow(people, now);
   const dueIds = new Set(due.map((p) => p.id));
-  const rest = everyone(people).filter((p) => !dueIds.has(p.id));
-  const shown = [...due, ...rest];
+  const notDue = everyone(people).filter((p) => !dueIds.has(p.id));
+  const shown = [...due, ...notDue.filter((p) => p.lastContactedAt === null), ...notDue.filter((p) => p.lastContactedAt !== null)];
 
   return (
     <section className="people page-people" aria-labelledby="people-heading">
@@ -92,12 +102,13 @@ export function People({ refreshTick }: { refreshTick: number }) {
       <ul className="person-list">
         {shown.map((p) => {
           const isDueNow = isDue(p, now);
+          const isRecent = !isDueNow && p.lastContactedAt !== null;
           return (
             <li key={p.id} className="person-row">
               <div className="person-body">
                 <p className="person-name">
                   {p.name}
-                  {!isDueNow && <Heart className="not-due-mark" role="img" aria-label="Not due yet" size={14} strokeWidth={2.25} />}
+                  {isRecent && <Heart className="not-due-mark" role="img" aria-label="Contacted within the interval" size={14} strokeWidth={2.25} />}
                 </p>
                 <p className="person-meta">
                   {isDueNow && (
@@ -123,10 +134,25 @@ export function People({ refreshTick }: { refreshTick: number }) {
                   </div>
                 )}
               </div>
+              <button
+                type="button"
+                className={isRecent ? "contact recent" : "contact"}
+                aria-label={`Mark ${p.name} contacted`}
+                aria-pressed={isRecent}
+                onClick={() => contact(p)}
+              >
+                <Heart aria-hidden="true" size={22} strokeWidth={2.25} fill={isRecent ? "currentColor" : "none"} />
+                {burst === p.id && (
+                  <span className="float-hearts" aria-hidden="true">
+                    <Heart className="float-heart f1" size={12} fill="currentColor" />
+                    <Heart className="float-heart f2" size={10} fill="currentColor" />
+                    <Heart className="float-heart f3" size={14} fill="currentColor" />
+                  </span>
+                )}
+              </button>
               <RowMenu
                 label={`Person actions: ${p.name}`}
                 items={[
-                  { key: "contacted", label: "Mark contacted", icon: UserCheck, onSelect: () => void write(() => markContacted(p.id)) },
                   { key: "edit", label: "Edit", icon: Pencil, onSelect: () => setEditing({ mode: "edit", person: p }) },
                   { key: "remove", label: "Remove", icon: UserMinus, danger: true, onSelect: () => setConfirmRemoveId(p.id) },
                 ]}

@@ -5,6 +5,7 @@ import { dayKey, dayLabel, MOOD_COLORS, type MoodColor } from "./lib/moodView";
 import { loadMoods } from "./lib/moodStore";
 import { dayBounds, formatSessionTime, greeting, nextSession, todaySessions, type TodaySession } from "./lib/today";
 import { listSessions, listTasks } from "./lib/tasksData";
+import { onDataChanged } from "./lib/dataEvents";
 
 // Each part loads on its own, so a failed read shows an error for that part only (SPEC principles).
 // data is undefined while loading and null after a failed read.
@@ -47,9 +48,14 @@ async function loadMood(): Promise<MoodColor | null> {
   return (await loadMoods(today, today)).get(today) ?? null;
 }
 
-export function Today({ refreshTick }: { refreshTick: number }) {
+// Today is mounted even when hidden, so it reloads on data changes and when its tab becomes active (SPEC Pages).
+export function Today({ refreshTick, active }: { refreshTick: number; active: boolean }) {
   // Re-reads when the app comes back to the foreground, so a new day or a moved session shows up.
   const [reloadKey, setReloadKey] = useState(0);
+  useEffect(() => onDataChanged(() => setReloadKey((k) => k + 1)), []);
+  useEffect(() => {
+    if (active) setReloadKey((k) => k + 1);
+  }, [active]);
   useEffect(() => {
     const onForeground = () => {
       if (document.visibilityState === "visible") setReloadKey((k) => k + 1);

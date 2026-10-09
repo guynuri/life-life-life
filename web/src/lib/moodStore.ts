@@ -2,6 +2,7 @@
 import { supabase } from "./supabase";
 import type { MoodColor } from "./moodView";
 
+import { notifyDataChanged } from "./dataEvents";
 function client() {
   if (!supabase) throw new Error("Supabase is not configured.");
   return supabase;
@@ -23,4 +24,5 @@ export async function saveMood(day: string, color: MoodColor | null): Promise<vo
       ? await db.from("moods").delete().eq("day", day)
       : await db.from("moods").upsert({ day, color }, { onConflict: "user_id,day" });
   if (error) throw error;
+  notifyDataChanged();
 }
