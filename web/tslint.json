@@ -1,0 +1,9 @@
+{
+  "rules": {
+    "no-any": true,
+    "variable-name": [true, "check-format"],
+    "class-name": true,
+    "interface-name": [true, "never-prefix"],
+    "type-name": true
+  }
+}

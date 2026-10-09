@@ -41,7 +41,7 @@ Where the earlier build (open PRs #1 to #4) differed from the original spec, the
 - **Title**, required. [Assumed]
 - **Kind**, required. Three kinds: [Decided]
   - *Big*: a task that takes several sessions, spread over time.
-  - *Work day*: any time on a work day (Sunday to Thursday). [Assumed] (see Q2)
+  - *Work day*: any time in the work week (Sunday to Thursday), except lunch (12:00 to 13:30). [Decided]
   - *Short fixed item*: a short task of a fixed length, like shopping.
 - **Duration** in minutes, required. For a big task, this is the total time across all its sessions. [Assumed]
 - **Topic**, optional free text. Blank means no topic. Shown on the task. [Decided]
@@ -68,7 +68,7 @@ Where the earlier build (open PRs #1 to #4) differed from the original spec, the
 - Work hours are fixed in v1. [Assumed] (see Q16)
 - Friday and Saturday are days off. [Decided]
 - Any time outside work hours counts as home. [Decided]
-- A **Work day** task can be placed at any hour on Sunday to Thursday. [Assumed] (see Q2)
+- A **Work day** task can be placed at any hour from Sunday to Thursday, except 12:00 to 13:30 (lunch). It is not limited to work hours. [Decided]
 - The **Place** condition limits where a task goes. [Assumed]
   - Work: every minute of the placement falls in work hours.
   - Home: every minute falls outside work hours.
@@ -190,7 +190,7 @@ These are the places where the open PRs or their reviews changed or filled in th
 | Topic | Original spec | Now | Source | Status |
 |---|---|---|---|---|
 | Task kinds and place | Kinds Big, Work day, Short fixed item. Work and study tasks placed by work or home | Kinds unchanged. Place is new: Any, Work, or Home, replacing the "work tasks" and "study tasks" wording | Tasks PR | [Assumed] Q1 |
-| Work day | "Any time on a work day"; conditions section limits work tasks to work hours | Any hour Sunday to Thursday. The scheduler PR limited it to work hours | Tasks PR vs. scheduler PR | [Assumed] Q2 |
+| Work day | "Any time on a work day"; conditions section limits work tasks to work hours | Any time Sunday to Thursday, except 12:00 to 13:30 (lunch). The scheduler PR limited it to work hours | Owner answer | [Decided] Q2 resolved |
 | Big-task spread | "Spread over the time before the deadline" | Spread window = now to the earlier of deadline and now + spread days. Drops the scheduler PR's 14-day default when there is no deadline | Tasks PR only; the scheduler PR must be changed to match when merged | [Decided] |
 | Calendar delete | Deleted event marks the task unscheduled | Unscheduled tasks are held out of automatic placement until I reschedule them | Spec writer | [Assumed] Q6 |
 | Topics | Optional, grouped | Optional free text, no grouping | Tasks PR; my PR #2 answers | [Decided] label; [Assumed] no grouping, Q9 |
@@ -206,7 +206,7 @@ These are the places where the open PRs or their reviews changed or filled in th
 Each has the spec writer's recommendation, not the owner's. Reply with the number and what you want.
 
 - **Q1. Place vs. kind.** The original spec mixes "work tasks" with kinds. Recommend: Place (Any, Work, Home) on any task, and Kind for shape only. Confirm?
-- **Q2. Work-day hours.** The original says any time on a work day, but its conditions section says work tasks go only in work hours, which is why this is open. The scheduler PR follows the conditions section; the spec's kind wording says any hour. Should a Work day task go at any hour Sunday to Thursday, or only during work hours? Recommend: any hour, with Place = Work to restrict it.
+- **Q2. Work-day hours. Resolved by the owner:** a Work day task can go at any time Sunday to Thursday except 12:00 to 13:30 (lunch). Section 2.4 has the rule.
 - **Q3. Big task that doesn't fully fit.** Both PRs currently place all sessions or none. Keep that, or place as many sessions as fit? Recommend: all or nothing, with the task shown as unplaced.
 - **Q4. When placement runs.** Recommend: on every refresh and after any task change, for tasks that are not placed and not held out. Alternative: only on a button.
 - **Q5. Deleting a task with sessions on the calendar.** Recommend: remove its unstarted sessions from Google and tell me.

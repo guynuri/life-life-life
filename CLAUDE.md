@@ -41,12 +41,12 @@ Still not built, from any PR:
 3. In Supabase Auth, enable the Google provider. Give it a Google OAuth client ID and secret. Add the Supabase callback URL to the Google OAuth client's redirect URIs.
 4. In Supabase Auth → URL Configuration, add `http://localhost:5173/**` and the GitHub Pages URL (`https://guynuri.github.io/life-life-life/**`) to Redirect URLs. Set Site URL to the Pages URL. Supabase falls back to the Site URL if the app's `redirect_to` isn't allowlisted, which causes 404s.
 5. In the repo settings, set Pages source to "GitHub Actions".
-6. Run `0002_people_grants.sql` (PR #4). It grants table privileges to `authenticated` on `tasks`, `people`, `moods`, and `push_subscriptions`. It is idempotent, so re-run it if unsure. The owner applied an earlier, people-only version; confirm the four-table version was applied, and re-run it if not. The file name is historical; it covers all four tables.
+6. Run `0002_people_grants.sql`. It grants table privileges to `authenticated` on `tasks`, `people`, `moods`, and `push_subscriptions`. It is idempotent. Applied and confirmed working for all four tables.
 7. Run `0002_task_topic_and_spread.sql` (PR #2) before using the tasks list. Without it, inserts fail.
 
-Status: steps 1 and 3 are done, and Google sign-in works locally. PR #4 says step 6 was applied, probably the people-only version; confirm the four-table form. Step 7 is pending. Steps 4 and 5 still need to be confirmed for production.
+Status: steps 1, 3, and 6 are done, and Google sign-in works locally. Step 7 is pending. Steps 4 and 5 still need to be confirmed for production.
 
-Migration numbering: PRs #2 and #4 both use the `0002` prefix. Renumber one (for example to `0003`) when merging.
+Migration numbering: `0002_people_grants.sql` reaches main when this PR merges. PR #2's `0002_task_topic_and_spread.sql` uses the same prefix; renumber it (for example to `0003`) when merging PR #2.
 
 ## Local development
 
@@ -63,7 +63,8 @@ Migration numbering: PRs #2 and #4 both use the `0002` prefix. Renumber one (for
 
 ## Conventions
 
-- TypeScript strict mode. Run `npm run build` in `web/` (type check plus bundle) before committing.
+- TypeScript strict mode, with `noUncheckedIndexedAccess`. Run `npm run build` in `web/` (type check plus bundle) before committing.
+- `web/tslint.json` bans explicit `any` and enforces camelCase variables. TSLint is deprecated and is not installed, so nothing runs it yet.
 - Keep logic that can be tested (scheduler, conditions) free of DOM and network calls.
 - Table privileges are separate from RLS. Every new table needs `grant ... to authenticated` in its migration, or signed-in reads and writes fail with "permission denied".
 - Pure logic (scheduler, mood math, due rules) has an assert-based `*.check.ts`. Only `moodMath.check.ts` runs, through `npm run check` (PR #1). The others are not wired yet.
