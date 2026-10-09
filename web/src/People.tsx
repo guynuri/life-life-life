@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { dueNow, everyone, intervalDaysFor, isDue, type Person, type Tier, validatePersonInput } from "./lib/people";
 import { addPerson, listPeople, markContacted, removePerson, updatePerson } from "./lib/peopleStore";
-import { Check, Heart, Layers, Pencil, Repeat, Trash2, User, UserMinus, UserPlus, X } from "lucide-react";
+import { Check, Heart, Layers, Pencil, Repeat, Trash2, User, UserCheck, UserMinus, UserPlus, X } from "lucide-react";
 import { Dropdown, FieldLabel, Label, RowMenu, Sheet, type Option } from "./ui";
 
 // One list, no sub-tabs (SPEC 3.3). Due people sit at the top with a visible mark.
@@ -95,7 +95,10 @@ export function People({ refreshTick }: { refreshTick: number }) {
           return (
             <li key={p.id} className="person-row">
               <div className="person-body">
-                <p className="person-name">{p.name}</p>
+                <p className="person-name">
+                  {p.name}
+                  {!isDueNow && <Heart className="not-due-mark" role="img" aria-label="Not due yet" size={14} strokeWidth={2.25} />}
+                </p>
                 <p className="person-meta">
                   {isDueNow && (
                     <span className="due">
@@ -120,18 +123,10 @@ export function People({ refreshTick }: { refreshTick: number }) {
                   </div>
                 )}
               </div>
-              <button
-                type="button"
-                className="contact"
-                aria-label={`Contacted ${p.name}`}
-                title="Mark contacted"
-                onClick={() => void write(() => markContacted(p.id))}
-              >
-                <Heart aria-hidden="true" size={20} strokeWidth={2.25} />
-              </button>
               <RowMenu
                 label={`Person actions: ${p.name}`}
                 items={[
+                  { key: "contacted", label: "Mark contacted", icon: UserCheck, onSelect: () => void write(() => markContacted(p.id)) },
                   { key: "edit", label: "Edit", icon: Pencil, onSelect: () => setEditing({ mode: "edit", person: p }) },
                   { key: "remove", label: "Remove", icon: UserMinus, danger: true, onSelect: () => setConfirmRemoveId(p.id) },
                 ]}

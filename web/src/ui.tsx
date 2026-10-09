@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Calendar as CalendarIcon, Check, ChevronDown, MoreHorizontal, X } from "lucide-react";
+import { Calendar as CalendarIcon, Check, ChevronDown, Clock, MoreHorizontal, X } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 
 // An icon with a short text label. The icon is decorative; the label is the accessible name.
@@ -129,6 +129,70 @@ export function Dropdown<T extends string>({
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
+// Times of day in 15-minute steps, "HH:MM".
+const TIME_OPTIONS: string[] = Array.from({ length: 96 }, (_, i) => `${pad(Math.floor(i / 4))}:${pad((i % 4) * 15)}`);
+
+// A time of day: the value on a button, and the times as a scrollable list in a popover (the same style as the dropdown).
+export function TimeField({
+  labelId,
+  ariaLabel,
+  value,
+  onChange,
+  disabled,
+}: {
+  labelId?: string;
+  ariaLabel?: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const close = () => setOpen(false);
+  useDismiss(open, ref, close);
+  // Open at the current value, so it is in view.
+  useEffect(() => {
+    if (open) listRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ block: "center" });
+  }, [open]);
+  return (
+    <div className="time-field" ref={ref}>
+      <button
+        type="button"
+        className="dropdown-button"
+        aria-labelledby={labelId}
+        aria-label={labelId ? undefined : ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={() => setOpen(!open)}
+      >
+        <Clock aria-hidden="true" size={18} strokeWidth={2.25} />
+        <span>{value || "--:--"}</span>
+      </button>
+      {open && (
+        <div className="dropdown-list time-list" role="listbox" aria-labelledby={labelId} aria-label={labelId ? undefined : ariaLabel} ref={listRef}>
+          {TIME_OPTIONS.map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="option"
+              aria-selected={t === value}
+              onClick={() => {
+                onChange(t);
+                close();
+              }}
+            >
+              <span>{t}</span>
+              {t === value && <Check aria-hidden="true" size={18} strokeWidth={2.5} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function toYmd(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
@@ -203,14 +267,7 @@ export function DateTimeField({
             </div>
           )}
         </div>
-        <input
-          type="time"
-          className="datetime-time"
-          aria-label="Time"
-          value={time}
-          disabled={!date}
-          onChange={(e) => onChange(`${date}T${e.target.value}`)}
-        />
+        <TimeField ariaLabel="Time" value={time} disabled={!date} onChange={(t) => onChange(`${date}T${t}`)} />
       </div>
       {value && (
         <button type="button" className="text-button" onClick={() => onChange("")}>

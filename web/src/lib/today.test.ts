@@ -16,6 +16,7 @@ const task = (id: string, title: string, topic: string | null = null): Task => (
   held: false,
   unplaced: false,
   done: false,
+  position: 0,
   priority: "normal",
 });
 

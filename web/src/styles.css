@@ -3,17 +3,17 @@
    Each page sets an accent (--accent, --accent-ink, --accent-text) on its root class; Settings and the tab bar use the base. */
 :root {
   color-scheme: light;
-  --bg: #f5ebdf; /* warm, softened apricot */
-  --surface: #f1eafb; /* light lavender */
-  --ink: #22103a; /* plum ink: body text */
-  --muted: #5d4a73;
+  --bg: #f4f4f1; /* neutral base: the page accent carries the colour */
+  --surface: #e7e7e3; /* neutral surface: menus and rows */
+  --ink: #1b1b1f; /* ink: body text */
+  --muted: #5b5b62;
   --orange: #ff7a1a; /* base accent: Settings, tab bar, primary actions by default */
   --on-orange: #22103a; /* text on orange: plum ink, not white (contrast) */
   --purple: #4b1f7a; /* structure and text accents */
   --error: #b3261e;
   --success: #1e7a4c;
-  --line: rgba(75, 31, 122, 0.16);
-  --shadow: 0 6px 18px rgba(75, 31, 122, 0.1);
+  --line: rgba(27, 27, 31, 0.14);
+  --shadow: 0 6px 18px rgba(27, 27, 31, 0.08);
   --radius: 14px;
   --accent: var(--orange);
   --accent-ink: var(--on-orange);
@@ -27,17 +27,17 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #1d0f2e;
-    --surface: #2a1a40;
-    --ink: #f7f0ff;
-    --muted: #cbbfe0;
+    --bg: #111113;
+    --surface: #1f1f23;
+    --ink: #f2f2f5;
+    --muted: #a6a6ae;
     --orange: #ff9a4d;
     --on-orange: #1d0f2e;
     --purple: #c4a6f7;
     --error: #ff8a80;
     --success: #7fe0a6;
-    --line: rgba(196, 166, 247, 0.24);
-    --shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    --line: rgba(255, 255, 255, 0.14);
+    --shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
     --accent: var(--orange);
     --accent-ink: var(--on-orange);
     --accent-text: var(--purple);
@@ -48,17 +48,17 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #1d0f2e;
-  --surface: #2a1a40;
-  --ink: #f7f0ff;
-  --muted: #cbbfe0;
+  --bg: #111113;
+  --surface: #1f1f23;
+  --ink: #f2f2f5;
+  --muted: #a6a6ae;
   --orange: #ff9a4d;
   --on-orange: #1d0f2e;
   --purple: #c4a6f7;
   --error: #ff8a80;
   --success: #7fe0a6;
-  --line: rgba(196, 166, 247, 0.24);
-  --shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  --line: rgba(255, 255, 255, 0.14);
+  --shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
   --accent: var(--orange);
   --accent-ink: var(--on-orange);
   --accent-text: var(--purple);
@@ -186,7 +186,7 @@ body {
 .topbar h1 {
   margin: 0;
   font: 700 1.1rem/1.2 var(--font-display);
-  color: var(--purple);
+  color: var(--ink);
 }
 
 .content {
@@ -439,7 +439,8 @@ input[type="time"] {
 }
 
 .dropdown-list button[aria-selected="true"] {
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--ink);
 }
 
 /* Date and time: a calendar popover for the date, a native time input for the time. */
@@ -457,10 +458,6 @@ input[type="time"] {
 
 .datetime-date {
   position: relative;
-  min-width: 0;
-}
-
-.datetime-time {
   min-width: 0;
 }
 
@@ -751,18 +748,6 @@ input[type="time"] {
   box-shadow: none;
 }
 
-.grip {
-  width: 36px;
-  min-width: 36px;
-  height: 44px;
-  padding: 0;
-  background: transparent;
-  color: var(--muted);
-  box-shadow: none;
-  touch-action: none;
-  cursor: grab;
-}
-
 .row-menu {
   position: relative;
 }
@@ -794,25 +779,9 @@ input[type="time"] {
   color: var(--error);
 }
 
-.priority-section {
-  margin: 20px 0 4px;
-  padding: 0 0 4px;
-  border-radius: 14px;
-}
-
-.priority-section h3 {
-  margin: 0 0 4px;
-  color: var(--accent-text);
-}
-
 .count {
   color: var(--muted);
   font-weight: 600;
-}
-
-.priority-section.drop {
-  outline: 2px dashed var(--accent);
-  outline-offset: 6px;
 }
 
 .done-toggle {
@@ -956,16 +925,6 @@ button.session {
   height: 8px;
   border-radius: 50%;
   background: var(--accent);
-}
-
-.contact {
-  width: 44px;
-  min-width: 44px;
-  height: 44px;
-  padding: 0;
-  background: transparent;
-  color: var(--accent-text);
-  box-shadow: none;
 }
 
 /* Settings and reminders */
@@ -1120,4 +1079,60 @@ button.session {
   .datetime-row {
     grid-template-columns: 1fr 8.5rem;
   }
+}
+
+/* Time popover: the same list style as the dropdown, in 15-minute steps. */
+.time-field {
+  position: relative;
+  min-width: 0;
+}
+
+.time-list {
+  max-height: 50dvh;
+  overflow: auto;
+}
+
+/* Optional fields under More details, collapsed by default. */
+.more-details {
+  display: grid;
+  gap: 12px;
+}
+
+.more-details > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--accent-text);
+  list-style: none;
+}
+
+.more-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Priority: a small mark on each row for high and low. Normal has none. */
+.priority-mark {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.priority-mark.high {
+  background: var(--error);
+}
+
+.priority-mark.low {
+  background: var(--muted);
+}
+
+/* Not due yet: a small heart next to the name. */
+.not-due-mark {
+  margin-left: 6px;
+  vertical-align: middle;
+  color: var(--accent-text);
 }

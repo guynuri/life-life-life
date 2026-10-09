@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link2, LogOut, Save } from "lucide-react";
-import { FieldLabel, Label } from "./ui";
+import { FieldLabel, Label, TimeField } from "./ui";
 import { applyTheme, readTheme, writeTheme, type ThemeChoice } from "./lib/theme";
 import { Monitor, Moon, Sun, type LucideIcon } from "lucide-react";
 import { Reminders } from "./Reminders";
@@ -92,22 +92,22 @@ function WorkHoursForm() {
         </p>
       )}
       <form className="form-grid" aria-label="Work hours" onSubmit={save}>
-        <label>
-          <FieldLabel icon={Sunrise}>Work starts</FieldLabel>
-          <input type="time" value={fields.start} disabled={!loaded} onChange={(e) => set("start")(e.target.value)} />
-        </label>
-        <label>
-          <FieldLabel icon={Sunset}>Work ends</FieldLabel>
-          <input type="time" value={fields.end} disabled={!loaded} onChange={(e) => set("end")(e.target.value)} />
-        </label>
-        <label>
-          <FieldLabel icon={UtensilsCrossed}>Lunch starts</FieldLabel>
-          <input type="time" value={fields.lunchStart} disabled={!loaded} onChange={(e) => set("lunchStart")(e.target.value)} />
-        </label>
-        <label>
-          <FieldLabel icon={Utensils}>Lunch ends</FieldLabel>
-          <input type="time" value={fields.lunchEnd} disabled={!loaded} onChange={(e) => set("lunchEnd")(e.target.value)} />
-        </label>
+        <div className="field">
+          <span id="start-label"><FieldLabel icon={Sunrise}>Work starts</FieldLabel></span>
+          <TimeField labelId="start-label" value={fields.start} disabled={!loaded} onChange={set("start")} />
+        </div>
+        <div className="field">
+          <span id="end-label"><FieldLabel icon={Sunset}>Work ends</FieldLabel></span>
+          <TimeField labelId="end-label" value={fields.end} disabled={!loaded} onChange={set("end")} />
+        </div>
+        <div className="field">
+          <span id="lunch-start-label"><FieldLabel icon={UtensilsCrossed}>Lunch starts</FieldLabel></span>
+          <TimeField labelId="lunch-start-label" value={fields.lunchStart} disabled={!loaded} onChange={set("lunchStart")} />
+        </div>
+        <div className="field">
+          <span id="lunch-end-label"><FieldLabel icon={Utensils}>Lunch ends</FieldLabel></span>
+          <TimeField labelId="lunch-end-label" value={fields.lunchEnd} disabled={!loaded} onChange={set("lunchEnd")} />
+        </div>
         <button type="submit" disabled={!loaded || busy}>
           <Label icon={Save}>Save work hours</Label>
         </button>

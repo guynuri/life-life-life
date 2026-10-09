@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { fixClock, serveGoogle, serveTable, signIn, taskRow, type Row } from "./helpers";
+import { fixClock, serveGoogle, serveTable, signIn, taskRow, type Row, pickTime } from "./helpers";
 
 // Monday 12 October 2026. Local times, so the assertions match the app's ISO output on any device time zone.
 const at = (hour: number, minute = 0) => new Date(2026, 9, 12, hour, minute);
@@ -29,7 +29,7 @@ test("placement creates one event per session, linked to the task; a move update
 
   // Moving the session moves the Google event to the same time.
   await item.getByRole("button", { name: /Move session/ }).click();
-  await item.getByLabel("Time").fill("10:00");
+  await pickTime(page, item.getByLabel("Time"), "10:00");
   await item.getByRole("button", { name: "Save time" }).click();
   await expect(item.getByRole("button", { name: /Move session/ })).toHaveCount(1);
   expect(googleEvents[0]?.start).toEqual({ dateTime: google(10) });
@@ -103,7 +103,7 @@ test("a Google error on move is shown and the session keeps its stored time", as
   await page.getByRole("tab", { name: "Tasks", exact: true }).click();
   const item = page.getByRole("listitem").filter({ hasText: "Pay rent" });
   await item.getByRole("button", { name: /Move session/ }).click();
-  await item.getByLabel("Time").fill("10:00");
+  await pickTime(page, item.getByLabel("Time"), "10:00");
   await item.getByRole("button", { name: "Save time" }).click();
 
   await expect(page.getByRole("alert")).toContainText("Could not move session: Backend Error");

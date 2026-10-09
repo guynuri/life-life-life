@@ -6,6 +6,7 @@ import {
   taskStatus,
   toLocalInputValue,
   type Task,
+  moveSteps,
   type TaskInput,
 } from "./tasks";
 
@@ -33,6 +34,7 @@ function task(overrides: Partial<Task>): Task {
     held: false,
     unplaced: false,
     done: false,
+    position: 0,
     priority: "normal",
     ...overrides,
   };
@@ -146,5 +148,24 @@ describe("toLocalInputValue", () => {
 
   it("returns an empty string for no deadline", () => {
     expect(toLocalInputValue(null)).toBe("");
+  });
+});
+
+describe("moveSteps", () => {
+  const row = (id: string, position: number): Task => ({ ...task({ id, title: id }), position });
+
+  it("swaps a row with its neighbour and rewrites only the rows that moved", () => {
+    const list = [row("a", 0), row("b", 10), row("c", 20)];
+    expect(moveSteps(list, 1, -1)).toEqual([
+      { id: "b", position: 0 },
+      { id: "a", position: 10 },
+    ]);
+  });
+
+  it("writes nothing past either end, and nothing when already in step", () => {
+    const list = [row("a", 0), row("b", 10)];
+    expect(moveSteps(list, 0, -1)).toEqual([]);
+    expect(moveSteps(list, 1, 1)).toEqual([]);
+    expect(moveSteps([row("a", 0), row("b", 10), row("c", 20)], 2, 0 as never)).toEqual([]);
   });
 });

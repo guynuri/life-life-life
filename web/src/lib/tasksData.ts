@@ -17,6 +17,7 @@ interface TaskRow {
   unplaced: boolean;
   done: boolean;
   priority: Priority;
+  position: number;
 }
 
 interface SessionRow {
@@ -62,6 +63,7 @@ function fromRow(row: TaskRow): Task {
     unplaced: row.unplaced,
     done: row.done,
     priority: row.priority,
+    position: row.position,
   };
 }
 
@@ -76,7 +78,7 @@ export async function listTasks(): Promise<Task[]> {
   return check<TaskRow[]>(result).map(fromRow);
 }
 
-export async function insertTask(task: NewTask): Promise<void> {
+export async function insertTask(task: NewTask, position: number): Promise<void> {
   const row = {
     title: task.title,
     type: task.type,
@@ -85,6 +87,8 @@ export async function insertTask(task: NewTask): Promise<void> {
     deadline: task.deadline,
     spread_days: task.spreadDays,
     condition_place: task.conditionPlace,
+    priority: task.priority,
+    position,
   };
   check(await client().from("tasks").insert(row).select());
 }
@@ -92,6 +96,11 @@ export async function insertTask(task: NewTask): Promise<void> {
 export async function updateTaskEdit(id: string, edit: TaskEdit): Promise<void> {
   const row = { title: edit.title, duration_min: edit.durationMin, deadline: edit.deadline, priority: edit.priority };
   check(await client().from("tasks").update(row).eq("id", id).select());
+}
+
+// Sets the manual display order (SPEC 2.7, assumed). Display only.
+export async function setPosition(id: string, position: number): Promise<void> {
+  check(await client().from("tasks").update({ position }).eq("id", id).select());
 }
 
 // Marks the task done or not done (SPEC 2.7). Done tasks are never placed.

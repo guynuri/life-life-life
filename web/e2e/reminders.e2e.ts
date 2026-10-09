@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { serveGoogle, serveTable, signIn, SUPABASE_HOST, type Row } from "./helpers";
+import { serveGoogle, serveTable, signIn, SUPABASE_HOST, type Row, pickTime } from "./helpers";
 
 // Stubbed: Supabase REST (page.route, via serveTable) and Google. Notification permission is stubbed to "granted"
 // because headless Chromium cannot answer the prompt. The service worker is not installed in dev, so the push
@@ -28,7 +28,7 @@ test("shows the stored contact reminder time and saves a new one", async ({ page
   await expect(section.getByText("Saved contact reminder time: 18:00")).toBeVisible();
   await expect(section.getByText("Notifications on this device: off")).toBeVisible();
 
-  await section.getByLabel("Contact reminder time").fill("18:30");
+  await pickTime(page, section.getByLabel("Contact reminder time"), "18:30");
   await section.getByRole("button", { name: "Set time" }).click();
   await expect(section.getByText("Saved contact reminder time: 18:30")).toBeVisible();
   expect(settings.at(-1)?.contact_reminder_min).toBe(18 * 60 + 30);
@@ -42,7 +42,7 @@ test("a failed save shows the error and keeps the previously stored time", async
   await page.getByRole("tab", { name: "Settings", exact: true }).click();
 
   const section = settingsSection(page);
-  await section.getByLabel("Contact reminder time").fill("20:00");
+  await pickTime(page, section.getByLabel("Contact reminder time"), "20:00");
   await section.getByRole("button", { name: "Set time" }).click();
   await expect(section.getByRole("alert")).toContainText("Could not save the contact reminder time");
   await expect(section.getByText("Saved contact reminder time: 18:00")).toBeVisible();

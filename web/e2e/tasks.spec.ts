@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { fixClock, serveGoogle, serveTable, signIn, taskDefaults, taskRow, type Row } from "./helpers";
+import { fixClock, pickTime, serveGoogle, serveTable, signIn, taskDefaults, taskRow, type Row } from "./helpers";
 
 const item = (page: Page, title: string) => page.getByRole("listitem").filter({ hasText: title });
 const menu = (page: Page, title: string) => page.getByRole("button", { name: `Task actions: ${title}` });
@@ -26,7 +26,7 @@ test("placed sessions show; a session can be moved; unschedule holds; Schedule r
 
   // Move the session to 10:00 with the time field.
   await item(page, "Pay rent").getByRole("button", { name: /Move session/ }).click();
-  await item(page, "Pay rent").getByLabel("Time").fill("10:00");
+  await pickTime(page, item(page, "Pay rent").getByLabel("Time"), "10:00");
   await item(page, "Pay rent").getByRole("button", { name: "Save time" }).click();
   await expect(item(page, "Pay rent").getByRole("button", { name: /Move session/ })).toHaveCount(1);
   expect(sessions[0]?.start_at).toBe(new Date(2026, 9, 12, 10, 0).toISOString());
@@ -124,27 +124,42 @@ test("completing a task hides it until shown; marking it not done places it agai
   expect(sessions).toHaveLength(1);
 });
 
-test("dragging a task to another priority section changes its priority", async ({ page }) => {
-  const tasks = [taskRow({ id: "pay", title: "Pay rent", duration_min: 20 })];
+test("Move up and Move down reorder the list; placement ignores the order", async ({ page }) => {
+  const tasks = [
+    taskRow({ id: "pay", title: "Pay rent", duration_min: 20, position: 0 }),
+    taskRow({ id: "report", title: "Write report", duration_min: 30, position: 10 }),
+  ];
   await openTasks(page, tasks, []);
-  await expect(page.getByRole("heading", { name: /^Normal/ })).toBeVisible();
+  await expect(page.getByRole("listitem").nth(0)).toContainText("Pay rent");
+  await expect(page.getByRole("listitem").nth(1)).toContainText("Write report");
 
-  const grip = page.getByRole("button", { name: "Drag Pay rent to another priority" });
-  const from = await grip.boundingBox();
-  if (!from) throw new Error("grip not visible");
-  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(from.x + from.width / 2, from.y + 40, { steps: 4 });
-  // The Low section appears while dragging, with a drop hint.
-  const low = page.getByRole("heading", { name: /^Low/ });
-  await expect(low).toBeVisible();
-  const to = await low.boundingBox();
-  if (!to) throw new Error("Low section not visible");
-  await page.mouse.move(to.x + 40, to.y + to.height / 2, { steps: 8 });
-  await page.mouse.up();
+  // The first row has no Move up; the last row has no Move down.
+  await menu(page, "Pay rent").click();
+  await expect(page.getByRole("menuitem", { name: "Move up" })).toHaveCount(0);
+  await page.getByRole("menuitem", { name: "Move down" }).click();
+  await expect(page.getByRole("listitem").nth(0)).toContainText("Write report");
+  expect(tasks.find((task) => task.id === "report")?.position).toBe(0);
+  expect(tasks.find((task) => task.id === "pay")?.position).toBe(10);
 
-  await expect(item(page, "Pay rent")).toContainText("Placed");
-  expect(tasks[0]?.priority).toBe("low");
+  await menu(page, "Pay rent").click();
+  await page.getByRole("menuitem", { name: "Move up" }).click();
+  await expect(page.getByRole("listitem").nth(0)).toContainText("Pay rent");
+});
+
+test("the optional fields are under More details; priority shows on the row", async ({ page }) => {
+  await openTasks(page, [], []);
+  await page.getByRole("button", { name: "Add task", exact: true }).click();
+  const addForm = page.getByRole("form", { name: "Add task form" });
+  await expect(addForm.getByLabel("Topic (optional)")).toBeHidden();
+
+  await addForm.getByLabel("Title").fill("Call mum");
+  await addForm.getByLabel("Duration (minutes)").fill("15");
+  await addForm.getByText("More details").click();
+  await expect(addForm.getByLabel("Topic (optional)")).toBeVisible();
+  await addForm.getByRole("button", { name: "Priority" }).click();
+  await page.getByRole("option", { name: "High", exact: true }).click();
+  await addForm.getByRole("button", { name: "Add task" }).click();
+  await expect(item(page, "Call mum")).toContainText("High");
 });
 
 test("Refresh places new tasks and reloads the stored list", async ({ page }) => {
@@ -187,10 +202,11 @@ test("the deadline date is picked in a calendar popover; the time stays a native
   const addForm = page.getByRole("form", { name: "Add task form" });
   await addForm.getByLabel("Title").fill("Taxes");
   await addForm.getByLabel("Duration (minutes)").fill("30");
+  await addForm.getByText("More details").click();
   await addForm.getByRole("button", { name: "Deadline (optional)" }).click();
   await page.locator(".calendar-popover .cal-day-button", { hasText: /^20$/ }).first().click();
   await expect(addForm.getByRole("button", { name: "Deadline (optional)" })).toContainText("Oct 20");
-  await expect(addForm.getByLabel("Time")).toHaveValue("23:59");
+  await expect(addForm.getByLabel("Time")).toHaveText("23:59");
   await addForm.getByRole("button", { name: "Add task" }).click();
   await expect(item(page, "Taxes")).toContainText("due");
 });

@@ -19,7 +19,8 @@ export interface Task {
   held: boolean;
   unplaced: boolean; // unplaced after the last placement run; lets a newly unplaced task be announced once (SPEC 5)
   done: boolean; // [Assumed] completed by the user; hidden by default and never placed (SPEC 2.7)
-  priority: Priority; // [Assumed] tiebreaker after deadline (SPEC 2.3); set by the Priority field or by dragging a task between sections
+  priority: Priority; // [Assumed] tiebreaker after deadline (SPEC 2.3); set in the form or the edit sheet
+  position: number; // [Assumed] manual display order (Move up, Move down). Display only: placement ignores it
 }
 
 // Raw form values, all strings as typed.
@@ -41,7 +42,7 @@ export interface TaskEditInput {
   priority: Priority;
 }
 
-export type NewTask = Omit<Task, "id" | "held" | "unplaced" | "done">;
+export type NewTask = Omit<Task, "id" | "held" | "unplaced" | "done" | "position">;
 export type TaskEdit = Pick<Task, "title" | "durationMin" | "deadline" | "priority">;
 
 export type ParseResult<T> = { ok: true; value: T } | { ok: false; errors: string[] };
@@ -63,6 +64,20 @@ export function sortTasks(tasks: readonly Task[]): Task[] {
     }
     return PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
   });
+}
+
+// Manual order (SPEC 2.7, assumed) is kept in steps of 10, so a move rewrites only the rows that are out of step.
+export const ORDER_STEP = 10;
+
+// The rows to write when the task at index moves up (-1) or down (+1) in the displayed list. Display only.
+export function moveSteps(tasks: readonly Task[], index: number, direction: -1 | 1): { id: string; position: number }[] {
+  const target = index + direction;
+  const moved = tasks[index];
+  if (!moved || target < 0 || target >= tasks.length) return [];
+  const next = [...tasks];
+  next.splice(index, 1);
+  next.splice(target, 0, moved);
+  return next.flatMap((t, i) => (t.position === i * ORDER_STEP ? [] : [{ id: t.id, position: i * ORDER_STEP }]));
 }
 
 export function parsePriority(raw: string): Priority {

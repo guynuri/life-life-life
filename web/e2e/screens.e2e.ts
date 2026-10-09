@@ -16,6 +16,7 @@ async function stubAll(page: Page) {
   await serveTable(page, "moods", []);
   await serveTable(page, "people", [
     { id: "p1", user_id: "00000000-0000-4000-8000-000000000001", name: "Ann", tier: 1, interval_days: null, last_contacted_at: null, created_at: new Date(2026, 8, 1).toISOString() },
+    { id: "p2", user_id: "00000000-0000-4000-8000-000000000001", name: "Bea", tier: 2, interval_days: null, last_contacted_at: new Date(2026, 9, 10).toISOString(), created_at: new Date(2026, 8, 1).toISOString() },
   ]);
   await serveGoogle(page, []);
 }
@@ -70,10 +71,26 @@ test("the add-task sheet with its dropdown and calendar, light and dark, phone w
     await page.waitForTimeout(200);
     await page.screenshot({ path: `${SHOTS}/sheet-type-390-${scheme}.png` });
     await page.keyboard.press("Escape");
+    await form.getByText("More details").click();
     await form.getByRole("button", { name: "Deadline (optional)" }).click();
     await page.waitForTimeout(200);
     await page.screenshot({ path: `${SHOTS}/sheet-calendar-390-${scheme}.png` });
     await page.keyboard.press("Escape");
     await page.getByRole("button", { name: "Close", exact: true }).click();
+  }
+});
+
+test("the time popover on Settings, light and dark, phone width", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await stubAll(page);
+  await page.goto("/#/settings");
+  await expect(page.getByRole("tab", { name: "Settings", exact: true })).toHaveAttribute("aria-selected", "true");
+  for (const scheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme: scheme });
+    const form = page.getByRole("form", { name: "Work hours" });
+    await form.getByLabel("Work ends").click();
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: `${SHOTS}/time-390-${scheme}.png` });
+    await page.keyboard.press("Escape");
   }
 });

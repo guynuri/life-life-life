@@ -1,12 +1,13 @@
-import { useEffect, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
   CalendarClock,
   CalendarPlus,
   CalendarRange,
   CalendarX,
   Check,
   Flag,
-  GripVertical,
   Link2,
   MapPin,
   PenLine,
@@ -22,7 +23,8 @@ import {
 } from "lucide-react";
 import { placementQueue } from "./lib/serialQueue";
 import {
-  parsePriority,
+  moveSteps,
+  ORDER_STEP,
   parseTaskEdit,
   parseTaskInput,
   PRIORITIES,
@@ -36,7 +38,7 @@ import {
   type TaskInput,
   type TaskType,
 } from "./lib/tasks";
-import { insertTask, listSessions, listTasks, releaseHold, updateTaskEdit, setPriority, type StoredSession } from "./lib/tasksData";
+import { insertTask, listSessions, listTasks, releaseHold, setPosition, updateTaskEdit, type StoredSession } from "./lib/tasksData";
 import {
   completeTask,
   deleteTaskWithEvents,
@@ -126,8 +128,6 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
   const [showDone, setShowDone] = useState(false);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [moveValue, setMoveValue] = useState("");
-  const [dragId, setDragId] = useState<string | null>(null);
-  const [dropPriority, setDropPriority] = useState<Priority | null>(null);
 
   // Shows a failed action. Google auth failures also offer Reconnect. Never throws.
   function fail(message: string, error: unknown) {
@@ -199,8 +199,10 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
     event.preventDefault();
     const parsed = parseTaskInput(form);
     if (!parsed.ok) return setErrors(parsed.errors);
+    // A new task goes to the end of the manual order.
+    const last = Math.max(0, ...(data?.tasks.map((t) => t.position) ?? []));
     try {
-      await insertTask(parsed.value);
+      await insertTask(parsed.value, last + ORDER_STEP);
     } catch (error) {
       return setErrors([`Could not save task: ${messageOf(error)}`]);
     }
@@ -257,11 +259,12 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
     await refresh();
   }
 
-  async function changePriority(id: string, priority: Priority) {
+  // Manual order (SPEC 2.7, assumed): swaps the row with its neighbour. Display only; placement does not read it.
+  async function moveTask(list: Task[], index: number, direction: -1 | 1) {
     try {
-      await setPriority(id, priority);
+      for (const step of moveSteps(list, index, direction)) await setPosition(step.id, step.position);
     } catch (error) {
-      return setErrors([`Could not change priority: ${messageOf(error)}`]);
+      return setErrors([`Could not move the task: ${messageOf(error)}`]);
     }
     setErrors([]);
     await loadStored();
@@ -296,46 +299,37 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
     await refresh();
   }
 
-  // Drag between priority sections (SPEC 2.7, assumed). Pointer events work for touch and mouse; the grip has touch-action none.
-  function startDrag(event: ReactPointerEvent<HTMLButtonElement>, task: Task) {
-    event.preventDefault();
-    setDragId(task.id);
-    setDropPriority(task.priority);
-    const onMove = (e: PointerEvent) => {
-      const under = document.elementFromPoint(e.clientX, e.clientY);
-      const section = under?.closest<HTMLElement>("[data-priority]");
-      setDropPriority((section?.dataset.priority as Priority | undefined) ?? null);
-    };
-    const onUp = (e: PointerEvent) => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      const under = document.elementFromPoint(e.clientX, e.clientY);
-      const target = under?.closest<HTMLElement>("[data-priority]")?.dataset.priority;
-      const next = target === undefined ? null : parsePriority(target);
-      setDragId(null);
-      setDropPriority(null);
-      if (next !== null && next !== task.priority) void changePriority(task.id, next);
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  }
-
   const tasks = data?.tasks ?? [];
-  const active = sortTasks(tasks.filter((t) => !t.done));
+  // One list in manual order (SPEC 2.7, assumed). Tasks with the same position keep the deadline order.
+  const active = sortTasks(tasks.filter((t) => !t.done)).sort((a, b) => a.position - b.position);
   const done = sortTasks(tasks.filter((t) => t.done));
-  const sessionsOf = (task: Task) => (data?.sessions ?? []).filter((s) => s.taskId === task.id).sort((a, b) => a.start - b.start);
+  const sessionsOf = (task: Task) => (data?.sessions ?? []).filter((session) => session.taskId === task.id).sort((a, b) => a.start - b.start);
 
-  function renderRow(task: Task) {
+  function renderRow(task: Task, list: Task[], index: number) {
     const sessions = sessionsOf(task);
     const status = taskStatus(task, sessions.length > 0);
     const statusText = { placed: "Placed", unplaced: "Unplaced", unscheduled: "Unscheduled", done: "Done" }[status];
     const meta = [
+      PRIORITY_LABELS[task.priority],
       task.topic,
       TYPE_LABELS[task.type],
       task.spreadDays !== null ? `${task.spreadDays} days` : null,
       task.deadline ? `due ${formatDeadline(task.deadline)}` : null,
       statusText,
     ].filter((part): part is string => part !== null && part !== "");
+    const items = [
+      { key: "edit", label: "Edit", icon: Pencil, onSelect: () => openEdit(task) },
+      ...(task.done
+        ? [{ key: "undo", label: "Mark not done", icon: Undo2, onSelect: () => toggleDone(task) }]
+        : [
+            ...(index > 0 ? [{ key: "up", label: "Move up", icon: ArrowUp, onSelect: () => moveTask(list, index, -1) }] : []),
+            ...(index < list.length - 1 ? [{ key: "down", label: "Move down", icon: ArrowDown, onSelect: () => moveTask(list, index, 1) }] : []),
+            task.held
+              ? { key: "schedule", label: "Schedule", icon: CalendarPlus, onSelect: () => releaseTask(task.id) }
+              : { key: "unschedule", label: "Unschedule", icon: CalendarX, onSelect: () => unschedule(task.id) },
+          ]),
+      { key: "delete", label: "Delete task", icon: Trash2, danger: true, onSelect: () => setConfirmingId(task.id) },
+    ];
     return (
       <li key={task.id} className={task.done ? "task-row done" : "task-row"}>
         <button
@@ -349,7 +343,10 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
           {task.done && <Check aria-hidden="true" size={16} strokeWidth={3} />}
         </button>
         <div className="task-body">
-          <p className="task-title">{task.title}</p>
+          <p className="task-title">
+            {task.priority !== "normal" && <span className={`priority-mark ${task.priority}`} aria-hidden="true" />}
+            {task.title}
+          </p>
           <p className="task-meta">{meta.join(" · ")}</p>
           {sessions.map((session) =>
             movingId === session.id ? (
@@ -382,28 +379,7 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
             ),
           )}
         </div>
-        {!task.done && (
-          <button
-            type="button"
-            className="grip"
-            aria-label={`Drag ${task.title} to another priority`}
-            onPointerDown={(e) => startDrag(e, task)}
-          >
-            <GripVertical aria-hidden="true" size={20} strokeWidth={2} />
-          </button>
-        )}
-        <RowMenu
-          label={`Task actions: ${task.title}`}
-          items={[
-            { key: "edit", label: "Edit", icon: Pencil, onSelect: () => openEdit(task) },
-            task.done
-              ? { key: "undo", label: "Mark not done", icon: Undo2, onSelect: () => toggleDone(task) }
-              : task.held
-                ? { key: "schedule", label: "Schedule", icon: CalendarPlus, onSelect: () => releaseTask(task.id) }
-                : { key: "unschedule", label: "Unschedule", icon: CalendarX, onSelect: () => unschedule(task.id) },
-            { key: "delete", label: "Delete task", icon: Trash2, danger: true, onSelect: () => setConfirmingId(task.id) },
-          ]}
-        />
+        <RowMenu label={`Task actions: ${task.title}`} items={items} />
         {confirmingId === task.id && (
           <div className="task-confirm">
             <span>Delete "{task.title}"?</span>
@@ -416,24 +392,6 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
           </div>
         )}
       </li>
-    );
-  }
-
-  function renderSection(priority: Priority, rows: Task[]) {
-    const showEmpty = dragId !== null && rows.length === 0;
-    if (rows.length === 0 && !showEmpty) return null;
-    return (
-      <section
-        key={priority}
-        className={dropPriority === priority ? "priority-section drop" : "priority-section"}
-        data-priority={priority}
-        aria-labelledby={`priority-${priority}`}
-      >
-        <h3 id={`priority-${priority}`}>
-          {PRIORITY_LABELS[priority]} <span className="count">{rows.length}</span>
-        </h3>
-        {rows.length > 0 ? <ul className="task-list">{rows.map(renderRow)}</ul> : <p className="status">Drop a task here.</p>}
-      </section>
     );
   }
 
@@ -471,7 +429,7 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
         <p className="status">No tasks yet. Use the plus button to add one.</p>
       ) : (
         <>
-          {PRIORITIES.map((priority) => renderSection(priority, active.filter((t) => t.priority === priority)))}
+          {active.length > 0 && <ul className="task-list">{active.map((t, i) => renderRow(t, active, i))}</ul>}
           {done.length > 0 && (
             <div className="done-toggle">
               <button type="button" className="secondary" aria-pressed={showDone} onClick={() => setShowDone(!showDone)}>
@@ -480,9 +438,11 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
             </div>
           )}
           {showDone && done.length > 0 && (
-            <section className="priority-section done-section" aria-labelledby="done-heading">
-              <h3 id="done-heading">Done <span className="count">{done.length}</span></h3>
-              <ul className="task-list">{done.map(renderRow)}</ul>
+            <section className="done-section" aria-labelledby="done-heading">
+              <h3 id="done-heading">
+                Done <span className="count">{done.length}</span>
+              </h3>
+              <ul className="task-list">{done.map((t, i) => renderRow(t, done, i))}</ul>
             </section>
           )}
         </>
@@ -495,52 +455,63 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
             <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           </label>
           <div className="field">
-            <span id="type-label"><FieldLabel icon={Shapes}>Type</FieldLabel></span>
+            <span id="type-label">
+              <FieldLabel icon={Shapes}>Type</FieldLabel>
+            </span>
             <Dropdown labelId="type-label" value={form.type} options={TYPE_OPTIONS} onChange={(type) => setForm({ ...form, type })} />
           </div>
           <label>
             <FieldLabel icon={Timer}>Duration (minutes)</FieldLabel>
             <input inputMode="numeric" value={form.durationMin} onChange={(e) => setForm({ ...form, durationMin: e.target.value })} />
           </label>
-          <label>
-            <FieldLabel icon={Tag}>Topic (optional)</FieldLabel>
-            <input value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} />
-          </label>
-          <div className="field">
-            <span id="deadline-label"><FieldLabel icon={Flag}>Deadline (optional)</FieldLabel></span>
-            <DateTimeField
-              labelId="deadline-label"
-              value={form.deadline}
-              onChange={(deadline) => setForm({ ...form, deadline })}
-              clearLabel="Clear deadline"
-            />
-          </div>
           {form.type === "big" && (
             <label>
               <FieldLabel icon={CalendarRange}>Spread over (days)</FieldLabel>
               <input inputMode="numeric" value={form.spreadDays} onChange={(e) => setForm({ ...form, spreadDays: e.target.value })} />
             </label>
           )}
-          {form.type !== "work_day" && (
+          <details className="more-details">
+            <summary>More details</summary>
+            <label>
+              <FieldLabel icon={Tag}>Topic (optional)</FieldLabel>
+              <input value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} />
+            </label>
             <div className="field">
-              <span id="place-label"><FieldLabel icon={MapPin}>Place</FieldLabel></span>
-              <Dropdown
-                labelId="place-label"
-                value={form.conditionPlace}
-                options={PLACE_OPTIONS}
-                onChange={(conditionPlace) => setForm({ ...form, conditionPlace })}
+              <span id="deadline-label">
+                <FieldLabel icon={Flag}>Deadline (optional)</FieldLabel>
+              </span>
+              <DateTimeField
+                labelId="deadline-label"
+                value={form.deadline}
+                onChange={(deadline) => setForm({ ...form, deadline })}
+                clearLabel="Clear deadline"
               />
             </div>
-          )}
-          <div className="field">
-            <span id="add-priority-label"><FieldLabel icon={Signal}>Priority</FieldLabel></span>
-            <Dropdown
-              labelId="add-priority-label"
-              value={form.priority}
-              options={PRIORITY_OPTIONS}
-              onChange={(priority) => setForm({ ...form, priority })}
-            />
-          </div>
+            {form.type !== "work_day" && (
+              <div className="field">
+                <span id="place-label">
+                  <FieldLabel icon={MapPin}>Place</FieldLabel>
+                </span>
+                <Dropdown
+                  labelId="place-label"
+                  value={form.conditionPlace}
+                  options={PLACE_OPTIONS}
+                  onChange={(conditionPlace) => setForm({ ...form, conditionPlace })}
+                />
+              </div>
+            )}
+            <div className="field">
+              <span id="add-priority-label">
+                <FieldLabel icon={Signal}>Priority</FieldLabel>
+              </span>
+              <Dropdown
+                labelId="add-priority-label"
+                value={form.priority}
+                options={PRIORITY_OPTIONS}
+                onChange={(priority) => setForm({ ...form, priority })}
+              />
+            </div>
+          </details>
           {errors.map((message) => (
             <p role="alert" className="error" key={message}>
               {message}
@@ -570,7 +541,9 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
               <input inputMode="numeric" value={edit.durationMin} onChange={(e) => setEdit({ ...edit, durationMin: e.target.value })} />
             </label>
             <div className="field">
-              <span id="edit-deadline-label"><FieldLabel icon={Flag}>Deadline (optional)</FieldLabel></span>
+              <span id="edit-deadline-label">
+                <FieldLabel icon={Flag}>Deadline (optional)</FieldLabel>
+              </span>
               <DateTimeField
                 labelId="edit-deadline-label"
                 value={edit.deadline}
@@ -579,7 +552,9 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
               />
             </div>
             <div className="field">
-              <span id="edit-priority-label"><FieldLabel icon={Signal}>Priority</FieldLabel></span>
+              <span id="edit-priority-label">
+                <FieldLabel icon={Signal}>Priority</FieldLabel>
+              </span>
               <Dropdown
                 labelId="edit-priority-label"
                 value={edit.priority}
@@ -601,4 +576,3 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
     </section>
   );
 }
-

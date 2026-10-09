@@ -21,6 +21,7 @@ function task(overrides: Partial<Task>): Task {
     held: false,
     unplaced: false,
     done: false,
+    position: 0,
     priority: "normal",
     ...overrides,
   };

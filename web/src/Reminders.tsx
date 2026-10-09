@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { formatTimeOfDay, parseTimeOfDay } from "./lib/reminders";
 import { DEFAULT_CONTACT_REMINDER_MIN, getContactReminderMin, saveContactReminderMin } from "./lib/remindersData";
 import { deviceStatus, needsHomeScreen, turnOff, turnOn } from "./lib/push";
-import { FieldLabel, Label } from "./ui";
+import { FieldLabel, Label, TimeField } from "./ui";
 import { Bell, BellOff, Clock } from "lucide-react";
 import { BellRing } from "lucide-react";
 
@@ -94,10 +94,10 @@ export function Reminders() {
       </button>
 
       <div className="person-form">
-        <label>
-          <FieldLabel icon={BellRing}>Contact reminder time</FieldLabel>
-          <input type="time" value={draft} onChange={(e) => setDraft(e.target.value)} />
-        </label>
+        <div className="field">
+          <span id="reminder-time-label"><FieldLabel icon={BellRing}>Contact reminder time</FieldLabel></span>
+          <TimeField labelId="reminder-time-label" value={draft} onChange={setDraft} />
+        </div>
         <button type="button" disabled={busy} onClick={saveTime}><Label icon={Clock}>Set time</Label></button>
       </div>
       {storedMin !== null && <p className="status">Saved contact reminder time: {formatTimeOfDay(storedMin)}</p>}
