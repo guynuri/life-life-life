@@ -127,6 +127,8 @@ test("pinch in zooms out to weeks, pinch out on a week drills into that month's 
 
   const grid = page.locator(".mood-grid");
   await expect(grid).toHaveClass(/zoom-day/);
+  // The Today section sits above the mood grid, so scroll it into view before pinching.
+  await grid.scrollIntoViewIfNeeded();
   const box = (await grid.boundingBox())!;
   await pinch(page, box.x + box.width / 2, box.y + box.height / 2, "in");
   await expect(grid).toHaveClass(/zoom-week/);

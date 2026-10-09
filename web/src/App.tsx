@@ -4,6 +4,7 @@ import { GOOGLE_CALENDAR_SCOPE } from "./lib/config";
 import { configured, supabase } from "./lib/supabase";
 import { Tasks } from "./Tasks";
 import { People } from "./People";
+import { Today } from "./Today";
 import { MoodScreen } from "./MoodScreen";
 
 export function App() {
@@ -41,6 +42,7 @@ export function App() {
       <button type="button" onClick={() => supabase!.auth.signOut()}>
         Sign out
       </button>
+      <Today />
       <Tasks googleToken={session.provider_token ?? null} onReconnect={signIn} />
       <People />
       <MoodScreen />

@@ -190,6 +190,12 @@ Where this spec differs from the original spec, the change is listed under "Chan
 - [Assumed] Each session shows its time, task title, and topic, in time order.
 - [Assumed] Unplaced and unscheduled tasks are not shown on Today. They are on the Tasks screen.
 - [Decided] Sign-in and sign-out already exist. Keep them working.
+- [Assumed] Today is the first section on the signed-in screen, above the Tasks screen.
+- [Assumed] "Today" is the device's local calendar day. A session is shown when it starts that day.
+- [Assumed] Due people use the due rule in 3.2, the same as the Due now list. Someone who became due on an earlier day and was not contacted is still shown.
+- [Assumed] Today shows the saved mood color for today, or "Not set" when the day is blank.
+- [Assumed] Sessions, due people, and mood each load separately. A failed read shows an error in that part; the other parts still show. The stored data is what is shown, not what was attempted.
+- [Assumed] Today re-reads when the app comes back to the foreground.
 
 ## Out of scope for v1
 
