@@ -18,35 +18,11 @@ Personal iPhone PWA that manages the things I forget: Google Calendar events, ta
 - `web/src/lib/supabase.ts`: Supabase client; `configured` is false while config is still placeholders.
 - `supabase/migrations/0001_init.sql`: tables `tasks`, `people`, `moods`, `push_subscriptions`, all with RLS owner-only policies.
 
-## Status: open PRs and what's left
+## Not built yet
 
-Nothing from the feature PRs is merged yet. The product rules are in `SPEC.md`, including which ones are decided, assumed, or still open. Feature PRs (all open against `main`):
+The features in `SPEC.md` are not built. Also not built:
 
-- #1 mood colors (`SPEC.md` §4). Adds the mood view and `moodMath.ts`. Also changes `SPEC.md`.
-- #2 tasks, scheduler, and work-hours conditions (§2). Adds migration `0002_task_topic_and_spread.sql`.
-- #3 an alternative scheduler and conditions (§2). Conflicts with #2 on the same files. Pick one before merging. #2 carries the owner's answers; #3's review suggests its field names match the tasks table, so it may be the better base.
-- #4 people (§3). Adds migration `0002_people_grants.sql`.
-
-Still not built, from any PR:
-
-- Google Calendar read, free/busy, create/update, and sync (§1). The scheduler has no real free time yet.
-- Push reminders: `supabase/functions/push/` and a `pg_cron` migration (§5).
-- Today view (§6).
 - iOS icon: `apple-touch-icon` needs a PNG. Only the SVG icon exists now.
-
-## Setup the owner must do
-
-1. Create a Supabase project. Put its URL and publishable key (Project Settings, API Keys) in `web/src/lib/config.ts`. These are public values, safe to commit. Never put the secret or service-role key in the repo or the browser.
-2. Run `supabase/migrations/0001_init.sql` in the Supabase SQL editor (or with the Supabase CLI).
-3. In Supabase Auth, enable the Google provider. Give it a Google OAuth client ID and secret. Add the Supabase callback URL to the Google OAuth client's redirect URIs.
-4. In Supabase Auth → URL Configuration, add `http://localhost:5173/**` and the GitHub Pages URL (`https://guynuri.github.io/life-life-life/**`) to Redirect URLs. Set Site URL to the Pages URL. Supabase falls back to the Site URL if the app's `redirect_to` isn't allowlisted, which causes 404s.
-5. In the repo settings, set Pages source to "GitHub Actions".
-6. Run `0002_people_grants.sql`. It grants table privileges to `authenticated` on `tasks`, `people`, `moods`, and `push_subscriptions`. It is idempotent. Applied and confirmed working for all four tables.
-7. Run `0002_task_topic_and_spread.sql` (PR #2) before using the tasks list. Without it, inserts fail.
-
-Status: steps 1, 3, and 6 are done, and Google sign-in works locally. Step 7 is pending. Steps 4 and 5 still need to be confirmed for production.
-
-Migration numbering: `0002_people_grants.sql` reaches main when this PR merges. PR #2's `0002_task_topic_and_spread.sql` uses the same prefix; renumber it (for example to `0003`) when merging PR #2.
 
 ## Local development
 
@@ -67,5 +43,5 @@ Migration numbering: `0002_people_grants.sql` reaches main when this PR merges. 
 - `web/tslint.json` bans explicit `any` and enforces camelCase variables. TSLint is deprecated and is not installed, so nothing runs it yet.
 - Keep logic that can be tested (scheduler, conditions) free of DOM and network calls.
 - Table privileges are separate from RLS. Every new table needs `grant ... to authenticated` in its migration, or signed-in reads and writes fail with "permission denied".
-- Pure logic (scheduler, mood math, due rules) has an assert-based `*.check.ts`. Only `moodMath.check.ts` runs, through `npm run check` (PR #1). The others are not wired yet.
+- Use Vitest for unit tests, Testing Library for components, and Playwright for end-to-end flows. No console-log tests. Tests live in *.test.ts and run with npm test.
 - Secrets never go in the repo.
