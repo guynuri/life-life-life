@@ -18,24 +18,11 @@ Personal iPhone PWA that manages the things I forget: Google Calendar events, ta
 - `web/src/lib/supabase.ts`: Supabase client; `configured` is false while config is still placeholders.
 - `supabase/migrations/0001_init.sql`: tables `tasks`, `people`, `moods`, `push_subscriptions`, all with RLS owner-only policies.
 
-## Not built yet (next agents)
+## Not built yet
 
-- `web/src/lib/gcal.ts`: Calendar read, free/busy, create/update events, sync of moved app-created events.
-- `web/src/lib/scheduler.ts`: pure function (tasks, free slots, conditions) to placements. Needs an assert-based check.
-- `web/src/lib/conditions.ts`: at-work check. Work hours are Sun-Thu 09:00-19:00; anything not at work counts as home. Fri and Sat are days off.
-- `web/src/ui/*`: today view, tasks, people, mood grid with zoom levels (daily color; optional hourly deferred; zoom-out aggregates finer blocks).
-- `supabase/functions/push/` and a `pg_cron` migration for reminders.
+The features in `SPEC.md` are not built. Also not built:
+
 - iOS icon: `apple-touch-icon` needs a PNG. Only the SVG icon exists now.
-
-## Setup the owner must do
-
-1. Create a Supabase project. Put its URL and publishable key (Project Settings, API Keys) in `web/src/lib/config.ts`. These are public values, safe to commit. Never put the secret or service-role key in the repo or the browser.
-2. Run `supabase/migrations/0001_init.sql` in the Supabase SQL editor (or with the Supabase CLI).
-3. In Supabase Auth, enable the Google provider. Give it a Google OAuth client ID and secret. Add the Supabase callback URL to the Google OAuth client's redirect URIs.
-4. In Supabase Auth → URL Configuration, add `http://localhost:5173/**` and the GitHub Pages URL (`https://guynuri.github.io/life-life-life/**`) to Redirect URLs. Set Site URL to the Pages URL. Supabase falls back to the Site URL if the app's `redirect_to` isn't allowlisted, which causes 404s.
-5. In the repo settings, set Pages source to "GitHub Actions".
-
-Status: steps 1 and 3 are done, and Google sign-in works locally. Steps 4 and 5 still need to be confirmed for production.
 
 ## Local development
 
@@ -52,6 +39,9 @@ Status: steps 1 and 3 are done, and Google sign-in works locally. Steps 4 and 5 
 
 ## Conventions
 
-- TypeScript strict mode. Run `npm run build` in `web/` (type check plus bundle) before committing.
+- TypeScript strict mode, with `noUncheckedIndexedAccess`. Run `npm run build` in `web/` (type check plus bundle) before committing.
+- `web/tslint.json` bans explicit `any` and enforces camelCase variables. TSLint is deprecated and is not installed, so nothing runs it yet.
 - Keep logic that can be tested (scheduler, conditions) free of DOM and network calls.
+- Table privileges are separate from RLS. Every new table needs `grant ... to authenticated` in its migration, or signed-in reads and writes fail with "permission denied".
+- Use Vitest for unit tests, Testing Library for components, and Playwright for end-to-end flows. No console-log tests. Tests live in *.test.ts and run with npm test.
 - Secrets never go in the repo.
