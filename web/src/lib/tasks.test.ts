@@ -30,6 +30,7 @@ function task(overrides: Partial<Task>): Task {
     spreadDays: null,
     conditionPlace: "any",
     held: false,
+    unplaced: false,
     ...overrides,
   };
 }

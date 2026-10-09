@@ -14,6 +14,7 @@ const taskDefaults: Row = {
   spread_days: null,
   condition_place: "any",
   held: false,
+  unplaced: false,
 };
 
 export function taskRow(overrides: Row): Row {

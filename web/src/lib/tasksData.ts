@@ -14,6 +14,7 @@ interface TaskRow {
   spread_days: number | null;
   condition_place: ConditionPlace;
   held: boolean;
+  unplaced: boolean;
 }
 
 interface SessionRow {
@@ -56,6 +57,7 @@ function fromRow(row: TaskRow): Task {
     spreadDays: row.spread_days,
     conditionPlace: row.condition_place,
     held: row.held,
+    unplaced: row.unplaced,
   };
 }
 
@@ -151,4 +153,10 @@ export async function saveWorkHours(hours: WorkHours): Promise<void> {
 export async function deleteSessionsOf(id: string): Promise<void> {
   const result = await client().from("sessions").delete().eq("task_id", id);
   if (result.error) throw new Error(result.error.message);
+}
+
+// Sets the unplaced flag for these tasks (SPEC 5). Only the tasks whose flag changed are sent.
+export async function setUnplaced(ids: string[], unplaced: boolean): Promise<void> {
+  if (ids.length === 0) return;
+  check(await client().from("tasks").update({ unplaced }).in("id", ids).select());
 }
