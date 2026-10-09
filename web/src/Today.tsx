@@ -47,7 +47,7 @@ async function loadMood(): Promise<MoodColor | null> {
   return (await loadMoods(today, today)).get(today) ?? null;
 }
 
-export function Today() {
+export function Today({ refreshTick }: { refreshTick: number }) {
   // Re-reads when the app comes back to the foreground, so a new day or a moved session shows up.
   const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
@@ -58,9 +58,11 @@ export function Today() {
     return () => document.removeEventListener("visibilitychange", onForeground);
   }, []);
 
-  const sessions = usePart(loadSessions, reloadKey);
-  const due = usePart(loadDue, reloadKey);
-  const mood = usePart(loadMood, reloadKey);
+  // The shell Refresh bumps refreshTick after it has placed; the parts reload on either trigger.
+  const key = reloadKey + refreshTick;
+  const sessions = usePart(loadSessions, key);
+  const due = usePart(loadDue, key);
+  const mood = usePart(loadMood, key);
 
   return (
     <section className="today">

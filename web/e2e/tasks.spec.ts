@@ -107,3 +107,23 @@ test("a failed save is shown and the list keeps the stored state", async ({ page
   await expect(page.getByRole("listitem").filter({ hasText: "Will not save" })).toHaveCount(0);
   await expect(page.getByRole("listitem")).toHaveCount(1);
 });
+
+test("Refresh places new tasks and reloads the stored list", async ({ page }) => {
+  await signIn(page);
+  await fixClock(page);
+  const tasks: Row[] = [];
+  const sessions: Row[] = [];
+  await serveTable(page, "tasks", tasks);
+  await serveTable(page, "sessions", sessions);
+  await serveTable(page, "work_settings", []);
+  await serveGoogle(page, []);
+
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Tasks", exact: true }).click();
+  await expect(page.getByText("Pay rent")).toHaveCount(0);
+
+  tasks.push(taskRow({ id: "pay", title: "Pay rent", duration_min: 20 }));
+  await page.getByRole("button", { name: "Refresh", exact: true }).click();
+  await expect(page.getByRole("listitem").filter({ hasText: "Pay rent" })).toContainText("Placed");
+  expect(sessions).toHaveLength(1);
+});

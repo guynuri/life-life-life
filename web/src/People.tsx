@@ -9,7 +9,7 @@ function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export function People() {
+export function People({ refreshTick }: { refreshTick: number }) {
   const [people, setPeople] = useState<Person[] | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [view, setView] = useState<View>("due");
@@ -41,7 +41,7 @@ export function People() {
       window.removeEventListener("focus", onForeground);
       document.removeEventListener("visibilitychange", onForeground);
     };
-  }, [reload]);
+  }, [reload, refreshTick]);
 
   async function write(action: () => Promise<void>) {
     try {
