@@ -15,6 +15,7 @@ test("placement creates one event per session, linked to the task; a move update
   await serveTable(page, "tasks", [taskRow({ id: "pay", title: "Pay rent", duration_min: 20 })]);
   await serveTable(page, "sessions", sessions);
   await serveTable(page, "work_settings", []);
+  await serveTable(page, "reminders", []);
   await serveGoogle(page, googleEvents);
 
   await page.goto("/");
@@ -52,6 +53,7 @@ test("sync on refresh: a moved event moves the session (even outside work hours)
   await serveTable(page, "tasks", tasks);
   await serveTable(page, "sessions", sessions);
   await serveTable(page, "work_settings", []);
+  await serveTable(page, "reminders", []);
   await serveGoogle(page, googleEvents);
 
   await page.goto("/");
@@ -88,6 +90,7 @@ test("a Google error on move is shown and the session keeps its stored time", as
   await serveTable(page, "tasks", [taskRow({ id: "pay", title: "Pay rent", duration_min: 20 })]);
   await serveTable(page, "sessions", sessions);
   await serveTable(page, "work_settings", []);
+  await serveTable(page, "reminders", []);
   await serveGoogle(page, googleEvents, { failWrites: true });
 
   await page.goto("/");
@@ -108,6 +111,7 @@ test("without Google access the screen offers Reconnect Google and places nothin
   await serveTable(page, "tasks", [taskRow({ id: "pay", title: "Pay rent", duration_min: 20 })]);
   await serveTable(page, "sessions", sessions);
   await serveTable(page, "work_settings", []);
+  await serveTable(page, "reminders", []);
   await serveGoogle(page, []);
 
   await page.goto("/");
@@ -123,6 +127,7 @@ test("an expired Google token (401) shows Reconnect Google", async ({ page }) =>
   await serveTable(page, "tasks", [taskRow({ id: "pay", title: "Pay rent", duration_min: 20 })]);
   await serveTable(page, "sessions", []);
   await serveTable(page, "work_settings", []);
+  await serveTable(page, "reminders", []);
   await serveGoogle(page, [], { unauthorized: true });
 
   await page.goto("/");

@@ -5,6 +5,7 @@ import { configured, supabase } from "./lib/supabase";
 import { Tasks } from "./Tasks";
 import { People } from "./People";
 import { MoodScreen } from "./MoodScreen";
+import { Reminders } from "./Reminders";
 
 export function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -44,6 +45,7 @@ export function App() {
       <Tasks googleToken={session.provider_token ?? null} onReconnect={signIn} />
       <People />
       <MoodScreen />
+      <Reminders />
     </Shell>
   );
 }

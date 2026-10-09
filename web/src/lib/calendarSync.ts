@@ -2,8 +2,11 @@
 // so a failed Google call leaves the stored state as it was.
 import { busyHorizon, busySpans, decideSync, eventBody } from "./calendarEvents";
 import { createEvent, deleteEvent, getEvent, listEvents, moveEvent } from "./calendar";
-import { deleteSessionsOf, deleteTask, getWorkHours, holdTask, insertSessions, listSessions, listTasks, moveSession, type NewSession, type StoredSession } from "./tasksData";
+import { deleteSessionsOf, deleteTask, getWorkHours, holdTask, insertSessions, listSessions, listTasks, moveSession, setUnplaced, type NewSession, type StoredSession } from "./tasksData";
 import { schedule, type Placement } from "./scheduler";
+import { placementReminder } from "./reminders";
+import { insertReminder } from "./remindersData";
+import type { Task } from "./tasks";
 
 
 // Moved events move their session; deleted events unschedule their task (SPEC 1). Runs before placement.
@@ -26,8 +29,12 @@ export async function placeTasks(token: string | null, now: number): Promise<Pla
   const horizon = busyHorizon(tasks.filter((t) => !t.held && !sessions.some((s) => s.taskId === t.id)), now);
   const external = busySpans(await listEvents(token, now, horizon));
   const placed = schedule(tasks, sessions, now, work, external);
-  if (placed.length === 0) return [];
+  const rows = placed.length > 0 ? await insertPlacements(token, tasks, placed) : [];
+  await announceUnplaced(tasks, sessions, rows, now);
+  return rows;
+}
 
+async function insertPlacements(token: string | null, tasks: Task[], placed: Placement[]): Promise<NewSession[]> {
   const byId = new Map(tasks.map((task) => [task.id, task]));
   const created: string[] = [];
   const rows: NewSession[] = [];
@@ -49,6 +56,28 @@ export async function placeTasks(token: string | null, now: number): Promise<Pla
     throw error;
   }
   return rows;
+}
+
+// SPEC 5: one batched placement message per run. A task is announced as unplaced only when it becomes unplaced
+// in this run and has a deadline it cannot meet. The unplaced flag is saved after the message is queued, so a failed run is retried.
+async function announceUnplaced(tasks: Task[], sessions: StoredSession[], placedRows: NewSession[], now: number): Promise<void> {
+  const placedIds = new Set([...sessions.map((s) => s.taskId), ...placedRows.map((r) => r.taskId)]);
+  const unplaced = tasks.filter((t) => !t.held && !placedIds.has(t.id));
+  const newly = unplaced.filter((t) => !t.unplaced && t.deadline !== null);
+  const titles = new Map(tasks.map((t) => [t.id, t.title]));
+  const reminder = placementReminder(
+    placedRows.map((r) => ({ taskTitle: titles.get(r.taskId) ?? "task", start: r.start })),
+    newly.map((t) => t.title),
+    now,
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+    crypto.randomUUID(),
+  );
+  if (reminder) await insertReminder(reminder);
+
+  const unplacedIds = new Set(unplaced.map((t) => t.id));
+  const changed = tasks.filter((t) => t.unplaced !== unplacedIds.has(t.id));
+  await setUnplaced(changed.filter((t) => !t.unplaced).map((t) => t.id), true);
+  await setUnplaced(changed.filter((t) => t.unplaced).map((t) => t.id), false);
 }
 
 // Removes the task's events from Google, then holds the task (SPEC 2.5). Used by Unschedule and by sync.

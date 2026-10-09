@@ -14,6 +14,7 @@ export interface Task {
   spreadDays: number | null;
   conditionPlace: ConditionPlace;
   held: boolean;
+  unplaced: boolean; // unplaced after the last placement run; lets a newly unplaced task be announced once (SPEC 5)
 }
 
 // Raw form values, all strings as typed.
@@ -33,7 +34,7 @@ export interface TaskEditInput {
   deadline: string;
 }
 
-export type NewTask = Omit<Task, "id" | "held">;
+export type NewTask = Omit<Task, "id" | "held" | "unplaced">;
 export type TaskEdit = Pick<Task, "title" | "durationMin" | "deadline">;
 
 export type ParseResult<T> = { ok: true; value: T } | { ok: false; errors: string[] };

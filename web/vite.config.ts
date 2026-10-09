@@ -9,6 +9,7 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["icon.svg"],
+      workbox: { importScripts: ["push-sw.js"] }, // push and notificationclick handlers (SPEC 5)
       manifest: {
         name: "life-life-life",
         short_name: "life",

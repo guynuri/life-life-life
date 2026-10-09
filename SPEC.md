@@ -183,6 +183,13 @@ Where this spec differs from the original spec, the change is listed under "Chan
   - [Decided] New placements are announced. [Assumed] They are batched as one message per scheduler run.
   - [Decided] A person who becomes due, at the contact reminder time on the due day. The default is 19:00, and I can change it in settings. [Decided]
   - [Decided] Tasks that become unplaced because they cannot fit by their deadline. They are batched into the same message as new placements, once per scheduler run in which they newly become unplaced.
+- [Assumed] "Notifications on" for a device means that device has a push subscription registered. Turning them off removes it.
+- [Assumed] Reminder times use the time zone the device reports when it registers. The function uses the first registered device's zone for the owner.
+- [Assumed] A session reminder is made when the session is 10 minutes or less from its start. Moving the session after that makes a new reminder.
+- [Assumed] A due person is reminded once per due date (the first check at or after the reminder time on or after the due moment). Contacting them starts a new cycle.
+- [Assumed] A task with no deadline that becomes unplaced is not announced. Only deadline tasks are, per the decided text.
+- [Assumed] A reminder is marked sent after the send attempt, even if one device fails. Failed sends are not retried. Expired device subscriptions are removed.
+- [Assumed] The contact reminder time is stored with the work hours settings.
 
 ## 6. Today view
 
