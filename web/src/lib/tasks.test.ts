@@ -14,6 +14,7 @@ const base: TaskInput = {
   type: "short_fixed",
   durationMin: "30",
   topic: "",
+  priority: "normal",
   deadline: "",
   spreadDays: "",
   conditionPlace: "any",
@@ -31,6 +32,8 @@ function task(overrides: Partial<Task>): Task {
     conditionPlace: "any",
     held: false,
     unplaced: false,
+    done: false,
+    priority: "normal",
     ...overrides,
   };
 }
@@ -48,6 +51,7 @@ describe("parseTaskInput", () => {
         deadline: null,
         spreadDays: null,
         conditionPlace: "any",
+        priority: "normal",
       },
     });
   });
@@ -94,12 +98,12 @@ describe("parseTaskInput", () => {
 
 describe("parseTaskEdit", () => {
   it("accepts title, duration and deadline, with a blank deadline meaning none", () => {
-    const result = parseTaskEdit({ title: "New", durationMin: "45", deadline: "" });
-    expect(result).toEqual({ ok: true, value: { title: "New", durationMin: 45, deadline: null } });
+    const result = parseTaskEdit({ title: "New", durationMin: "45", deadline: "", priority: "normal" });
+    expect(result).toEqual({ ok: true, value: { title: "New", durationMin: 45, deadline: null, priority: "normal" } });
   });
 
   it("rejects a blank title", () => {
-    expect(parseTaskEdit({ title: "", durationMin: "45", deadline: "" }).ok).toBe(false);
+    expect(parseTaskEdit({ title: "", durationMin: "45", deadline: "", priority: "normal" }).ok).toBe(false);
   });
 });
 

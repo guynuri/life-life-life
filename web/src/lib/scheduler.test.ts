@@ -20,6 +20,8 @@ function task(overrides: Partial<Task>): Task {
     conditionPlace: "any",
     held: false,
     unplaced: false,
+    done: false,
+    priority: "normal",
     ...overrides,
   };
 }

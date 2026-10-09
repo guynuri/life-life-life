@@ -91,7 +91,7 @@ export function MoodScreen({ refreshTick }: { refreshTick: number }) {
   const leading = view.zoom === "day" ? new Date(view.year, view.month, 1).getDay() : 0;
 
   return (
-    <section className="mood">
+    <section className="mood page-mood">
       <h2>Mood</h2>
       <nav className="mood-nav">
         <button type="button" className="secondary" onClick={() => setView(step(view, -1))}><Label icon={ChevronLeft}>Prev</Label></button>

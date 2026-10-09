@@ -15,6 +15,8 @@ const taskDefaults: Row = {
   condition_place: "any",
   held: false,
   unplaced: false,
+  done: false,
+  priority: "normal",
 };
 
 export function taskRow(overrides: Row): Row {

@@ -50,7 +50,7 @@ export function schedule(
   const sessionTaskIds = new Set(sessions.map((session) => session.taskId));
   const placements: Placement[] = [];
   for (const task of sortTasks(tasks)) {
-    if (task.held || sessionTaskIds.has(task.id)) continue;
+    if (task.done || task.held || sessionTaskIds.has(task.id)) continue; // done tasks are never placed (SPEC 2.7)
     if (task.type === "work_day") {
       const placed = placeWorkDay(task, now, work, dayUse);
       if (placed) placements.push(...placed);

@@ -25,8 +25,12 @@ Where this spec differs from the original spec, the change is listed under "Chan
 - [Decided] The top bar is slim: the app name and an icon-only Refresh button (labelled "Refresh" for screen readers) on every page. Refresh re-reads Google, runs placement, and then reloads the stored data on every page.
 - [Decided] Sign-in and sign-out stay on the page. Sign-out is on the Settings page.
 - [Decided] Layout is phone first: one column, about 390px wide, with touch targets of at least 44px. On wider screens the content is centred at about 480px, and the tab bar matches that width.
-- [Decided] Visual direction: vivid orange (#FF7A1A) for primary actions and highlights, deep purple (#4B1F7A) for structure and headings, plum ink (#22103A) for text, a warm apricot background (#F5EBDF, softened from #FFF6EE so it is less white), and a light lavender surface (#F1EAFB). The six mood colours in section 4 are unchanged. Dark mode follows the system setting unless the reader picks Light or Dark in Settings. Headings use Bricolage Grotesque and body text uses Figtree. Primary buttons are orange and secondary buttons are purple outlines. Each page has a clear type scale, and text stays under about 80 characters a line.
+- [Decided] Visual direction: vivid orange (#FF7A1A) for primary actions and highlights, deep purple (#4B1F7A) for structure and headings, plum ink (#22103A) for text, a warm apricot background (#F5EBDF, softened from #FFF6EE so it is less white), and a light lavender surface (#F1EAFB). The six mood colours in section 4 are unchanged. Dark mode follows the system setting unless the reader picks Light or Dark in Settings. Headings use Bricolage Grotesque and body text uses Figtree. Primary buttons take the page accent. On Settings and the tab bar that is orange. Secondary buttons are purple outlines. Each page has a clear type scale, and text stays under about 80 characters a line.
 - [Decided] The Today page opens with a hero card: a time-appropriate greeting and the session in progress or the next one.
+- [Decided] Each page sets its own accent: Today blue, People rose, Mood light purple, Tasks green. Settings and the tab bar keep the orange and purple base. Each accent is a set of tokens, and dark mode has its own values.
+- [Decided] Dropdowns are custom lists in a popover, not the browser's native select. Dates are picked in a calendar popover. Times keep the native time input, styled to match the text inputs.
+- [Assumed] The calendar popover uses react-day-picker, a small dependency styled with our tokens.
+- [Assumed] When a date is picked without a time, a deadline's time is 23:59.
 - [Assumed] The hero card gradient runs from a deeper orange (#E0560A) to deep purple, so white text meets contrast requirements. The vivid orange is used for buttons and highlights.
 - [Assumed] Cards (list rows and settings sections) use a restrained radius and a faint purple-tinted shadow. Other elements are not cards.
 - [Assumed] A single entrance animation plays on the Today hero. Motion is turned off when the system asks for reduced motion.
@@ -85,6 +89,8 @@ Where this spec differs from the original spec, the change is listed under "Chan
 ### 2.3 Order and when placement runs
 
 - Tasks are placed earliest deadline first. Tasks with no deadline are placed after those with one. [Assumed]
+- Priority breaks ties after the deadline: high before normal before low. Tasks with the same deadline and priority keep their order. [Assumed]
+- Done tasks are never placed (see 2.7). [Assumed]
 - Placement runs on every refresh and after any task change, for tasks that are not placed and are not held out (see 2.5). [Decided]
 
 ### 2.4 Work and home
@@ -122,13 +128,17 @@ Where this spec differs from the original spec, the change is listed under "Chan
 
 ### 2.7 Tasks screen
 
-- Lists all tasks, earliest deadline first, then tasks with no deadline. [Assumed]
-- Each row shows title, topic (if any), type, spread (for big tasks), deadline (if any), and status: placed, unplaced, or unscheduled (held). [Assumed]
-- I can add and delete tasks. [Assumed]
+- Active tasks are grouped by priority into High, Normal, and Low sections. Within a section they are listed earliest deadline first, then tasks with no deadline. [Assumed]
+- Each row is a flat line: a round completion control on the left, the title, and one line of metadata with topic (if any), type, spread (for big tasks), deadline (if any), and status: placed, unplaced, unscheduled (held), or done. A three-dot menu holds Edit, Schedule or Unschedule, and Delete task. [Assumed]
+- I add a task from a plus button, in a sheet. The add form is not always open on the page. [Assumed]
 - Deleting asks for confirmation. [Assumed]
 - Topics are a label only. Grouping tasks under topics is not built. [Decided]
 - Editing a task after creation: title, duration, and deadline. [Decided]
+- Priority can be edited in the edit sheet, and changed by dragging a task between sections. [Assumed]
+- Completing a task marks it done. Done tasks are hidden by default and can be shown. Completing a task removes its sessions and calendar events and it is not placed again; marking it not done places it again. [Assumed]
+- Priority is high, normal, or low. A new task is normal. [Assumed]
 - Type and spread days are set at creation and cannot be changed afterward. [Decided]
+- Place and topic are also set at creation only. [Assumed]
 
 ## 3. People and reach-outs
 
@@ -149,14 +159,14 @@ Where this spec differs from the original spec, the change is listed under "Chan
 
 ### 3.3 Lists
 
-- **Due now**: every due person, tier 1 first, then most overdue first. [Decided]
-- **Everyone**: all people, due or not, with their tier and interval. [Assumed]
+- One list, with no sub-tabs. Every person is shown. Due people sit at the top, tier 1 first and then most overdue first, with a small visible mark (a dot and the word Due). The rest follow by name. Each row shows its tier and interval quietly. [Decided]
 - The due list is recalculated each time the app opens or comes back to the foreground. It does not need a manual reload. [Assumed]
 
 ### 3.4 Actions
 
 - [Decided] **Contacted** resets the person's timer to now.
-- [Assumed] **Contacted** is available for every person, in both lists, not only due ones.
+- [Assumed] **Contacted** is available for every person, not only due ones. It is a heart button on each row.
+- [Assumed] Adding a person is in a sheet opened from a plus button. Edit and Remove are in each row's three-dot menu.
 - **Remove** deletes the person. It asks for confirmation first. [Assumed]
 - Editing a person after creation: name, tier, and interval. [Decided]
 

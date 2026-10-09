@@ -1,6 +1,6 @@
 // Thin Supabase access for tasks, sessions and work hours. Every failure throws so the screen can show it.
 import { supabase } from "./supabase";
-import type { NewTask, Task, TaskEdit, TaskType, ConditionPlace } from "./tasks";
+import type { NewTask, Task, TaskEdit, TaskType, ConditionPlace, Priority } from "./tasks";
 import type { WorkHours } from "./scheduler";
 import { DEFAULT_WORK_HOURS } from "./scheduler";
 
@@ -15,6 +15,8 @@ interface TaskRow {
   condition_place: ConditionPlace;
   held: boolean;
   unplaced: boolean;
+  done: boolean;
+  priority: Priority;
 }
 
 interface SessionRow {
@@ -58,6 +60,8 @@ function fromRow(row: TaskRow): Task {
     conditionPlace: row.condition_place,
     held: row.held,
     unplaced: row.unplaced,
+    done: row.done,
+    priority: row.priority,
   };
 }
 
@@ -86,8 +90,18 @@ export async function insertTask(task: NewTask): Promise<void> {
 }
 
 export async function updateTaskEdit(id: string, edit: TaskEdit): Promise<void> {
-  const row = { title: edit.title, duration_min: edit.durationMin, deadline: edit.deadline };
+  const row = { title: edit.title, duration_min: edit.durationMin, deadline: edit.deadline, priority: edit.priority };
   check(await client().from("tasks").update(row).eq("id", id).select());
+}
+
+// Marks the task done or not done (SPEC 2.7). Done tasks are never placed.
+export async function setDone(id: string, done: boolean): Promise<void> {
+  check(await client().from("tasks").update({ done }).eq("id", id).select());
+}
+
+// Drag between priority sections changes only the priority (SPEC 2.7).
+export async function setPriority(id: string, priority: Priority): Promise<void> {
+  check(await client().from("tasks").update({ priority }).eq("id", id).select());
 }
 
 // Holds the task out of automatic placement (SPEC 2.5) and removes its sessions.

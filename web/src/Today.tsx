@@ -65,7 +65,7 @@ export function Today({ refreshTick }: { refreshTick: number }) {
   const mood = usePart(loadMood, key);
 
   return (
-    <section className="today">
+    <section className="today page-today">
       <div className="hero">
         <h2>{greeting(new Date().getHours())}</h2>
         {sessions.data ? (

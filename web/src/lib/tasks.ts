@@ -2,7 +2,10 @@
 
 export type TaskType = "big" | "work_day" | "short_fixed";
 export type ConditionPlace = "any" | "work" | "home";
-export type TaskStatus = "placed" | "unplaced" | "unscheduled";
+export type TaskStatus = "placed" | "unplaced" | "unscheduled" | "done";
+export type Priority = "high" | "normal" | "low";
+export const PRIORITIES: readonly Priority[] = ["high", "normal", "low"];
+const PRIORITY_RANK: Record<Priority, number> = { high: 0, normal: 1, low: 2 };
 
 export interface Task {
   id: string;
@@ -15,6 +18,8 @@ export interface Task {
   conditionPlace: ConditionPlace;
   held: boolean;
   unplaced: boolean; // unplaced after the last placement run; lets a newly unplaced task be announced once (SPEC 5)
+  done: boolean; // [Assumed] completed by the user; hidden by default and never placed (SPEC 2.7)
+  priority: Priority; // [Assumed] tiebreaker after deadline (SPEC 2.3); set by the Priority field or by dragging a task between sections
 }
 
 // Raw form values, all strings as typed.
@@ -26,33 +31,42 @@ export interface TaskInput {
   deadline: string; // datetime-local value, or "" for none
   spreadDays: string;
   conditionPlace: ConditionPlace;
+  priority: Priority;
 }
 
 export interface TaskEditInput {
   title: string;
   durationMin: string;
   deadline: string;
+  priority: Priority;
 }
 
-export type NewTask = Omit<Task, "id" | "held" | "unplaced">;
-export type TaskEdit = Pick<Task, "title" | "durationMin" | "deadline">;
+export type NewTask = Omit<Task, "id" | "held" | "unplaced" | "done">;
+export type TaskEdit = Pick<Task, "title" | "durationMin" | "deadline" | "priority">;
 
 export type ParseResult<T> = { ok: true; value: T } | { ok: false; errors: string[] };
 
 // Status: held tasks are unscheduled; otherwise placed if they have sessions, else unplaced.
-export function taskStatus(task: Pick<Task, "held">, placed: boolean): TaskStatus {
+export function taskStatus(task: Pick<Task, "held" | "done">, placed: boolean): TaskStatus {
+  if (task.done) return "done";
   if (task.held) return "unscheduled";
   return placed ? "placed" : "unplaced";
 }
 
-// Earliest deadline first, tasks without a deadline last. Ties keep their input order.
+// Earliest deadline first, tasks without a deadline last; then higher priority first (SPEC 2.3). Ties keep their input order.
 export function sortTasks(tasks: readonly Task[]): Task[] {
   return [...tasks].sort((a, b) => {
-    if (a.deadline === b.deadline) return 0;
-    if (a.deadline === null) return 1;
-    if (b.deadline === null) return -1;
-    return Date.parse(a.deadline) - Date.parse(b.deadline);
+    if (a.deadline !== b.deadline) {
+      if (a.deadline === null) return 1;
+      if (b.deadline === null) return -1;
+      return Date.parse(a.deadline) - Date.parse(b.deadline);
+    }
+    return PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
   });
+}
+
+export function parsePriority(raw: string): Priority {
+  return raw === "high" || raw === "low" ? raw : "normal";
 }
 
 export function parseTaskInput(input: TaskInput): ParseResult<NewTask> {
@@ -76,7 +90,7 @@ export function parseTaskInput(input: TaskInput): ParseResult<NewTask> {
   const topic = input.topic.trim() || null;
   return {
     ok: true,
-    value: { title, type: input.type, durationMin, topic, deadline, spreadDays, conditionPlace },
+    value: { title, type: input.type, durationMin, topic, deadline, spreadDays, conditionPlace, priority: parsePriority(input.priority) },
   };
 }
 
@@ -88,7 +102,7 @@ export function parseTaskEdit(input: TaskEditInput): ParseResult<TaskEdit> {
   if (errors.length > 0 || title === null || durationMin === null) {
     return { ok: false, errors };
   }
-  return { ok: true, value: { title, durationMin, deadline } };
+  return { ok: true, value: { title, durationMin, deadline, priority: parsePriority(input.priority) } };
 }
 
 // Converts an ISO timestamp to the value a datetime-local input expects (device local time).

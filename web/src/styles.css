@@ -1,12 +1,13 @@
 /* Design tokens. Light is the default. Dark applies when the system is dark, unless the reader chose Light; an explicit
-   choice in Settings sets data-theme on <html> and wins over the system (SPEC Visual direction). */
+   choice in Settings sets data-theme on <html> and wins over the system (SPEC Visual direction).
+   Each page sets an accent (--accent, --accent-ink, --accent-text) on its root class; Settings and the tab bar use the base. */
 :root {
   color-scheme: light;
-  --bg: #f5ebdf; /* warm, softened apricot (was #fff6ee, too white) */
+  --bg: #f5ebdf; /* warm, softened apricot */
   --surface: #f1eafb; /* light lavender */
   --ink: #22103a; /* plum ink: body text */
   --muted: #5d4a73;
-  --orange: #ff7a1a; /* primary actions and highlights */
+  --orange: #ff7a1a; /* base accent: Settings, tab bar, primary actions by default */
   --on-orange: #22103a; /* text on orange: plum ink, not white (contrast) */
   --purple: #4b1f7a; /* structure and text accents */
   --error: #b3261e;
@@ -14,6 +15,11 @@
   --line: rgba(75, 31, 122, 0.16);
   --shadow: 0 6px 18px rgba(75, 31, 122, 0.1);
   --radius: 14px;
+  --accent: var(--orange);
+  --accent-ink: var(--on-orange);
+  --accent-text: var(--purple);
+  --hero-a: #e0560a;
+  --hero-b: #4b1f7a;
   --font-display: "Bricolage Grotesque", system-ui, sans-serif;
   --font-body: "Figtree", system-ui, sans-serif;
 }
@@ -32,22 +38,110 @@
     --success: #7fe0a6;
     --line: rgba(196, 166, 247, 0.24);
     --shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    --accent: var(--orange);
+    --accent-ink: var(--on-orange);
+    --accent-text: var(--purple);
+    --hero-a: #b8500f;
+    --hero-b: #4b1f7a;
   }
 }
 
 :root[data-theme="dark"] {
-    color-scheme: dark;
-    --bg: #1d0f2e;
-    --surface: #2a1a40;
-    --ink: #f7f0ff;
-    --muted: #cbbfe0;
-    --orange: #ff9a4d;
-    --on-orange: #1d0f2e;
-    --purple: #c4a6f7;
-    --error: #ff8a80;
-    --success: #7fe0a6;
-    --line: rgba(196, 166, 247, 0.24);
-    --shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+  --bg: #1d0f2e;
+  --surface: #2a1a40;
+  --ink: #f7f0ff;
+  --muted: #cbbfe0;
+  --orange: #ff9a4d;
+  --on-orange: #1d0f2e;
+  --purple: #c4a6f7;
+  --error: #ff8a80;
+  --success: #7fe0a6;
+  --line: rgba(196, 166, 247, 0.24);
+  --shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  --accent: var(--orange);
+  --accent-ink: var(--on-orange);
+  --accent-text: var(--purple);
+  --hero-a: #b8500f;
+  --hero-b: #4b1f7a;
+}
+
+/* Per-page accents. Light values first; dark values repeat under the same two conditions as the tokens above. */
+.page-today {
+  --accent: #2563c9;
+  --accent-ink: #ffffff;
+  --accent-text: #1f55b5;
+  --hero-a: #2563c9;
+  --hero-b: #14307a;
+}
+
+.page-tasks {
+  --accent: #17794b;
+  --accent-ink: #ffffff;
+  --accent-text: #17794b;
+}
+
+.page-people {
+  --accent: #c2185b;
+  --accent-ink: #ffffff;
+  --accent-text: #b0154f;
+}
+
+.page-mood {
+  --accent: #9b7fd4;
+  --accent-ink: #22103a;
+  --accent-text: #6f4bb5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .page-today {
+    --accent: #7fb0ff;
+    --accent-ink: #0b1a33;
+    --accent-text: #9cc2ff;
+    --hero-a: #2b5fbf;
+    --hero-b: #0e2456;
+  }
+  :root:not([data-theme="light"]) .page-tasks {
+    --accent: #6fe0a0;
+    --accent-ink: #0c2417;
+    --accent-text: #8ff0b8;
+  }
+  :root:not([data-theme="light"]) .page-people {
+    --accent: #ff7fa8;
+    --accent-ink: #2a0a18;
+    --accent-text: #ff9dbd;
+  }
+  :root:not([data-theme="light"]) .page-mood {
+    --accent: #c4a6f7;
+    --accent-ink: #1d0f2e;
+    --accent-text: #d6c2fa;
+  }
+}
+
+:root[data-theme="dark"] .page-today {
+  --accent: #7fb0ff;
+  --accent-ink: #0b1a33;
+  --accent-text: #9cc2ff;
+  --hero-a: #2b5fbf;
+  --hero-b: #0e2456;
+}
+
+:root[data-theme="dark"] .page-tasks {
+  --accent: #6fe0a0;
+  --accent-ink: #0c2417;
+  --accent-text: #8ff0b8;
+}
+
+:root[data-theme="dark"] .page-people {
+  --accent: #ff7fa8;
+  --accent-ink: #2a0a18;
+  --accent-text: #ff9dbd;
+}
+
+:root[data-theme="dark"] .page-mood {
+  --accent: #c4a6f7;
+  --accent-ink: #1d0f2e;
+  --accent-text: #d6c2fa;
 }
 
 * {
@@ -141,7 +235,7 @@ p {
   font-weight: 600;
 }
 
-/* Bottom tab bar: five icon-and-label tabs, 56px tall (touch target 44px or more). */
+/* Bottom tab bar: five icon-and-label tabs, 56px tall (touch target 44px or more). Base orange and purple. */
 .tabs {
   position: fixed;
   bottom: 0;
@@ -156,20 +250,6 @@ p {
   background: var(--surface);
   border-top: 1px solid var(--line);
   box-shadow: 0 -6px 18px rgba(75, 31, 122, 0.08);
-}
-
-.segmented {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 8px 0 14px;
-}
-
-.segmented button[aria-selected="false"],
-.segmented button[aria-pressed="false"] {
-  background: transparent;
-  color: var(--purple);
-  box-shadow: inset 0 0 0 1.5px var(--purple);
 }
 
 .tabs button {
@@ -188,7 +268,7 @@ p {
   background: color-mix(in srgb, var(--orange) 24%, transparent);
 }
 
-/* Buttons: compact, icon plus short label. Primary is orange; secondary is a purple outline. */
+/* Buttons: compact, icon plus short label. Primary takes the page accent; secondary is a purple outline. */
 button {
   display: inline-flex;
   align-items: center;
@@ -198,8 +278,8 @@ button {
   padding: 0 16px;
   border: 0;
   border-radius: 12px;
-  background: var(--orange);
-  color: var(--on-orange);
+  background: var(--accent);
+  color: var(--accent-ink);
   font: 600 0.95rem/1 var(--font-body);
   cursor: pointer;
 }
@@ -229,13 +309,47 @@ button.danger {
   color: var(--purple);
 }
 
+.text-button {
+  min-height: 36px;
+  padding: 0 4px;
+  background: transparent;
+  color: var(--purple);
+  font-weight: 600;
+  font-size: 0.9rem;
+  justify-self: start;
+}
+
 .spin {
   animation: spin 900ms linear infinite;
 }
 
+/* Page head: the page title and its plus button. */
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0 4px;
+}
+
+.page-head h2 {
+  margin: 0;
+  color: var(--accent-text);
+}
+
+.fab {
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 16px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: var(--shadow);
+}
+
 /* Forms */
-input,
-select {
+input {
   font: inherit;
   min-height: 44px;
   width: 100%;
@@ -253,6 +367,13 @@ label {
   font-size: 0.9rem;
 }
 
+.field {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
 .field-name {
   display: inline-flex;
   align-items: center;
@@ -260,32 +381,8 @@ label {
   color: var(--ink);
 }
 
-/* Selects: the native list stays, the box and arrow are ours. */
-.select-wrap {
-  position: relative;
-  width: 100%;
-}
-
-select {
-  -webkit-appearance: none;
-  appearance: none;
-  padding-right: 42px;
-  cursor: pointer;
-}
-
-.select-chevron {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--purple);
-  pointer-events: none;
-}
-
-/* Date and time fields: same box as the text inputs. The native picker is kept; color-scheme follows the theme. */
-input[type="date"],
-input[type="time"],
-input[type="datetime-local"] {
+/* Date and time fields: the time input is native, styled to match the text inputs. color-scheme follows the theme. */
+input[type="time"] {
   -webkit-appearance: none;
   appearance: none;
   min-width: 0;
@@ -293,6 +390,179 @@ input[type="datetime-local"] {
   min-height: 44px;
 }
 
+/* Custom dropdown: the value on a button, the options as rows in a popover. */
+.dropdown {
+  position: relative;
+}
+
+.dropdown-button {
+  width: 100%;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 0 12px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1.5px var(--line);
+  font-weight: 500;
+}
+
+.dropdown-button span {
+  flex: 1;
+  text-align: left;
+}
+
+.dropdown-list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  display: grid;
+  gap: 2px;
+  max-height: 50dvh;
+  overflow: auto;
+  padding: 6px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.dropdown-list button {
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--ink);
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.dropdown-list button[aria-selected="true"] {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+/* Date and time: a calendar popover for the date, a native time input for the time. */
+.datetime {
+  display: grid;
+  gap: 6px;
+}
+
+.datetime-row {
+  display: grid;
+  grid-template-columns: 1fr 9.5rem;
+  gap: 8px;
+  align-items: start;
+}
+
+.datetime-date {
+  position: relative;
+  min-width: 0;
+}
+
+.datetime-time {
+  min-width: 0;
+}
+
+.calendar-popover {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  width: min(320px, 90vw);
+  padding: 10px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.cal {
+  color: var(--ink);
+  font: 500 0.95rem/1.2 var(--font-body);
+}
+
+.cal-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.cal-caption-label {
+  font: 700 1.05rem/1.2 var(--font-display);
+  color: var(--accent-text);
+}
+
+.cal-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.cal-nav-button {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  padding: 0;
+  background: transparent;
+  color: var(--purple);
+  box-shadow: none;
+}
+
+.cal-nav-button svg {
+  color: var(--purple);
+  fill: currentColor;
+  stroke: currentColor;
+}
+
+.cal table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cal-weekday {
+  padding: 4px 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-align: center;
+}
+
+.cal-day {
+  padding: 2px 0;
+  text-align: center;
+}
+
+.cal-day-button {
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.cal-outside .cal-day-button {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.cal-today .cal-day-button {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.cal-selected .cal-day-button {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.cal-disabled .cal-day-button {
+  opacity: 0.35;
+}
+
+/* Rows and lists */
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -310,33 +580,27 @@ input[type="datetime-local"] {
   margin: 12px 0;
 }
 
-.row-actions {
+.row-actions,
+.form-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 8px;
 }
 
-/* Cards: restrained radius and a faint purple-tinted shadow, used for list rows and settings sections only. */
-.list,
-.task-list {
+.row-title {
+  font-weight: 700;
+}
+
+.list {
   list-style: none;
   padding: 0;
   margin: 0 0 16px;
-  display: grid;
-  gap: 10px;
 }
 
-.list li,
-.task-list li {
-  padding: 12px 14px;
-  background: var(--surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-
-.row-title {
-  font-weight: 700;
+.list > div {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
 }
 
 .settings {
@@ -344,6 +608,7 @@ input[type="datetime-local"] {
   gap: 14px;
 }
 
+/* Settings sections are cards: restrained radius and a faint purple-tinted shadow. */
 .settings > section {
   padding: 14px 16px 16px;
   background: var(--surface);
@@ -361,7 +626,7 @@ input[type="datetime-local"] {
   padding: 20px;
   margin: 8px 0 16px;
   border-radius: 20px;
-  background: linear-gradient(135deg, #e0560a 0%, #4b1f7a 100%);
+  background: linear-gradient(135deg, var(--hero-a) 0%, var(--hero-b) 100%);
   color: #fff;
   box-shadow: var(--shadow);
   animation: rise 520ms ease-out both;
@@ -384,7 +649,9 @@ input[type="datetime-local"] {
 }
 
 .today,
-.tasks {
+.tasks,
+.people,
+.mood {
   margin-bottom: 24px;
 }
 
@@ -408,35 +675,161 @@ input[type="datetime-local"] {
   border-radius: 50%;
 }
 
-/* Tasks */
+/* Tasks: flat rows on hairlines, a round completion control, one meta line, and a three-dot menu. */
 .task-form {
   display: grid;
+  gap: 12px;
+  margin: 8px 0;
+}
+
+.task-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.task-row {
+  display: flex;
+  align-items: flex-start;
   gap: 10px;
-  margin: 12px 0 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.task-body {
+  flex: 1;
+  min-width: 0;
 }
 
 .task-title {
-  font-weight: 700;
-}
-
-.topic {
-  color: var(--purple);
+  margin: 0;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .task-meta {
+  margin: 2px 0 0;
   color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.task-actions,
-.task-confirm,
-.task-edit,
-.session-edit {
+  font-size: 0.85rem;
   display: flex;
   flex-wrap: wrap;
+  gap: 2px 8px;
+}
+
+.task-row.done .task-title {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+/* The round completion control: a 44px hit area around a 24px ring that fills when done. */
+.check {
+  position: relative;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  margin: -10px -10px -10px -10px;
+  padding: 0;
+  background: transparent;
+  color: var(--accent-ink);
+  box-shadow: none;
+}
+
+.check::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.task-row.done .check::before {
+  background: var(--accent);
+  box-shadow: none;
+}
+
+.grip {
+  width: 36px;
+  min-width: 36px;
+  height: 44px;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  box-shadow: none;
+  touch-action: none;
+  cursor: grab;
+}
+
+.row-menu {
+  position: relative;
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 25;
+  display: grid;
+  gap: 2px;
+  min-width: 200px;
+  padding: 6px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.menu button {
+  justify-content: flex-start;
+  width: 100%;
+  background: transparent;
+  color: var(--ink);
+  box-shadow: none;
+  font-weight: 500;
+}
+
+.menu button.danger {
+  color: var(--error);
+}
+
+.priority-section {
+  margin: 20px 0 4px;
+  padding: 0 0 4px;
+  border-radius: 14px;
+}
+
+.priority-section h3 {
+  margin: 0 0 4px;
+  color: var(--accent-text);
+}
+
+.count {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.priority-section.drop {
+  outline: 2px dashed var(--accent);
+  outline-offset: 6px;
+}
+
+.done-toggle {
+  margin: 18px 0 4px;
+}
+
+.done-section {
+  opacity: 0.85;
+}
+
+.task-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin-top: 8px;
+  width: 100%;
 }
 
 button.session {
@@ -446,10 +839,61 @@ button.session {
   color: var(--purple);
   box-shadow: inset 0 0 0 1px var(--line);
   font-weight: 600;
+  margin-top: 6px;
 }
 
 .session {
   margin-top: 6px;
+}
+
+.session-edit {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.topic {
+  color: var(--purple);
+  font-weight: 600;
+}
+
+/* Sheets: bottom sheets for add and edit. A native dialog, so focus is trapped and Escape closes it. */
+.sheet {
+  width: min(100%, 480px);
+  max-height: 88dvh;
+  margin: auto auto 0;
+  padding: 0;
+  border: 0;
+  border-radius: 22px 22px 0 0;
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: 0 -10px 30px rgba(20, 8, 32, 0.25);
+  overflow: auto;
+}
+
+.sheet::backdrop {
+  background: rgba(20, 8, 32, 0.45);
+}
+
+.sheet-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 12px 6px 16px;
+  background: var(--bg);
+}
+
+.sheet-head h2 {
+  margin: 0;
+  color: var(--accent-text);
+  font-size: 1.2rem;
+}
+
+.sheet .task-form {
+  padding: 4px 16px calc(env(safe-area-inset-bottom) + 20px);
 }
 
 .reconnect,
@@ -464,9 +908,80 @@ button.session {
   font-weight: 600;
 }
 
+/* People: one flat list, due people first with a dot and the word Due. */
+.person-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.person-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.person-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.person-name {
+  margin: 0;
+  font-weight: 600;
+}
+
+.person-meta {
+  margin: 2px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.due {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.due-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.contact {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  background: transparent;
+  color: var(--accent-text);
+  box-shadow: none;
+}
+
+/* Settings and reminders */
+.settings-note {
+  color: var(--muted);
+}
+
+/* Today */
+.today .status {
+  margin-bottom: 4px;
+}
+
 /* Mood */
 .mood h2 {
   margin-top: 0;
+  color: var(--accent-text);
 }
 
 .mood-nav {
@@ -558,6 +1073,20 @@ button.session {
   gap: 8px;
 }
 
+/* Segmented choices (the theme picker in Settings). */
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+
+.segmented button[aria-pressed="false"] {
+  background: transparent;
+  color: var(--purple);
+  box-shadow: inset 0 0 0 1.5px var(--purple);
+}
+
 @keyframes rise {
   from {
     opacity: 0;
@@ -586,5 +1115,9 @@ button.session {
 @media (max-width: 400px) {
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .datetime-row {
+    grid-template-columns: 1fr 8.5rem;
   }
 }

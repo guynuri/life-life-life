@@ -8,7 +8,7 @@ const dir = fileURLToPath(new URL(".", import.meta.url));
 function classesUsed(text: string): string[] {
   const found: string[] = [];
   for (const m of text.matchAll(/className="([^"]*)"/g)) found.push(...(m[1] ?? "").split(/\s+/));
-  for (const m of text.matchAll(/className=\{([^}]*)\}/g)) for (const q of m[1]?.matchAll(/"([^"]+)"/g) ?? []) found.push(q[1] ?? "");
+  for (const m of text.matchAll(/className=\{([^}]*)\}/g)) for (const q of m[1]?.matchAll(/"([^"]+)"/g) ?? []) found.push(...(q[1] ?? "").split(/\s+/));
   return found.filter((c) => c.length > 0 && !c.includes("$"));
 }
 

@@ -97,7 +97,7 @@ const seed: Row[] = [
   { id: "cy", name: "Cy", tier: 2, interval_days: 2, last_contacted_at: null, created_at: daysAgo(3) },
 ];
 
-test("due list, contacted, and add person", async ({ page }) => {
+test("due people sit at the top with a Due mark; contacted resets the timer; add person", async ({ page }) => {
   const rows = structuredClone(seed);
   await fakeSupabase(page, rows);
   await page.goto("/");
@@ -105,30 +105,29 @@ test("due list, contacted, and add person", async ({ page }) => {
 
   const items = page.getByRole("listitem");
   await expect(page.getByRole("heading", { name: "People" })).toBeVisible();
-  // Due now: Ann (tier 1, 8 of 7 days) before Cy (tier 2, override 2 days). Bob is not due.
-  await expect(items).toHaveCount(2);
-  await expect(items.nth(0)).toContainText("Ann");
-  await expect(items.nth(1)).toContainText("Cy");
-
-  await page.getByRole("tab", { name: /Everyone/ }).click();
+  // One list: due people first (Ann, tier 1, then Cy), then everyone else (Bob, not due).
   await expect(items).toHaveCount(3);
+  await expect(items.nth(0)).toContainText("Ann");
+  await expect(items.nth(0)).toContainText("Due");
+  await expect(items.nth(1)).toContainText("Cy");
+  await expect(items.nth(2)).toContainText("Bob");
+  await expect(items.nth(2)).not.toContainText("Due");
 
-  // Contacted resets Ann's timer, so she leaves the due list.
-  await items.filter({ hasText: "Ann" }).getByRole("button", { name: "Contacted" }).click();
-  await page.getByRole("tab", { name: /Due now/ }).click();
-  await expect(items).toHaveCount(1);
-  await expect(items.first()).toContainText("Cy");
+  // The Contacted icon resets Ann's timer, so she is no longer due and moves down the list.
+  await page.getByRole("button", { name: "Contacted Ann" }).click();
+  await expect(items.nth(0)).toContainText("Cy");
+  await expect(items.filter({ hasText: "Ann" })).not.toContainText("Due");
 
-  // Add a person; a bad interval is rejected before saving.
-  await page.getByRole("button", { name: "Add person" }).click();
-  await page.getByLabel("Name").fill("Dee");
-  await page.getByLabel(/Interval override/).fill("0");
-  await page.getByRole("button", { name: "Save" }).click();
+  // Add a person from the plus button; a bad interval is rejected before saving.
+  await page.getByRole("button", { name: "Add person", exact: true }).click();
+  const form = page.getByRole("form", { name: "Person form" });
+  await form.getByLabel("Name").fill("Dee");
+  await form.getByLabel(/Interval override/).fill("0");
+  await form.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Interval must be a whole number")).toBeVisible();
 
-  await page.getByLabel(/Interval override/).fill("");
-  await page.getByRole("button", { name: "Save" }).click();
-  await page.getByRole("tab", { name: /Everyone/ }).click();
+  await form.getByLabel(/Interval override/).fill("");
+  await form.getByRole("button", { name: "Save" }).click();
   await expect(items).toHaveCount(4);
   await expect(items.filter({ hasText: "Dee" })).toContainText("Tier 2 · every 14 days");
 });
@@ -140,11 +139,11 @@ test("a failed contacted save shows the error and the stored state", async ({ pa
   await page.getByRole("tab", { name: "People", exact: true }).click();
 
   const items = page.getByRole("listitem");
-  await expect(items).toHaveCount(2);
-  await items.filter({ hasText: "Ann" }).getByRole("button", { name: "Contacted" }).click();
+  await expect(items).toHaveCount(3);
+  await page.getByRole("button", { name: "Contacted Ann" }).click();
 
   await expect(page.getByText("Save failed: database unavailable")).toBeVisible();
-  // Ann was not saved as contacted, so she is still due.
-  await expect(items).toHaveCount(2);
+  // Ann was not saved as contacted, so she is still due and still first.
   await expect(items.first()).toContainText("Ann");
+  await expect(items.first()).toContainText("Due");
 });

@@ -1,12 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
-import { dueNow, everyone, intervalDaysFor, type Person, type Tier, validatePersonInput } from "./lib/people";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { dueNow, everyone, intervalDaysFor, isDue, type Person, type Tier, validatePersonInput } from "./lib/people";
 import { addPerson, listPeople, markContacted, removePerson, updatePerson } from "./lib/peopleStore";
-import { Check, ListTodo, Pencil, Trash2, UserCheck, UserMinus, UserPlus, Users, X } from "lucide-react";
-import { FieldLabel, Label, SelectField } from "./ui";
-import { Layers, Repeat, User } from "lucide-react";
+import { Check, Heart, Layers, Pencil, Repeat, Trash2, User, UserMinus, UserPlus, X } from "lucide-react";
+import { Dropdown, FieldLabel, Label, RowMenu, Sheet, type Option } from "./ui";
 
-type View = "due" | "all";
+// One list, no sub-tabs (SPEC 3.3). Due people sit at the top with a visible mark.
 type Editing = { mode: "new" } | { mode: "edit"; person: Person } | null;
+
+const TIER_OPTIONS: Option<string>[] = [
+  { value: "1", label: "Tier 1 · every 7 days" },
+  { value: "2", label: "Tier 2 · every 14 days" },
+  { value: "3", label: "Tier 3 · every 30 days" },
+];
 
 function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -15,7 +20,6 @@ function errorText(error: unknown): string {
 export function People({ refreshTick }: { refreshTick: number }) {
   const [people, setPeople] = useState<Person[] | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  const [view, setView] = useState<View>("due");
   const [editing, setEditing] = useState<Editing>(null);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -60,72 +64,99 @@ export function People({ refreshTick }: { refreshTick: number }) {
 
   if (people === null) {
     return (
-      <section>
+      <section className="people page-people">
         {loadError ? <p className="error">{loadError}</p> : <p className="status">Loading people...</p>}
       </section>
     );
   }
 
-  const dueList = dueNow(people, now);
-  const shown = view === "due" ? dueList : everyone(people);
+  // Due people first (tier, then most overdue), then everyone else by name.
+  const due = dueNow(people, now);
+  const dueIds = new Set(due.map((p) => p.id));
+  const rest = everyone(people).filter((p) => !dueIds.has(p.id));
+  const shown = [...due, ...rest];
 
   return (
-    <section>
-      <h2>People</h2>
-      {loadError && <p className="error">{loadError}</p>}
-      {saveError && <p className="error">{saveError}</p>}
-
-      <div className="segmented" role="tablist">
-        <button type="button" role="tab" aria-selected={view === "due"} onClick={() => setView("due")}>
-          <Label icon={ListTodo}>Due now ({dueList.length})</Label>
-        </button>
-        <button type="button" role="tab" aria-selected={view === "all"} onClick={() => setView("all")}>
-          <Label icon={Users}>Everyone ({people.length})</Label>
+    <section className="people page-people" aria-labelledby="people-heading">
+      <div className="page-head">
+        <h2 id="people-heading">People</h2>
+        <button type="button" className="fab" aria-label="Add person" onClick={() => setEditing({ mode: "new" })}>
+          <UserPlus aria-hidden="true" size={22} strokeWidth={2.25} />
         </button>
       </div>
+      {loadError && <p className="error">{loadError}</p>}
+      {!editing && saveError && <p className="error">{saveError}</p>}
 
-      {shown.length === 0 && <p className="status">{view === "due" ? "Nobody is due." : "No people yet."}</p>}
+      {shown.length === 0 && <p className="status">No people yet. Use the plus button to add one.</p>}
 
-      <ul className="list">
-        {shown.map((p) => (
-          <li key={p.id}>
-            <div className="row-title">{p.name}</div>
-            <div className="status">
-              Tier {p.tier} · every {intervalDaysFor(p)} days · last contacted{" "}
-              {p.lastContactedAt ? new Date(p.lastContactedAt).toLocaleDateString() : "never"}
-            </div>
-            <div className="row-actions">
-              <button type="button" onClick={() => void write(() => markContacted(p.id))}><Label icon={UserCheck}>Contacted</Label></button>
-              <button type="button" className="secondary" onClick={() => setEditing({ mode: "edit", person: p })}><Label icon={Pencil}>Edit</Label></button>
-              {confirmRemoveId === p.id ? (
-                <>
-                  <button type="button" className="danger" onClick={() => void write(() => removePerson(p.id))}><Label icon={Trash2}>Confirm remove</Label></button>
-                  <button type="button" className="secondary" onClick={() => setConfirmRemoveId(null)}><Label icon={X}>Cancel</Label></button>
-                </>
-              ) : (
-                <button type="button" className="secondary" onClick={() => setConfirmRemoveId(p.id)}><Label icon={UserMinus}>Remove</Label></button>
-              )}
-            </div>
-          </li>
-        ))}
+      <ul className="person-list">
+        {shown.map((p) => {
+          const isDueNow = isDue(p, now);
+          return (
+            <li key={p.id} className="person-row">
+              <div className="person-body">
+                <p className="person-name">{p.name}</p>
+                <p className="person-meta">
+                  {isDueNow && (
+                    <span className="due">
+                      <span className="due-dot" aria-hidden="true" />
+                      Due
+                    </span>
+                  )}
+                  <span>
+                    Tier {p.tier} · every {intervalDaysFor(p)} days · last contacted{" "}
+                    {p.lastContactedAt ? new Date(p.lastContactedAt).toLocaleDateString() : "never"}
+                  </span>
+                </p>
+                {confirmRemoveId === p.id && (
+                  <div className="task-confirm">
+                    <span>Remove {p.name}?</span>
+                    <button type="button" className="danger" onClick={() => void write(() => removePerson(p.id))}>
+                      <Label icon={Trash2}>Confirm remove</Label>
+                    </button>
+                    <button type="button" className="secondary" onClick={() => setConfirmRemoveId(null)}>
+                      <Label icon={X}>Cancel</Label>
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                className="contact"
+                aria-label={`Contacted ${p.name}`}
+                title="Mark contacted"
+                onClick={() => void write(() => markContacted(p.id))}
+              >
+                <Heart aria-hidden="true" size={20} strokeWidth={2.25} />
+              </button>
+              <RowMenu
+                label={`Person actions: ${p.name}`}
+                items={[
+                  { key: "edit", label: "Edit", icon: Pencil, onSelect: () => setEditing({ mode: "edit", person: p }) },
+                  { key: "remove", label: "Remove", icon: UserMinus, danger: true, onSelect: () => setConfirmRemoveId(p.id) },
+                ]}
+              />
+            </li>
+          );
+        })}
       </ul>
 
-      {editing ? (
-        <PersonForm
-          key={editing.mode === "edit" ? editing.person.id : "new"}
-          person={editing.mode === "edit" ? editing.person : null}
-          onCancel={() => setEditing(null)}
-          onSave={(name, tier, interval) => {
-            const result = validatePersonInput(name, tier, interval);
-            if (!result.ok) return result.error;
-            const target = editing.mode === "edit" ? editing.person : null;
-            void write(() => (target ? updatePerson(target.id, result.value) : addPerson(result.value)));
-            return null;
-          }}
-        />
-      ) : (
-        <button type="button" onClick={() => setEditing({ mode: "new" })}><Label icon={UserPlus}>Add person</Label></button>
-      )}
+      <Sheet open={editing !== null} title={editing?.mode === "edit" ? "Edit person" : "Add person"} onClose={() => setEditing(null)}>
+        {editing && (
+          <PersonForm
+            person={editing.mode === "edit" ? editing.person : null}
+            onCancel={() => setEditing(null)}
+            onSave={(name, tier, interval) => {
+              const result = validatePersonInput(name, tier, interval);
+              if (!result.ok) return result.error;
+              const target = editing.mode === "edit" ? editing.person : null;
+              void write(() => (target ? updatePerson(target.id, result.value) : addPerson(result.value)));
+              return null;
+            }}
+            saveError={saveError}
+          />
+        )}
+      </Sheet>
     </section>
   );
 }
@@ -134,45 +165,53 @@ function PersonForm({
   person,
   onSave,
   onCancel,
+  saveError,
 }: {
   person: Person | null;
   onSave: (name: string, tier: number, interval: string) => string | null;
   onCancel: () => void;
+  saveError: string | null;
 }) {
   const [name, setName] = useState(person?.name ?? "");
   const [tier, setTier] = useState<Tier>(person?.tier ?? 2);
   const [intervalText, setIntervalText] = useState(person?.intervalDays?.toString() ?? "");
   const [formError, setFormError] = useState<string | null>(null);
 
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    setFormError(onSave(name, tier, intervalText));
+  }
+
   return (
-    <form
-      className="person-form"
-      onSubmit={(e) => {
-        e.preventDefault();
-        setFormError(onSave(name, tier, intervalText));
-      }}
-    >
-      <h3>{person ? "Edit person" : "Add person"}</h3>
+    <form className="task-form" aria-label="Person form" onSubmit={submit}>
       {formError && <p className="error">{formError}</p>}
+      {saveError && <p className="error">{saveError}</p>}
       <label>
         <FieldLabel icon={User}>Name</FieldLabel>
         <input value={name} onChange={(e) => setName(e.target.value)} />
       </label>
-      <label>
-        <FieldLabel icon={Layers}>Tier</FieldLabel>
-        <SelectField value={tier} onChange={(e) => setTier(Number(e.target.value) as Tier)}>
-          <option value={1}>1 (every 7 days)</option>
-          <option value={2}>2 (every 14 days)</option>
-          <option value={3}>3 (every 30 days)</option>
-        </SelectField>
-      </label>
+      <div className="field">
+        <span id="tier-label">
+          <FieldLabel icon={Layers}>Tier</FieldLabel>
+        </span>
+        <Dropdown
+          labelId="tier-label"
+          value={String(tier)}
+          options={TIER_OPTIONS}
+          onChange={(value) => setTier(Number(value) as Tier)}
+        />
+      </div>
       <label>
         <FieldLabel icon={Repeat}>Interval override in days (optional)</FieldLabel>
         <input inputMode="numeric" value={intervalText} onChange={(e) => setIntervalText(e.target.value)} />
       </label>
-      <div className="row-actions">
-        <button type="submit"><Label icon={Check}>Save</Label></button>
-        <button type="button" className="secondary" onClick={onCancel}><Label icon={X}>Cancel</Label></button>
+      <div className="form-actions">
+        <button type="submit">
+          <Label icon={Check}>Save</Label>
+        </button>
+        <button type="button" className="secondary" onClick={onCancel}>
+          <Label icon={X}>Cancel</Label>
+        </button>
       </div>
     </form>
   );

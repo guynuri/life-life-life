@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { fixClock, serveGoogle, serveTable, signIn, taskRow, type Row } from "./helpers";
 
-const SHOTS = "C:/Users/LIOZ/AppData/Local/Temp/claude/C--Users-LIOZ-Code-projects-life-life-life/af83ed0f-035c-4a33-8307-07ea522e9638/scratchpad";
+const SHOTS = "C:/Users/LIOZ/AppData/Local/Temp/ui-work-shots";
 
 async function stubAll(page: Page) {
   await signIn(page);
@@ -37,7 +37,7 @@ test("dark mode, phone width", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ colorScheme: "dark" });
   await stubAll(page);
-  for (const id of ["today", "tasks", "settings"]) {
+  for (const id of ["today", "tasks", "people", "mood", "settings"]) {
     await page.goto(`/#/${id}`);
     await expect(page.getByRole("tab", { name: new RegExp(id, "i") })).toHaveAttribute("aria-selected", "true");
     await page.waitForTimeout(700);
@@ -50,9 +50,30 @@ test("the Tasks page has its styles applied", async ({ page }) => {
   await page.goto("/#/tasks");
   const row = page.getByRole("listitem").filter({ hasText: "Pay rent" });
   await expect(row).toBeVisible();
-  await expect(row).toHaveCSS("border-radius", "14px");
-  await expect(row).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(row).toHaveCSS("border-bottom-style", "solid");
   const add = page.getByRole("button", { name: "Add task", exact: true });
-  await expect(add).toHaveCSS("background-color", "rgb(255, 122, 26)");
+  await expect(add).toHaveCSS("background-color", "rgb(23, 121, 75)"); // the Tasks page accent (green)
   await expect(page.getByRole("tablist", { name: "Pages" })).toHaveCSS("position", "fixed");
+});
+
+test("the add-task sheet with its dropdown and calendar, light and dark, phone width", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await stubAll(page);
+  await page.goto("/#/tasks");
+  await expect(page.getByRole("tab", { name: "Tasks", exact: true })).toHaveAttribute("aria-selected", "true");
+
+  for (const scheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme: scheme });
+    await page.getByRole("button", { name: "Add task", exact: true }).click();
+    const form = page.getByRole("form", { name: "Add task form" });
+    await form.getByRole("button", { name: "Type" }).click();
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: `${SHOTS}/sheet-type-390-${scheme}.png` });
+    await page.keyboard.press("Escape");
+    await form.getByRole("button", { name: "Deadline (optional)" }).click();
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: `${SHOTS}/sheet-calendar-390-${scheme}.png` });
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Close", exact: true }).click();
+  }
 });

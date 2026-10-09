@@ -15,6 +15,8 @@ const task = (id: string, title: string, topic: string | null = null): Task => (
   conditionPlace: "any",
   held: false,
   unplaced: false,
+  done: false,
+  priority: "normal",
 });
 
 test("day bounds run from local midnight to the next local midnight, across a month end", () => {

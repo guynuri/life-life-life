@@ -29,7 +29,7 @@ test("placement creates one event per session, linked to the task; a move update
 
   // Moving the session moves the Google event to the same time.
   await item.getByRole("button", { name: /Move session/ }).click();
-  await item.getByLabel("New start").fill("2026-10-12T10:00");
+  await item.getByLabel("Time").fill("10:00");
   await item.getByRole("button", { name: "Save time" }).click();
   await expect(item.getByRole("button", { name: /Move session/ })).toHaveCount(1);
   expect(googleEvents[0]?.start).toEqual({ dateTime: google(10) });
@@ -37,7 +37,8 @@ test("placement creates one event per session, linked to the task; a move update
   expect(sessions[0]?.start_at).toBe(iso(10));
 
   // Unschedule deletes the event and holds the task.
-  await item.getByRole("button", { name: "Unschedule" }).click();
+  await item.getByRole("button", { name: /Task actions/ }).click();
+  await page.getByRole("menuitem", { name: "Unschedule" }).click();
   await expect(item).toContainText("Unscheduled");
   expect(googleEvents).toHaveLength(0);
   expect(sessions).toHaveLength(0);
@@ -81,7 +82,8 @@ test("sync on refresh: a moved event moves the session (even outside work hours)
   expect(googleEvents).toHaveLength(0);
 
   // Schedule releases the hold; the task is placed again with a new event.
-  await item.getByRole("button", { name: "Schedule" }).click();
+  await item.getByRole("button", { name: /Task actions/ }).click();
+  await page.getByRole("menuitem", { name: "Schedule" }).click();
   await expect(item).toContainText("Placed");
   expect(googleEvents).toHaveLength(1);
 });
@@ -101,7 +103,7 @@ test("a Google error on move is shown and the session keeps its stored time", as
   await page.getByRole("tab", { name: "Tasks", exact: true }).click();
   const item = page.getByRole("listitem").filter({ hasText: "Pay rent" });
   await item.getByRole("button", { name: /Move session/ }).click();
-  await item.getByLabel("New start").fill("2026-10-12T10:00");
+  await item.getByLabel("Time").fill("10:00");
   await item.getByRole("button", { name: "Save time" }).click();
 
   await expect(page.getByRole("alert")).toContainText("Could not move session: Backend Error");
