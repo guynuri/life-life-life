@@ -18,6 +18,10 @@ Where this spec differs from the original spec, the change is listed under "Chan
 - A failed save or a failed read is shown to me. It is never swallowed, and the screen shows what is actually stored, not what I tried to save. [Assumed]
 - All times are the device's local time. Sessions keep their wall-clock time across daylight-saving changes. [Decided]
 
+## Pages
+
+- [Assumed] The app is one page with four tabs: Today, Tasks, People, Mood. The open tab is kept in memory, so a reload returns to Today. Sign-in and sign-out stay at the top of the page.
+
 ## 1. Google Calendar
 
 - Read events from my primary calendar. A refresh re-reads Google, so edits I make there appear in the app. [Decided]
