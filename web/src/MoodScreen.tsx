@@ -16,6 +16,8 @@ import {
   type Rgb,
   type View,
 } from "./lib/moodView";
+import { Check, ChevronLeft, ChevronRight, Eraser } from "lucide-react";
+import { Label } from "./ui";
 
 const rgbCss = (c: Rgb) => `rgb(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math.round(c[2])})`;
 // Supabase errors are plain objects, not Error instances, so read .message by shape.
@@ -89,16 +91,12 @@ export function MoodScreen({ refreshTick }: { refreshTick: number }) {
   const leading = view.zoom === "day" ? new Date(view.year, view.month, 1).getDay() : 0;
 
   return (
-    <section className="mood">
+    <section className="mood page-mood">
       <h2>Mood</h2>
       <nav className="mood-nav">
-        <button type="button" onClick={() => setView(step(view, -1))}>
-          Prev
-        </button>
+        <button type="button" className="secondary" onClick={() => setView(step(view, -1))}><Label icon={ChevronLeft}>Prev</Label></button>
         <span>{viewTitle(view)}</span>
-        <button type="button" onClick={() => setView(step(view, 1))}>
-          Next
-        </button>
+        <button type="button" className="secondary" onClick={() => setView(step(view, 1))}><Label icon={ChevronRight}>Next</Label></button>
       </nav>
       {loadError && <p className="error" role="alert">{loadError}</p>}
       <div ref={gridRef} className={`mood-grid zoom-${view.zoom}`}>
@@ -137,12 +135,8 @@ export function MoodScreen({ refreshTick }: { refreshTick: number }) {
             ))}
           </div>
           <div className="picker-actions">
-            <button type="button" onClick={() => choose(null)} disabled={saving}>
-              Clear
-            </button>
-            <button type="button" onClick={() => setSelected(null)} disabled={saving}>
-              Done
-            </button>
+            <button type="button" onClick={() => choose(null)} disabled={saving}><Label icon={Eraser}>Clear</Label></button>
+            <button type="button" onClick={() => setSelected(null)} disabled={saving}><Label icon={Check}>Done</Label></button>
           </div>
         </div>
       )}

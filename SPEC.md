@@ -20,8 +20,30 @@ Where this spec differs from the original spec, the change is listed under "Chan
 
 ## Pages
 
-- [Decided] The app is one page with four tabs: Today, Tasks, People, Mood. Each tab has its own URL: #/today, #/tasks, #/people, #/mood. Opening a tab adds a history entry, so back, forward, and reload keep the open tab. An empty or unknown hash opens Today. Sign-in and sign-out stay at the top of the page.
-- [Decided] The top bar has a Refresh button on every page. It re-reads Google, runs placement, and then reloads the stored data on every page.
+- [Decided] The app is one page with five tabs: Today, Tasks, People, Mood, Settings. Each tab has its own URL: #/today, #/tasks, #/people, #/mood, #/settings. Opening a tab adds a history entry, so back, forward, and reload keep the open tab. An empty or unknown hash opens Today.
+- [Decided] The five tabs sit in a bottom tab bar. Each tab shows an icon with a short label. The tab bar is the only navigation.
+- [Decided] The top bar is slim: the app name and an icon-only Refresh button (labelled "Refresh" for screen readers) on every page. Refresh re-reads Google, runs placement, and then reloads the stored data on every page.
+- [Decided] Sign-in and sign-out stay on the page. Sign-out is on the Settings page.
+- [Decided] Layout is phone first: one column, about 390px wide, with touch targets of at least 44px. On wider screens the content is centred at about 480px, and the tab bar matches that width.
+- [Decided] Visual direction: pastel and calm. The base is neutral, in light and dark mode. Each page has one pastel accent family; the accent carries the page's identity and the surfaces stay neutral. Settings and the tab bar use the base family, a pastel peach. Primary buttons take the page accent with dark ink on the fill; secondary buttons are outlines in the accent text colour. Headings use Bricolage Grotesque and body text uses Figtree. Each page has a clear type scale, and text stays under about 80 characters a line. The six mood colours in section 4 are unchanged. Dark mode follows the system setting unless the reader picks Light or Dark in Settings.
+- [Decided] The Today page opens with a hero card: a time-appropriate greeting and the session in progress or the next one.
+- [Decided] Today updates live. Writes to tasks, people, and moods, and each placement run, tell Today to reload, and Today reloads when its tab becomes active. The Refresh button stays.
+- [Decided] Each page sets its own pastel accent: Today blue, People rose, Mood lilac, Tasks mint. Settings and the tab bar use the peach base. Each accent is a set of tokens, and dark mode has its own values.
+- [Decided] Dropdowns are custom lists in a popover, not the browser's native select. Dates are picked in a calendar popover. Times are picked in a popover list of 15-minute steps, in the same style as the dropdown. The native time picker is not used.
+- [Decided] The selected option in a dropdown or time list is tinted with the page accent, so it is visible in light and dark mode. The menu panel uses the surface colour.
+- [Assumed] The values: neutral base light #FAF8F5, surface #F0ECE7, ink #2F2A33; dark #17141A, surface #231E27, ink #F2EEF4. Page accents (fill, ink on the fill, text): Today blue #B5D0F7 / #1B2C4D / #3A66B3; People rose #F7C6D2 / #4D1C2C / #A23B5F; Mood lilac #D7C8F5 / #2F1F52 / #6A4AAE; Tasks mint #BDE8D0 / #163D2A / #2D7550; Settings and the tab bar peach #F6C4A5 / #4A2A1A / #A0522D. Dark mode uses deeper variants of each family. Text on each surface is checked for contrast.
+- [Assumed] The calendar popover uses react-day-picker, a small dependency styled with our tokens.
+- [Assumed] When a date is picked without a time, a deadline's time is 23:59.
+- [Assumed] The hero card gradient runs from a deeper orange (#E0560A) to deep purple, so white text meets contrast requirements. The vivid orange is used for buttons and highlights.
+- [Assumed] Cards (list rows and settings sections) use a restrained radius and a faint purple-tinted shadow. Other elements are not cards.
+- [Assumed] A single entrance animation plays on the Today hero. Motion is turned off when the system asks for reduced motion.
+- [Decided] Settings page contents, in order: appearance (System, Light, or Dark; System is the default); work hours (start and end, editable); lunch (start and end, editable); contact reminder time (default 19:00); notifications (turn on or off, with the current state); Google Calendar (connection status and a Reconnect Google action); account (sign out).
+- [Assumed] Lunch must fall inside work hours, and each lunch end must come after its start. Work must end after it starts.
+- [Assumed] Google Calendar status reads as connected when the signed-in session carries a Google provider token.
+- [Decided] The theme choice is System (default), Light, or Dark. It applies at once and is applied before first paint, so there is no flash of the wrong theme.
+- [Assumed] The theme choice is saved in localStorage under the key life-theme. Storage is read and written inside try/catch: if storage is unavailable the page still renders, and the choice lasts only for that page view.
+- [Decided] Every form field shows a lucide icon next to its label. Selects use a custom chevron. Date and time fields keep the native picker, which matches the theme, and share the text input height, radius, and border.
+- [Decided] Each Settings section saves on its own. A successful save shows a visible success message; a failed save shows the error. Nothing fails silently.
 
 ## 1. Google Calendar
 
@@ -70,6 +92,8 @@ Where this spec differs from the original spec, the change is listed under "Chan
 ### 2.3 Order and when placement runs
 
 - Tasks are placed earliest deadline first. Tasks with no deadline are placed after those with one. [Assumed]
+- Priority breaks ties after the deadline: high before normal before low. Tasks with the same deadline and priority keep their order. [Assumed]
+- Done tasks are never placed (see 2.7). [Assumed]
 - Placement runs on every refresh and after any task change, for tasks that are not placed and are not held out (see 2.5). [Decided]
 
 ### 2.4 Work and home
@@ -107,13 +131,17 @@ Where this spec differs from the original spec, the change is listed under "Chan
 
 ### 2.7 Tasks screen
 
-- Lists all tasks, earliest deadline first, then tasks with no deadline. [Assumed]
-- Each row shows title, topic (if any), type, spread (for big tasks), deadline (if any), and status: placed, unplaced, or unscheduled (held). [Assumed]
-- I can add and delete tasks. [Assumed]
+- Active tasks are one list in manual order. A new task goes to the end. A grip on each row drags it to a new place: the row follows the pointer, the rows in between make room, and a drop settles into its slot. It uses pointer events with pointer capture, so it works with a finger. Move up and Move down in the three-dot menu do the same from the keyboard. Manual order is display only: placement still uses the deadline, then priority. [Assumed]
+- Each row is a flat line: a round completion control on the left, the title, and one line of metadata with topic (if any), type, spread (for big tasks), deadline (if any), and status: placed, unplaced, unscheduled (held), or done. Priority is not written out. A high-priority row has a coral edge, and a low-priority row a muted edge; a normal row has none. The edge has a name for screen readers. A three-dot menu holds Edit, Move up and Move down, Schedule or Unschedule, and Delete task. [Assumed]
+- I add a task from a plus button, in a sheet. The add form puts title, type, and duration first, and spread days for a big task (it is required). Topic, deadline, place, and priority are under More details, collapsed by default. [Assumed]
 - Deleting asks for confirmation. [Assumed]
 - Topics are a label only. Grouping tasks under topics is not built. [Decided]
 - Editing a task after creation: title, duration, and deadline. [Decided]
+- Priority is set in the add form (default Normal) as three choices, each with a dot, and in the edit sheet. It breaks ties after the deadline in placement. [Assumed]
+- Completing a task marks it done at once: the row moves when it is pressed, and the save runs in the background. If the save fails, the row goes back and the error is shown in the list. Done tasks are in a Done (n) accordion at the bottom, collapsed by default. Completing a task removes its sessions and calendar events and it is not placed again; marking it not done places it again. [Assumed]
+- Priority is high, normal, or low. A new task is normal. [Assumed]
 - Type and spread days are set at creation and cannot be changed afterward. [Decided]
+- Place and topic are also set at creation only. [Assumed]
 
 ## 3. People and reach-outs
 
@@ -134,14 +162,20 @@ Where this spec differs from the original spec, the change is listed under "Chan
 
 ### 3.3 Lists
 
-- **Due now**: every due person, tier 1 first, then most overdue first. [Decided]
-- **Everyone**: all people, due or not, with their tier and interval. [Assumed]
+- One list, with no sub-tabs. Two groups, [Decided]:
+  - People who need contact (due): an empty grey heart, at the top.
+  - People who do not need contact (not due): a full heart, at the bottom, greyed out as a block (muted text on a lower-contrast surface).
+  - Within each group, order by last contacted, oldest first. A person never contacted counts from the day they were added (3.2).
+- Each row shows its tier and interval quietly. [Decided]
 - The due list is recalculated each time the app opens or comes back to the foreground. It does not need a manual reload. [Assumed]
 
 ### 3.4 Actions
 
 - [Decided] **Contacted** resets the person's timer to now.
-- [Assumed] **Contacted** is available for every person, in both lists, not only due ones.
+- [Decided] **Contacted** is the heart at the end of the row, not in a menu. Pressing the heart on a due person marks them contacted: the heart fills in with the accent colour, a few small hearts float up and fade out (under about a second), and the row moves to the not-due group. With reduced motion on, only the filled heart shows. The heart can be pressed for any person, which resets the timer.
+- [Assumed] The heart icons: an outline heart for a person who needs contact, a filled heart for one who does not. The exact icon is a choice; the state is what matters.
+
+- [Assumed] Adding a person is in a sheet opened from a plus button. Edit and Remove are in each row's three-dot menu.
 - **Remove** deletes the person. It asks for confirmation first. [Assumed]
 - Editing a person after creation: name, tier, and interval. [Decided]
 

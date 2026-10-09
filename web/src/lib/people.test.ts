@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dueNow, intervalDaysFor, isDue, type Person, validatePersonInput } from "./people";
+import { dueNow, intervalDaysFor, isDue, orderPeople, type Person, validatePersonInput } from "./people";
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = Date.parse("2026-10-09T12:00:00Z");
@@ -87,5 +87,37 @@ describe("validatePersonInput", () => {
 
   it("rejects tiers outside 1 to 3", () => {
     expect(validatePersonInput("Ann", 4, "").ok).toBe(false);
+  });
+});
+
+describe("orderPeople", () => {
+  const day = 24 * 60 * 60 * 1000;
+  const now = Date.parse("2026-10-12T12:00:00Z");
+  const who = (name: string, tier: 1 | 2 | 3, daysSinceContact: number | null, addedDaysAgo = 100): Person => ({
+    id: name,
+    name,
+    tier,
+    intervalDays: null,
+    lastContactedAt: daysSinceContact === null ? null : new Date(now - daysSinceContact * day).toISOString(),
+    createdAt: new Date(now - addedDaysAgo * day).toISOString(),
+  });
+
+  it("puts due people first, oldest contact first, then the rest, oldest contact first", () => {
+    const people = [
+      who("Bea", 2, 1), // not due: contacted a day ago, interval 14
+      who("Ann", 1, 8), // due: 8 days since contact, interval 7
+      who("Cy", 2, 20), // due: 20 days since contact
+      who("Dee", 3, 5), // not due
+      who("Eve", 2, null, 3), // never contacted, added 3 days ago, interval 14: not due
+    ];
+    // Dee was contacted 5 days ago and Eve was added 3 days ago, so Dee (the older reference) comes first.
+    expect(orderPeople(people, now).map((x) => x.person.name)).toEqual(["Cy", "Ann", "Dee", "Eve", "Bea"]);
+    expect(orderPeople(people, now).map((x) => x.due)).toEqual([true, true, false, false, false]);
+  });
+
+  it("counts a person never contacted from the day they were added", () => {
+    const people = [who("New", 2, null, 2), who("Old", 2, null, 40)];
+    // Old is due (added 40 days ago, interval 14); New is not (added 2 days ago).
+    expect(orderPeople(people, now).map((x) => x.person.name)).toEqual(["Old", "New"]);
   });
 });

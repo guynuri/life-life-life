@@ -2,7 +2,10 @@
 
 export type TaskType = "big" | "work_day" | "short_fixed";
 export type ConditionPlace = "any" | "work" | "home";
-export type TaskStatus = "placed" | "unplaced" | "unscheduled";
+export type TaskStatus = "placed" | "unplaced" | "unscheduled" | "done";
+export type Priority = "high" | "normal" | "low";
+export const PRIORITIES: readonly Priority[] = ["high", "normal", "low"];
+const PRIORITY_RANK: Record<Priority, number> = { high: 0, normal: 1, low: 2 };
 
 export interface Task {
   id: string;
@@ -15,6 +18,9 @@ export interface Task {
   conditionPlace: ConditionPlace;
   held: boolean;
   unplaced: boolean; // unplaced after the last placement run; lets a newly unplaced task be announced once (SPEC 5)
+  done: boolean; // [Assumed] completed by the user; hidden by default and never placed (SPEC 2.7)
+  priority: Priority; // [Assumed] tiebreaker after deadline (SPEC 2.3); set in the form or the edit sheet
+  position: number; // [Assumed] manual display order (Move up, Move down). Display only: placement ignores it
 }
 
 // Raw form values, all strings as typed.
@@ -26,33 +32,91 @@ export interface TaskInput {
   deadline: string; // datetime-local value, or "" for none
   spreadDays: string;
   conditionPlace: ConditionPlace;
+  priority: Priority;
 }
 
 export interface TaskEditInput {
   title: string;
   durationMin: string;
   deadline: string;
+  priority: Priority;
 }
 
-export type NewTask = Omit<Task, "id" | "held" | "unplaced">;
-export type TaskEdit = Pick<Task, "title" | "durationMin" | "deadline">;
+export type NewTask = Omit<Task, "id" | "held" | "unplaced" | "done" | "position">;
+export type TaskEdit = Pick<Task, "title" | "durationMin" | "deadline" | "priority">;
 
 export type ParseResult<T> = { ok: true; value: T } | { ok: false; errors: string[] };
 
 // Status: held tasks are unscheduled; otherwise placed if they have sessions, else unplaced.
-export function taskStatus(task: Pick<Task, "held">, placed: boolean): TaskStatus {
+export function taskStatus(task: Pick<Task, "held" | "done">, placed: boolean): TaskStatus {
+  if (task.done) return "done";
   if (task.held) return "unscheduled";
   return placed ? "placed" : "unplaced";
 }
 
-// Earliest deadline first, tasks without a deadline last. Ties keep their input order.
+// Earliest deadline first, tasks without a deadline last; then higher priority first (SPEC 2.3). Ties keep their input order.
 export function sortTasks(tasks: readonly Task[]): Task[] {
   return [...tasks].sort((a, b) => {
-    if (a.deadline === b.deadline) return 0;
-    if (a.deadline === null) return 1;
-    if (b.deadline === null) return -1;
-    return Date.parse(a.deadline) - Date.parse(b.deadline);
+    if (a.deadline !== b.deadline) {
+      if (a.deadline === null) return 1;
+      if (b.deadline === null) return -1;
+      return Date.parse(a.deadline) - Date.parse(b.deadline);
+    }
+    return PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
   });
+}
+
+// Manual order (SPEC 2.7, assumed) is kept in steps of 10, so a move rewrites only the rows that are out of step.
+export const ORDER_STEP = 10;
+
+// The rows to write when the task at index moves up (-1) or down (+1) in the displayed list. Display only.
+export function moveSteps(tasks: readonly Task[], index: number, direction: -1 | 1): { id: string; position: number }[] {
+  return moveToSteps(tasks, index, index + direction);
+}
+
+// Top of each row's slot, for rows of the given heights stacked in order.
+export function slotTops(heights: readonly number[]): number[] {
+  const tops: number[] = [];
+  let y = 0;
+  for (const h of heights) {
+    tops.push(y);
+    y += h;
+  }
+  return tops;
+}
+
+// The index a dragged row lands on, given the rows' heights and how far the pointer moved it (display only).
+export function dropIndex(heights: readonly number[], from: number, dy: number): number {
+  const tops = slotTops(heights);
+  const mid = (tops[from] ?? 0) + (heights[from] ?? 0) / 2 + dy;
+  let to = 0;
+  heights.forEach((h, i) => {
+    if (i !== from && (tops[i] ?? 0) + h / 2 < mid) to++;
+  });
+  return to;
+}
+
+// How far a row that is not being dragged moves, to make room for the dragged row (display only).
+export function dragShift(heights: readonly number[], from: number, to: number, index: number): number {
+  const height = heights[from] ?? 0;
+  if (index === from) return 0;
+  if (from < to && index > from && index <= to) return -height;
+  if (to < from && index >= to && index < from) return height;
+  return 0;
+}
+
+// The rows to write when the task at from is dropped at to (drag, or Move up and down). Display only.
+export function moveToSteps(tasks: readonly Task[], from: number, to: number): { id: string; position: number }[] {
+  const moved = tasks[from];
+  if (!moved || from === to || to < 0 || to >= tasks.length) return [];
+  const next = [...tasks];
+  next.splice(from, 1);
+  next.splice(to, 0, moved);
+  return next.flatMap((t, i) => (t.position === i * ORDER_STEP ? [] : [{ id: t.id, position: i * ORDER_STEP }]));
+}
+
+export function parsePriority(raw: string): Priority {
+  return raw === "high" || raw === "low" ? raw : "normal";
 }
 
 export function parseTaskInput(input: TaskInput): ParseResult<NewTask> {
@@ -76,7 +140,7 @@ export function parseTaskInput(input: TaskInput): ParseResult<NewTask> {
   const topic = input.topic.trim() || null;
   return {
     ok: true,
-    value: { title, type: input.type, durationMin, topic, deadline, spreadDays, conditionPlace },
+    value: { title, type: input.type, durationMin, topic, deadline, spreadDays, conditionPlace, priority: parsePriority(input.priority) },
   };
 }
 
@@ -88,7 +152,7 @@ export function parseTaskEdit(input: TaskEditInput): ParseResult<TaskEdit> {
   if (errors.length > 0 || title === null || durationMin === null) {
     return { ok: false, errors };
   }
-  return { ok: true, value: { title, durationMin, deadline } };
+  return { ok: true, value: { title, durationMin, deadline, priority: parsePriority(input.priority) } };
 }
 
 // Converts an ISO timestamp to the value a datetime-local input expects (device local time).

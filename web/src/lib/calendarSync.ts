@@ -2,9 +2,10 @@
 // so a failed Google call leaves the stored state as it was.
 import { busyHorizon, busySpans, decideSync, eventBody } from "./calendarEvents";
 import { createEvent, deleteEvent, getEvent, listEvents, moveEvent } from "./calendar";
-import { deleteSessionsOf, deleteTask, getWorkHours, holdTask, insertSessions, listSessions, listTasks, moveSession, setUnplaced, type NewSession, type StoredSession } from "./tasksData";
+import { deleteSessionsOf, deleteTask, getWorkHours, holdTask, insertSessions, listSessions, listTasks, moveSession, setUnplaced, type NewSession, type StoredSession, setDone } from "./tasksData";
 import { schedule, type Placement } from "./scheduler";
 import { newlyUnplacedTitles, placementReminder } from "./reminders";
+import { notifyDataChanged } from "./dataEvents";
 import { insertReminder } from "./remindersData";
 import type { Task } from "./tasks";
 
@@ -23,7 +24,16 @@ export async function syncCalendar(token: string | null): Promise<void> {
 
 // Places unplaced, unheld tasks, creating one event per session. All-or-nothing for the run: if Google or the
 // database fails, the events created in this run are removed again and the error is thrown.
+// Every placement run tells the pages that show tasks and sessions to reload (SPEC Pages: Today updates live).
 export async function placeTasks(token: string | null, now: number): Promise<Placement[]> {
+  try {
+    return await placeTasksRun(token, now);
+  } finally {
+    notifyDataChanged();
+  }
+}
+
+async function placeTasksRun(token: string | null, now: number): Promise<Placement[]> {
   await syncCalendar(token);
   const [tasks, sessions, work] = await Promise.all([listTasks(), listSessions(), getWorkHours()]);
   const horizon = busyHorizon(tasks.filter((t) => !t.held && !sessions.some((s) => s.taskId === t.id)), now);
@@ -78,6 +88,16 @@ async function announceUnplaced(tasks: Task[], sessions: StoredSession[], placed
   const changed = tasks.filter((t) => t.unplaced !== unplacedIds.has(t.id));
   await setUnplaced(changed.filter((t) => !t.unplaced).map((t) => t.id), true);
   await setUnplaced(changed.filter((t) => t.unplaced).map((t) => t.id), false);
+}
+
+// Completing removes the task's events and sessions, then marks it done; a done task is not placed again (SPEC 2.7, assumed).
+// Un-completing only clears the flag, so the next placement run places the task again.
+export async function completeTask(token: string | null, taskId: string, done: boolean): Promise<void> {
+  if (done) {
+    await removeEvents(token, taskId);
+    await deleteSessionsOf(taskId);
+  }
+  await setDone(taskId, done);
 }
 
 // Removes the task's events from Google, then holds the task (SPEC 2.5). Used by Unschedule and by sync.

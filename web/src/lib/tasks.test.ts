@@ -6,6 +6,10 @@ import {
   taskStatus,
   toLocalInputValue,
   type Task,
+  dragShift,
+  dropIndex,
+  moveSteps,
+  moveToSteps,
   type TaskInput,
 } from "./tasks";
 
@@ -14,6 +18,7 @@ const base: TaskInput = {
   type: "short_fixed",
   durationMin: "30",
   topic: "",
+  priority: "normal",
   deadline: "",
   spreadDays: "",
   conditionPlace: "any",
@@ -31,6 +36,9 @@ function task(overrides: Partial<Task>): Task {
     conditionPlace: "any",
     held: false,
     unplaced: false,
+    done: false,
+    position: 0,
+    priority: "normal",
     ...overrides,
   };
 }
@@ -48,6 +56,7 @@ describe("parseTaskInput", () => {
         deadline: null,
         spreadDays: null,
         conditionPlace: "any",
+        priority: "normal",
       },
     });
   });
@@ -94,12 +103,12 @@ describe("parseTaskInput", () => {
 
 describe("parseTaskEdit", () => {
   it("accepts title, duration and deadline, with a blank deadline meaning none", () => {
-    const result = parseTaskEdit({ title: "New", durationMin: "45", deadline: "" });
-    expect(result).toEqual({ ok: true, value: { title: "New", durationMin: 45, deadline: null } });
+    const result = parseTaskEdit({ title: "New", durationMin: "45", deadline: "", priority: "normal" });
+    expect(result).toEqual({ ok: true, value: { title: "New", durationMin: 45, deadline: null, priority: "normal" } });
   });
 
   it("rejects a blank title", () => {
-    expect(parseTaskEdit({ title: "", durationMin: "45", deadline: "" }).ok).toBe(false);
+    expect(parseTaskEdit({ title: "", durationMin: "45", deadline: "", priority: "normal" }).ok).toBe(false);
   });
 });
 
@@ -142,5 +151,61 @@ describe("toLocalInputValue", () => {
 
   it("returns an empty string for no deadline", () => {
     expect(toLocalInputValue(null)).toBe("");
+  });
+});
+
+describe("moveSteps", () => {
+  const row = (id: string, position: number): Task => ({ ...task({ id, title: id }), position });
+
+  it("swaps a row with its neighbour and rewrites only the rows that moved", () => {
+    const list = [row("a", 0), row("b", 10), row("c", 20)];
+    expect(moveSteps(list, 1, -1)).toEqual([
+      { id: "b", position: 0 },
+      { id: "a", position: 10 },
+    ]);
+  });
+
+  it("writes nothing past either end, and nothing when already in step", () => {
+    const list = [row("a", 0), row("b", 10)];
+    expect(moveSteps(list, 0, -1)).toEqual([]);
+    expect(moveSteps(list, 1, 1)).toEqual([]);
+    expect(moveSteps([row("a", 0), row("b", 10), row("c", 20)], 2, 0 as never)).toEqual([]);
+  });
+});
+
+describe("moveToSteps", () => {
+  const row = (id: string, position: number): Task => ({ ...task({ id, title: id }), position });
+
+  it("drops a row further down the list", () => {
+    const list = [row("a", 0), row("b", 10), row("c", 20)];
+    expect(moveToSteps(list, 0, 2)).toEqual([
+      { id: "b", position: 0 },
+      { id: "c", position: 10 },
+      { id: "a", position: 20 },
+    ]);
+  });
+
+  it("writes nothing when dropped where it already is or off the list", () => {
+    const list = [row("a", 0), row("b", 10)];
+    expect(moveToSteps(list, 1, 1)).toEqual([]);
+    expect(moveToSteps(list, 0, 5)).toEqual([]);
+  });
+});
+
+describe("drag geometry", () => {
+  it("lands the dragged row where the pointer has taken it", () => {
+    expect(dropIndex([50, 50, 50], 0, 0)).toBe(0);
+    expect(dropIndex([50, 50, 50], 0, 60)).toBe(1);
+    expect(dropIndex([50, 50, 50], 2, -100)).toBe(0);
+    expect(dropIndex([50, 50, 50], 0, 500)).toBe(2);
+  });
+
+  it("moves the rows in between out of the way", () => {
+    expect(dragShift([50, 50, 50], 0, 2, 1)).toBe(-50);
+    expect(dragShift([50, 50, 50], 0, 2, 2)).toBe(-50);
+    expect(dragShift([50, 50, 50], 0, 2, 0)).toBe(0);
+    expect(dragShift([50, 50, 50], 2, 0, 0)).toBe(50);
+    expect(dragShift([50, 50, 50], 2, 0, 1)).toBe(50);
+    expect(dragShift([50, 50, 50], 1, 1, 0)).toBe(0);
   });
 });

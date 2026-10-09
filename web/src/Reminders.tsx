@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { formatTimeOfDay, parseTimeOfDay } from "./lib/reminders";
 import { DEFAULT_CONTACT_REMINDER_MIN, getContactReminderMin, saveContactReminderMin } from "./lib/remindersData";
 import { deviceStatus, needsHomeScreen, turnOff, turnOn } from "./lib/push";
+import { FieldLabel, Label, TimeField } from "./ui";
+import { Bell, BellOff, Clock } from "lucide-react";
+import { BellRing } from "lucide-react";
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : typeof error === "object" && error !== null && "message" in error ? String(error.message) : String(error);
@@ -87,17 +90,15 @@ export function Reminders() {
       )}
       {iosHint && <p className="muted">On iPhone, notifications work only after you add this app to the Home Screen (iOS 16.4 or newer).</p>}
       <button type="button" disabled={busy || enabled === null} onClick={toggle}>
-        {enabled ? "Turn off notifications" : "Turn on notifications"}
+        <Label icon={enabled ? BellOff : Bell}>{enabled ? "Turn off notifications" : "Turn on notifications"}</Label>
       </button>
 
       <div className="person-form">
-        <label>
-          Contact reminder time
-          <input type="time" value={draft} onChange={(e) => setDraft(e.target.value)} />
-        </label>
-        <button type="button" disabled={busy} onClick={saveTime}>
-          Set time
-        </button>
+        <div className="field">
+          <span id="reminder-time-label"><FieldLabel icon={BellRing}>Contact reminder time</FieldLabel></span>
+          <TimeField labelId="reminder-time-label" value={draft} onChange={setDraft} />
+        </div>
+        <button type="button" disabled={busy} onClick={saveTime}><Label icon={Clock}>Set time</Label></button>
       </div>
       {storedMin !== null && <p className="status">Saved contact reminder time: {formatTimeOfDay(storedMin)}</p>}
       {error && <p className="error" role="alert">{error}</p>}

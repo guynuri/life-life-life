@@ -1,9 +1,10 @@
 // Thin Supabase access for tasks, sessions and work hours. Every failure throws so the screen can show it.
 import { supabase } from "./supabase";
-import type { NewTask, Task, TaskEdit, TaskType, ConditionPlace } from "./tasks";
+import type { NewTask, Task, TaskEdit, TaskType, ConditionPlace, Priority } from "./tasks";
 import type { WorkHours } from "./scheduler";
 import { DEFAULT_WORK_HOURS } from "./scheduler";
 
+import { notifyDataChanged } from "./dataEvents";
 interface TaskRow {
   id: string;
   title: string;
@@ -15,6 +16,9 @@ interface TaskRow {
   condition_place: ConditionPlace;
   held: boolean;
   unplaced: boolean;
+  done: boolean;
+  priority: Priority;
+  position: number;
 }
 
 interface SessionRow {
@@ -58,6 +62,9 @@ function fromRow(row: TaskRow): Task {
     conditionPlace: row.condition_place,
     held: row.held,
     unplaced: row.unplaced,
+    done: row.done,
+    priority: row.priority,
+    position: row.position,
   };
 }
 
@@ -72,7 +79,7 @@ export async function listTasks(): Promise<Task[]> {
   return check<TaskRow[]>(result).map(fromRow);
 }
 
-export async function insertTask(task: NewTask): Promise<void> {
+export async function insertTask(task: NewTask, position: number): Promise<void> {
   const row = {
     title: task.title,
     type: task.type,
@@ -81,13 +88,35 @@ export async function insertTask(task: NewTask): Promise<void> {
     deadline: task.deadline,
     spread_days: task.spreadDays,
     condition_place: task.conditionPlace,
+    priority: task.priority,
+    position,
   };
   check(await client().from("tasks").insert(row).select());
+  notifyDataChanged();
 }
 
 export async function updateTaskEdit(id: string, edit: TaskEdit): Promise<void> {
-  const row = { title: edit.title, duration_min: edit.durationMin, deadline: edit.deadline };
+  const row = { title: edit.title, duration_min: edit.durationMin, deadline: edit.deadline, priority: edit.priority };
   check(await client().from("tasks").update(row).eq("id", id).select());
+  notifyDataChanged();
+}
+
+// Sets the manual display order (SPEC 2.7, assumed). Display only.
+export async function setPosition(id: string, position: number): Promise<void> {
+  check(await client().from("tasks").update({ position }).eq("id", id).select());
+  notifyDataChanged();
+}
+
+// Marks the task done or not done (SPEC 2.7). Done tasks are never placed.
+export async function setDone(id: string, done: boolean): Promise<void> {
+  check(await client().from("tasks").update({ done }).eq("id", id).select());
+  notifyDataChanged();
+}
+
+// Drag between priority sections changes only the priority (SPEC 2.7).
+export async function setPriority(id: string, priority: Priority): Promise<void> {
+  check(await client().from("tasks").update({ priority }).eq("id", id).select());
+  notifyDataChanged();
 }
 
 // Holds the task out of automatic placement (SPEC 2.5) and removes its sessions.
@@ -96,16 +125,19 @@ export async function holdTask(id: string): Promise<void> {
   check(await client().from("tasks").update({ held: true }).eq("id", id).select());
   const result = await client().from("sessions").delete().eq("task_id", id);
   if (result.error) throw new Error(result.error.message);
+  notifyDataChanged();
 }
 
 // A "Schedule" action: releases the hold so the next placement run can place the task (SPEC 2.5).
 export async function releaseHold(id: string): Promise<void> {
   check(await client().from("tasks").update({ held: false }).eq("id", id).select());
+  notifyDataChanged();
 }
 
 export async function deleteTask(id: string): Promise<void> {
   const result = await client().from("tasks").delete().eq("id", id);
   if (result.error) throw new Error(result.error.message);
+  notifyDataChanged();
 }
 
 export async function listSessions(): Promise<StoredSession[]> {
@@ -128,35 +160,42 @@ export async function insertSessions(sessions: NewSession[]): Promise<void> {
     calendar_event_id: p.calendarEventId,
   }));
   check(await client().from("sessions").insert(rows).select());
+  notifyDataChanged();
 }
 
 export async function moveSession(id: string, start: number, end: number): Promise<void> {
   const row = { start_at: new Date(start).toISOString(), end_at: new Date(end).toISOString() };
   check(await client().from("sessions").update(row).eq("id", id).select());
+  notifyDataChanged();
 }
 
 // Work hours (SPEC 2.4). With no saved row, the defaults apply.
 export async function getWorkHours(): Promise<WorkHours> {
-  const rows = check<{ start_min: number; end_min: number }[]>(
-    await client().from("work_settings").select("start_min, end_min"),
+  const rows = check<{ start_min: number; end_min: number; lunch_start_min: number; lunch_end_min: number }[]>(
+    await client().from("work_settings").select("start_min, end_min, lunch_start_min, lunch_end_min"),
   );
   const row = rows[0];
-  return row ? { startMin: row.start_min, endMin: row.end_min } : DEFAULT_WORK_HOURS;
+  return row
+    ? { startMin: row.start_min, endMin: row.end_min, lunchStartMin: row.lunch_start_min, lunchEndMin: row.lunch_end_min }
+    : DEFAULT_WORK_HOURS;
 }
 
 export async function saveWorkHours(hours: WorkHours): Promise<void> {
-  const row = { start_min: hours.startMin, end_min: hours.endMin };
+  const row = { start_min: hours.startMin, end_min: hours.endMin, lunch_start_min: hours.lunchStartMin, lunch_end_min: hours.lunchEndMin };
   check(await client().from("work_settings").upsert(row, { onConflict: "owner_id" }).select());
+  notifyDataChanged();
 }
 
 // Deletes the task's sessions. Used when a placed task is edited, so the next placement run places it again (SPEC 2.5).
 export async function deleteSessionsOf(id: string): Promise<void> {
   const result = await client().from("sessions").delete().eq("task_id", id);
   if (result.error) throw new Error(result.error.message);
+  notifyDataChanged();
 }
 
 // Sets the unplaced flag for these tasks (SPEC 5). Only the tasks whose flag changed are sent.
 export async function setUnplaced(ids: string[], unplaced: boolean): Promise<void> {
   if (ids.length === 0) return;
   check(await client().from("tasks").update({ unplaced }).in("id", ids).select());
+  notifyDataChanged();
 }

@@ -84,7 +84,7 @@ test("choose, save, fail, and reload a day's mood", async ({ page }) => {
   await setUp(page, fake);
   await page.goto("/");
   await page.getByRole("tab", { name: "Mood", exact: true }).click();
-  await expect(page.getByText("Signed in as owner@example.com")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Mood", exact: true })).toHaveAttribute("aria-selected", "true");
 
   const dayOne = page.locator(`.mood-grid button[data-key="${firstOfMonth}"]`);
   await dayOne.click();
@@ -126,7 +126,7 @@ test("pinch in zooms out to weeks, pinch out on a week drills into that month's 
   await setUp(page, fake);
   await page.goto("/");
   await page.getByRole("tab", { name: "Mood", exact: true }).click();
-  await expect(page.getByText("Signed in as owner@example.com")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Mood", exact: true })).toHaveAttribute("aria-selected", "true");
 
   const grid = page.locator(".mood-grid");
   await expect(grid).toHaveClass(/zoom-day/);

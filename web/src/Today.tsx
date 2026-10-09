@@ -3,8 +3,9 @@ import { dueNow, type Person } from "./lib/people";
 import { listPeople } from "./lib/peopleStore";
 import { dayKey, dayLabel, MOOD_COLORS, type MoodColor } from "./lib/moodView";
 import { loadMoods } from "./lib/moodStore";
-import { dayBounds, formatSessionTime, todaySessions, type TodaySession } from "./lib/today";
+import { dayBounds, formatSessionTime, greeting, nextSession, todaySessions, type TodaySession } from "./lib/today";
 import { listSessions, listTasks } from "./lib/tasksData";
+import { onDataChanged } from "./lib/dataEvents";
 
 // Each part loads on its own, so a failed read shows an error for that part only (SPEC principles).
 // data is undefined while loading and null after a failed read.
@@ -47,9 +48,14 @@ async function loadMood(): Promise<MoodColor | null> {
   return (await loadMoods(today, today)).get(today) ?? null;
 }
 
-export function Today({ refreshTick }: { refreshTick: number }) {
+// Today is mounted even when hidden, so it reloads on data changes and when its tab becomes active (SPEC Pages).
+export function Today({ refreshTick, active }: { refreshTick: number; active: boolean }) {
   // Re-reads when the app comes back to the foreground, so a new day or a moved session shows up.
   const [reloadKey, setReloadKey] = useState(0);
+  useEffect(() => onDataChanged(() => setReloadKey((k) => k + 1)), []);
+  useEffect(() => {
+    if (active) setReloadKey((k) => k + 1);
+  }, [active]);
   useEffect(() => {
     const onForeground = () => {
       if (document.visibilityState === "visible") setReloadKey((k) => k + 1);
@@ -65,8 +71,27 @@ export function Today({ refreshTick }: { refreshTick: number }) {
   const mood = usePart(loadMood, key);
 
   return (
-    <section className="today">
-      <h2>Today</h2>
+    <section className="today page-today">
+      <div className="hero">
+        <h2>{greeting(new Date().getHours())}</h2>
+        {sessions.data ? (
+          (() => {
+            const next = nextSession(sessions.data, Date.now());
+            if (!next) return <p>No more sessions today.</p>;
+            const inProgress = next.start <= Date.now();
+            return (
+              <p>
+                {inProgress ? "Now: " : "Up next: "}
+                <strong>{next.title}</strong>, {formatSessionTime(next.start, next.end)}
+              </p>
+            );
+          })()
+        ) : sessions.error ? (
+          <p>Could not load sessions.</p>
+        ) : (
+          <p>Loading...</p>
+        )}
+      </div>
       <p className="status">{dayLabel(new Date())}</p>
 
       <h3>Sessions</h3>

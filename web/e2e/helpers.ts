@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 // Supabase and Google are not reachable in tests: the signed-in session is seeded locally and REST calls are served from memory.
 export const SUPABASE_HOST = "uwclblkzpohkkzrpiibe.supabase.co";
@@ -6,6 +6,12 @@ const STORAGE_KEY = "sb-uwclblkzpohkkzrpiibe-auth-token";
 export const GOOGLE_HOST = "www.googleapis.com";
 
 export type Row = Record<string, unknown>;
+
+// Opens a time popover and chooses a time (15-minute steps).
+export async function pickTime(page: Page, field: Locator, time: string) {
+  await field.click();
+  await page.getByRole("option", { name: time, exact: true }).click();
+}
 
 const taskDefaults: Row = {
   type: "short_fixed",
@@ -15,6 +21,9 @@ const taskDefaults: Row = {
   condition_place: "any",
   held: false,
   unplaced: false,
+  done: false,
+  priority: "normal",
+  position: 0,
 };
 
 export function taskRow(overrides: Row): Row {
