@@ -146,3 +146,9 @@ export async function saveWorkHours(hours: WorkHours): Promise<void> {
   const row = { start_min: hours.startMin, end_min: hours.endMin };
   check(await client().from("work_settings").upsert(row, { onConflict: "owner_id" }).select());
 }
+
+// Deletes the task's sessions. Used when a placed task is edited, so the next placement run places it again (SPEC 2.5).
+export async function deleteSessionsOf(id: string): Promise<void> {
+  const result = await client().from("sessions").delete().eq("task_id", id);
+  if (result.error) throw new Error(result.error.message);
+}

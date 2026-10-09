@@ -21,7 +21,7 @@ import {
   updateTaskEdit,
   type StoredSession,
 } from "./lib/tasksData";
-import { deleteTaskWithEvents, moveSessionWithEvent, placeTasks, unscheduleTask } from "./lib/calendarSync";
+import { deleteTaskWithEvents, moveSessionWithEvent, placeTasks, replacePlacement, unscheduleTask } from "./lib/calendarSync";
 import { isGoogleAuthError } from "./lib/calendar";
 import type { Placement, WorkHours } from "./lib/scheduler";
 
@@ -172,10 +172,14 @@ export function Tasks({ googleToken, onReconnect }: TasksProps) {
   async function saveEdit(id: string) {
     const parsed = parseTaskEdit(edit);
     if (!parsed.ok) return setErrors(parsed.errors);
+    const task = data?.tasks.find((t) => t.id === id);
+    const timeChanged = task !== undefined && (task.durationMin !== parsed.value.durationMin || !sameInstant(task.deadline, parsed.value.deadline));
     try {
+      // A changed duration or deadline replaces the placement: Google events go first, then the sessions (SPEC 2.5).
+      if (timeChanged) await replacePlacement(googleToken, id);
       await updateTaskEdit(id, parsed.value);
     } catch (error) {
-      return setErrors([`Could not save task: ${messageOf(error)}`]);
+      return fail("Could not save task", error);
     }
     setEditingId(null);
     setErrors([]);
@@ -473,4 +477,10 @@ export function Tasks({ googleToken, onReconnect }: TasksProps) {
       )}
     </section>
   );
+}
+
+// Two stored deadlines match when they are the same instant, whatever their text form.
+function sameInstant(a: string | null, b: string | null): boolean {
+  if (a === null || b === null) return a === b;
+  return Date.parse(a) === Date.parse(b);
 }

@@ -63,3 +63,24 @@ export function decideSync(session: Span, event: GoogleEvent | null): SyncDecisi
   if (span === null || (span.start === session.start && span.end === session.end)) return { kind: "keep" };
   return { kind: "move", start: span.start, end: span.end };
 }
+
+// Busy times must cover every window where an unplaced task could land (SPEC 2.2, 1). A big task's window is
+// now to the earlier of its deadline and now + spread days; other tasks use their deadline, or 14 days without one.
+export interface WindowTask {
+  type: string;
+  deadline: string | null;
+  spreadDays: number | null;
+}
+
+const WINDOW_DAY_MS = 86_400_000;
+
+export function busyHorizon(tasks: readonly WindowTask[], now: number): number {
+  return tasks.reduce((end, task) => Math.max(end, windowEnd(task, now)), now);
+}
+
+function windowEnd(task: WindowTask, now: number): number {
+  if (task.type === "big") {
+    return Math.min(task.deadline ? Date.parse(task.deadline) : Infinity, now + (task.spreadDays ?? 0) * WINDOW_DAY_MS);
+  }
+  return task.deadline ? Date.parse(task.deadline) : now + 14 * WINDOW_DAY_MS;
+}

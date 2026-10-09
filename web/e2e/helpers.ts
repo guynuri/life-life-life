@@ -13,7 +13,6 @@ const taskDefaults: Row = {
   deadline: null,
   spread_days: null,
   condition_place: "any",
-  calendar_event_id: null,
   held: false,
 };
 

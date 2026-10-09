@@ -1,12 +1,10 @@
 // Ties Google Calendar to the stored tasks and sessions (SPEC 1, 2.5). Google is called first where an event changes,
 // so a failed Google call leaves the stored state as it was.
-import { busySpans, decideSync, eventBody } from "./calendarEvents";
+import { busyHorizon, busySpans, decideSync, eventBody } from "./calendarEvents";
 import { createEvent, deleteEvent, getEvent, listEvents, moveEvent } from "./calendar";
-import { deleteTask, getWorkHours, holdTask, insertSessions, listSessions, listTasks, moveSession, type NewSession, type StoredSession } from "./tasksData";
+import { deleteSessionsOf, deleteTask, getWorkHours, holdTask, insertSessions, listSessions, listTasks, moveSession, type NewSession, type StoredSession } from "./tasksData";
 import { schedule, type Placement } from "./scheduler";
 
-const DAY_MS = 86_400_000;
-const BUSY_WINDOW_DAYS = 60; // [Assumed] busy times are read this far ahead. Big tasks may spread beyond this (open question).
 
 // Moved events move their session; deleted events unschedule their task (SPEC 1). Runs before placement.
 export async function syncCalendar(token: string | null): Promise<void> {
@@ -25,7 +23,8 @@ export async function syncCalendar(token: string | null): Promise<void> {
 export async function placeTasks(token: string | null, now: number): Promise<Placement[]> {
   await syncCalendar(token);
   const [tasks, sessions, work] = await Promise.all([listTasks(), listSessions(), getWorkHours()]);
-  const external = busySpans(await listEvents(token, now, now + BUSY_WINDOW_DAYS * DAY_MS));
+  const horizon = busyHorizon(tasks.filter((t) => !t.held && !sessions.some((s) => s.taskId === t.id)), now);
+  const external = busySpans(await listEvents(token, now, horizon));
   const placed = schedule(tasks, sessions, now, work, external);
   if (placed.length === 0) return [];
 
@@ -56,6 +55,12 @@ export async function placeTasks(token: string | null, now: number): Promise<Pla
 export async function unscheduleTask(token: string | null, taskId: string): Promise<void> {
   await removeEvents(token, taskId);
   await holdTask(taskId);
+}
+
+// Removes the task's events from Google, then deletes its sessions so placement runs again (SPEC 2.5, edits).
+export async function replacePlacement(token: string | null, taskId: string): Promise<void> {
+  await removeEvents(token, taskId);
+  await deleteSessionsOf(taskId);
 }
 
 // Removes the task's events from Google, then deletes the task and its sessions (SPEC 2.5).

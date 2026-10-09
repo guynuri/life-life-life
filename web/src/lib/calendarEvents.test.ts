@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { busySpans, decideSync, eventBody, eventSpan, rfc3339, type GoogleEvent } from "./calendarEvents";
+import { busyHorizon, busySpans, decideSync, eventBody, eventSpan, rfc3339, type GoogleEvent } from "./calendarEvents";
 
 // Monday 12 October 2026, device local time.
 const at = (hour: number, minute = 0) => new Date(2026, 9, 12, hour, minute).getTime();
@@ -61,5 +61,25 @@ describe("decideSync", () => {
   it("ignores edits that do not change the time", () => {
     const renamed = { id: "e", summary: "Renamed in Google", start: { dateTime: rfc3339(at(10)) }, end: { dateTime: rfc3339(at(10, 20)) } };
     expect(decideSync(session, renamed)).toEqual({ kind: "keep" });
+  });
+});
+
+describe("busyHorizon", () => {
+  const now = at(9);
+  const day = 86_400_000;
+  it("covers a big task's spread window, not a fixed span", () => {
+    expect(busyHorizon([{ type: "big", deadline: null, spreadDays: 120 }], now)).toBe(now + 120 * day);
+  });
+  it("stops at the deadline when it is earlier than the spread", () => {
+    const deadline = new Date(now + 10 * day).toISOString();
+    expect(busyHorizon([{ type: "big", deadline, spreadDays: 120 }], now)).toBe(Date.parse(deadline));
+  });
+  it("uses 14 days for a task without a deadline and the deadline otherwise", () => {
+    expect(busyHorizon([{ type: "short_fixed", deadline: null, spreadDays: null }], now)).toBe(now + 14 * day);
+    const deadline = new Date(now + 40 * day).toISOString();
+    expect(busyHorizon([{ type: "work_day", deadline, spreadDays: null }], now)).toBe(Date.parse(deadline));
+  });
+  it("is now when there are no tasks", () => {
+    expect(busyHorizon([], now)).toBe(now);
   });
 });

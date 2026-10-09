@@ -30,6 +30,10 @@ Where this spec differs from the original spec, the change is listed under "Chan
   - Other edits to events are ignored.
 - After I delete an app-created event, its task stays unscheduled and is held out of automatic placement until I reschedule it. [Decided]
 - Unscheduling or deleting a task updates Google Calendar: its calendar events are removed. [Decided]
+- Editing the duration or deadline of a placed task removes its calendar events first, then the sessions, and placement runs again. [Decided]
+- Busy times are read for the whole window in which each unplaced task can be placed, not a fixed span. [Decided]
+- Work day tasks create no calendar events. [Decided]
+- With no Google access, no placement runs, including for Work day tasks. [Decided]
 - Sign-in requests calendar access. [Decided]
 - The Google OAuth app is published (out of "Testing"), so access does not lapse after 7 days. [Decided]
 - If Google access can no longer be refreshed, the app shows a "Reconnect Google" prompt. It does not fail silently. [Decided]
