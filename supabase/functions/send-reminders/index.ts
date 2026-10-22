@@ -38,8 +38,20 @@ interface ReminderRow {
 
 const iso = (ms: number) => new Date(ms).toISOString();
 
+// Compares every byte of equal-length secrets, so the match position does not leak through timing.
+// A length mismatch returns early, which leaks the secret's length. That is harmless for a random secret.
+function sameSecret(given: string | null, expected: string | undefined): boolean {
+  if (!given || !expected) return false;
+  const a = new TextEncoder().encode(given);
+  const b = new TextEncoder().encode(expected);
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i]! ^ b[i]!;
+  return diff === 0;
+}
+
 Deno.serve(async (req) => {
-  if (req.headers.get("x-reminder-secret") !== Deno.env.get("REMINDER_SECRET")) {
+  if (!sameSecret(req.headers.get("x-reminder-secret"), Deno.env.get("REMINDER_SECRET"))) {
     return new Response("forbidden", { status: 403 });
   }
   try {
