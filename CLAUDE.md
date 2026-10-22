@@ -59,3 +59,14 @@ The features in `SPEC.md` are not built. Also not built:
 - Table privileges are separate from RLS. Every new table needs `grant ... to authenticated` in its migration, or signed-in reads and writes fail with "permission denied".
 - Use Vitest for unit tests, Testing Library for components, and Playwright for end-to-end flows. No console-log tests. Tests live in *.test.ts and run with npm test.
 - Secrets never go in the repo.
+
+## Workflow for every change
+
+1. Never work on `main`. Before any change, create a worktree with a new branch named for the change: `git worktree add ../life-life-life-<slug> -b <slug>`. Do all work there.
+2. Before committing, run `npm run build` and `npm test -- --run` in `web/`. Commit only when both pass. End commit messages with the `Co-Authored-By:` line the harness provides.
+3. When the work is done, push the branch and open a PR against `main` with `gh pr create`. End the PR body with the Claude Code attribution line.
+4. Babysit the PR: the PR babysitter is a cloud routine (`trig_01VUhtJELNSrDfELjS3MTAns`, https://claude.ai/code/routines/trig_01VUhtJELNSrDfELjS3MTAns) that runs hourly. It checks every open PR for new review comments and failing CI, fixes in-scope items on the PR branch, runs `npm run build` and `npm test -- --run`, pushes, and replies. Each reply starts with `[babysitter]`, and a comment counts as handled once a `[babysitter]` reply follows it. To add a PR to the babysitter, edit the PR list in the routine's prompt. Do not babysit with a subagent or a local watch: those stop after about 30 minutes, when their Monitor watch expires, and nothing picks up the comments after that. Ask the user only when a comment is a product decision or contradicts `SPEC.md`.
+5. Review: a reviewer pass runs on each PR. The reviewer reads the diff against `main` and `SPEC.md`, checks correctness, security (RLS, grants, secrets), and the Conventions above, and leaves inline comments via `gh` as a COMMENT review, never approve or request changes. The reviewer must not edit the branch, only comment. The babysitter handles the comments per step 4.
+6. Do not merge PRs unless the user says so. The babysitter never merges or closes PRs.
+7. Working in a branch that another worktree has checked out: git refuses a second checkout, so the babysitter and other agents use `git checkout --detach origin/<branch>` and push with `git push origin HEAD:<branch>`.
+8. Cloud sessions block GitHub GraphQL, so `gh pr view`, `gh pr checks`, `gh pr comment`, and `gh pr list` fail with HTTP 403. Use `gh api` with REST paths instead: `repos/guynuri/life-life-life/pulls/<n>`, `.../issues/<n>/comments`, `.../pulls/<n>/comments`, `.../pulls/<n>/reviews`, and `.../commits/<sha>/check-runs`.

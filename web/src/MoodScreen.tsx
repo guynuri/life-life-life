@@ -110,7 +110,7 @@ export function MoodScreen({ refreshTick }: { refreshTick: number }) {
             type="button"
             key={b.key}
             data-key={b.key}
-            className="block"
+            className={b.color ? "block filled" : "block"}
             style={b.color ? { background: rgbCss(b.color) } : undefined}
             onClick={view.zoom === "day" ? () => setSelected(b.key) : undefined}
           >
