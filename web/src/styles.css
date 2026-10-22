@@ -13,6 +13,7 @@
   --accent: #1f6b57;
   --on-accent: #ffffff;
   --danger: #b42318;
+  --on-mood: #1d2320;
   --font-display: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
   --font-text: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   --control: 44px;
@@ -240,7 +241,7 @@ select {
 
 .page-tabs {
   position: sticky;
-  top: 0;
+  top: env(safe-area-inset-top, 0px);
   z-index: 2;
   margin: 0 -16px 8px;
   padding: 8px 16px;
@@ -417,6 +418,11 @@ select {
   color: var(--ink);
   font-size: 0.75rem;
   font-weight: 400;
+}
+
+/* Mood fills are pastel in both themes, so their labels stay dark. */
+.block.filled {
+  color: var(--on-mood);
 }
 
 .zoom-week .block,
