@@ -8,17 +8,20 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icon.svg"],
+      includeAssets: ["icon.svg", "apple-touch-icon.png"],
       workbox: { importScripts: ["push-sw.js"] }, // push and notificationclick handlers (SPEC 5)
       manifest: {
         name: "life-life-life",
         short_name: "life",
         display: "standalone",
-        background_color: "#000000",
-        theme_color: "#1c1c1e",
+        background_color: "#fff7ef",
+        theme_color: "#fff7ef",
         start_url: "./",
         scope: "./",
-        icons: [{ src: "icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" }],
+        icons: [
+          { src: "icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+          { src: "apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+        ],
       },
     }),
   ],

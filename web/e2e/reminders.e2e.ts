@@ -21,7 +21,7 @@ const settingsSection = (page: Page) => page.locator("section", { has: page.getB
 test("shows the stored contact reminder time and saves a new one", async ({ page }) => {
   const settings: Row[] = [{ owner_id: "00000000-0000-4000-8000-000000000001", start_min: 540, end_min: 1140, contact_reminder_min: 18 * 60 }];
   await serveReminderScreen(page, settings);
-  await page.goto("/");
+  await page.goto("/#/settings");
 
   const section = settingsSection(page);
   await expect(section.getByText("Saved contact reminder time: 18:00")).toBeVisible();
@@ -37,7 +37,7 @@ test("a failed save shows the error and keeps the previously stored time", async
   const settings: Row[] = [{ owner_id: "00000000-0000-4000-8000-000000000001", start_min: 540, end_min: 1140, contact_reminder_min: 18 * 60 }];
   await serveReminderScreen(page, settings);
   await serveTable(page, "work_settings", settings, { failWrites: true });
-  await page.goto("/");
+  await page.goto("/#/settings");
 
   const section = settingsSection(page);
   await section.getByLabel("Contact reminder time").fill("20:00");
@@ -51,7 +51,7 @@ test("a failed read is shown, not hidden", async ({ page }) => {
   await page.route(`https://${SUPABASE_HOST}/rest/v1/work_settings**`, (route) =>
     route.fulfill({ status: 500, json: { message: "database unavailable" } }),
   );
-  await page.goto("/");
+  await page.goto("/#/settings");
 
   await expect(settingsSection(page).getByRole("alert")).toContainText("Could not read the contact reminder time");
 });
@@ -61,7 +61,7 @@ test("turning on in a build without a service worker explains why", async ({ pag
     Notification.requestPermission = () => Promise.resolve("granted");
   });
   await serveReminderScreen(page);
-  await page.goto("/");
+  await page.goto("/#/settings");
 
   const section = settingsSection(page);
   await section.getByRole("button", { name: "Turn on notifications" }).click();

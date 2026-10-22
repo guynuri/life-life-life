@@ -1,263 +1,888 @@
+/* life: outlined stickers on a dot grid. Ink lines match the mood grid, so the whole app reads as one notebook. */
+/* Light is the default. Dark is set by main.tsx from the stored choice or the phone's setting (lib/theme.ts). */
 :root {
-  color-scheme: light dark;
-  --bg: #f2f2f7;
-  --fg: #1c1c1e;
-  --muted: #6e6e73;
-  --accent: #0a84ff;
+  color-scheme: light;
+  --paper: #fff7ef;
+  --card: #ffffff;
+  --ink: #2b2140;
+  --ink-soft: #6f6389;
+  --on-accent: #2b2140; /* text on the colored fills; stays dark in both themes */
+  --lilac: #bfa8ff;
+  --lilac-soft: #ece4ff;
+  --bubble: #ff8fc0;
+  --bubble-soft: #ffe0ee;
+  --mint: #8ee9c9;
+  --mint-soft: #dcf8ee;
+  --butter: #ffe47a;
+  --butter-soft: #fff4c4;
+  --error-ink: #8a1c4f;
+  --dot: rgba(43, 33, 64, 0.14);
+  --rule: rgba(43, 33, 64, 0.22);
+  --line: 2px solid var(--ink);
+  --lift: 0 3px 0 #2b2140;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #000;
-    --fg: #f5f5f7;
-    --muted: #98989d;
-  }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #15112a;
+  --card: #211a3b;
+  --ink: #f3eeff;
+  --ink-soft: #a99ec8;
+  --lilac-soft: #33295a;
+  --bubble-soft: #4a2440;
+  --mint-soft: #1d3f3a;
+  --butter-soft: #4a4120;
+  --error-ink: #ffb3d6;
+  --dot: rgba(255, 255, 255, 0.07);
+  --rule: rgba(243, 238, 255, 0.22);
+  --lift: 0 3px 0 #07050f;
 }
 
 * {
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-  background: var(--bg);
-  color: var(--fg);
+  font-family: "Fredoka", system-ui, -apple-system, sans-serif;
+  font-weight: 400;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image: radial-gradient(circle, var(--dot) 1.2px, transparent 1.5px);
+  background-size: 22px 22px;
   min-height: 100dvh;
 }
 
-.app {
-  padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px);
-  max-width: 640px;
-  margin: 0 auto;
-}
-
-h1 {
-  font-size: 1.6rem;
-  margin: 0 0 16px;
-}
-
-button {
-  font: inherit;
-  padding: 12px 16px;
-  border: 0;
-  border-radius: 10px;
-  background: var(--accent);
-  color: #fff;
-  cursor: pointer;
-}
-
-.status {
-  color: var(--muted);
-}
-
-.muted {
-  color: var(--muted);
-  margin: 4px 0 12px;
-}
-
-.error {
-  color: #ff453a;
-}
-
-.today {
-  margin-bottom: 24px;
-}
-
-.today h3 {
-  font-size: 1rem;
-  margin: 16px 0 8px;
-}
-
-.today-mood {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-transform: capitalize;
-}
-
-.today-dot {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-}
-
-.mood {
-  margin-top: 24px;
-}
-
-.mood h2 {
-  font-size: 1.2rem;
-  margin: 0 0 12px;
-}
-
-.mood-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.mood-nav button {
-  padding: 8px 12px;
-}
-
-/* touch-action: none keeps iOS from zooming the page on pinch, so the app gets the gesture. */
-.mood-grid {
-  display: grid;
-  gap: 4px;
-  touch-action: none;
-  grid-template-columns: repeat(7, 1fr);
-}
-
-.mood-grid.zoom-week {
-  grid-template-columns: 1fr;
-}
-
-.mood-grid.zoom-month {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.mood-grid.zoom-year {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-.block {
-  aspect-ratio: 1;
-  min-height: 0;
-  padding: 0;
-  border: 1px solid rgba(128, 128, 128, 0.25);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--fg);
-  font-size: 0.8rem;
-}
-
-.zoom-week .block,
-.zoom-month .block,
-.zoom-year .block {
-  aspect-ratio: auto;
-  min-height: 44px;
-}
-
-.block.pad {
-  border: 0;
-  pointer-events: none;
-}
-
-.picker {
-  margin-top: 16px;
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(128, 128, 128, 0.12);
-}
-
-.picker h3 {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.swatches {
-  display: flex;
-  gap: 10px;
-  margin: 12px 0;
-}
-
-.swatch {
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border-radius: 50%;
-  border: 2px solid transparent;
-}
-
-.picker-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.picker-actions button:disabled,
-.swatch:disabled {
-  opacity: 0.5;
-}
-
-h2 {
-  font-size: 1.2rem;
-  margin: 24px 0 8px;
-}
-
-.error {
-  color: #ff453a;
-}
-
-.tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.tabs button[aria-selected="false"],
-button.secondary {
-  background: transparent;
-  color: var(--accent);
-  border: 1px solid var(--accent);
-}
-
-button.danger {
-  background: #ff453a;
-}
-
-.list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 16px;
-}
-
-.list li {
-  padding: 12px 0;
-  border-bottom: 1px solid var(--muted);
-}
-
-.row-title {
+h1,
+h2,
+h3 {
+  font-family: inherit;
   font-weight: 600;
+  color: var(--ink);
+  margin: 0;
 }
 
-.row-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.row-actions button {
-  padding: 8px 12px;
-}
-
-.person-form {
-  display: grid;
-  gap: 12px;
-  margin: 16px 0;
-}
-
-.person-form label {
-  display: grid;
-  gap: 4px;
-}
-
-.person-form input,
-.person-form select {
+button,
+input,
+select {
   font: inherit;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid var(--muted);
-  background: var(--bg);
-  color: var(--fg);
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--bubble);
+  outline-offset: 2px;
+}
+
+/* App shell */
+
+.app {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 14px) 18px calc(env(safe-area-inset-bottom) + 120px);
 }
 
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.brand-mark {
+  width: 28px;
+  height: 28px;
+  border: var(--line);
+  border-radius: 9px;
+  background: var(--lilac);
+  box-shadow: inset -7px -7px 0 var(--mint);
+}
+
+.page-head {
+  margin: 4px 0 18px;
+}
+
+.page-title {
+  font-size: 34px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.page-sub {
+  margin: 4px 0 0;
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+
+.row-between {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.icon {
+  flex-shrink: 0;
+}
+
+/* Bottom tab bar: a floating pill, icons with labels */
+
+.tabbar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 12px);
+  transform: translateX(-50%);
+  width: min(calc(100% - 24px), 480px);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 6px;
+  background: var(--card);
+  border: var(--line);
+  border-radius: 999px;
+  box-shadow: var(--lift);
+  z-index: 10;
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 7px 4px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.tab[aria-selected="true"] {
+  background: var(--lilac);
+  border-color: var(--ink);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+/* Buttons */
+
+.btn,
+.icon-btn,
+.chip,
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: var(--line);
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.2s ease;
+}
+
+.btn {
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: var(--lift);
+}
+
+.btn.primary {
+  background: var(--bubble);
+  color: var(--on-accent);
+}
+
+.btn.danger {
+  background: #ff7a7a;
+  color: var(--on-accent);
+}
+
+.btn.small {
+  padding: 8px 14px;
+  font-size: 15px;
+}
+
+.btn.block {
+  width: 100%;
+}
+
+.btn.ghost {
+  background: var(--card);
+}
+
+.btn:active,
+.icon-btn:active,
+.chip:active,
+.cell:active,
+.swatch:active {
+  transform: translateY(3px);
+  box-shadow: none;
+}
+
+.btn:disabled,
+.icon-btn:disabled,
+.swatch:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+}
+
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  box-shadow: var(--lift);
+}
+
+.icon-btn:hover,
+.chip:hover,
+.pill-btn:hover {
+  background: var(--lilac-soft);
+}
+
+.spin {
+  display: inline-flex;
+  animation: spin 0.9s linear infinite;
+}
+
+.chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.chip.danger {
+  background: var(--bubble-soft);
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* Cards and rows */
+
+.card {
+  background: var(--card);
+  border: var(--line);
+  border-radius: 24px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.welcome {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding: 26px 20px;
+  text-align: center;
+  font-size: 17px;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 19px;
+  margin-bottom: 10px;
+}
+
+.card-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  color: var(--on-accent);
+  border: var(--line);
+  border-radius: 42% 58% 55% 45% / 50% 40% 60% 50%;
+}
+
+.tint-lilac,
+.tint-big {
+  background: var(--lilac);
+}
+.tint-bubble {
+  background: var(--bubble);
+}
+.tint-mint,
+.tint-work_day {
+  background: var(--mint);
+}
+.tint-butter,
+.tint-short_fixed {
+  background: var(--butter);
+}
+
+.stack {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.card .stack {
+  gap: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.row + .row {
+  border-top: 2px dashed var(--rule);
+}
+
+.row-body {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.meta {
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.empty {
+  margin: 4px 0;
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+
+.status {
+  color: var(--ink-soft);
+}
+
+.capitalize {
+  text-transform: capitalize;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 1.5px solid var(--rule);
+  border-radius: 999px;
+  background: var(--lilac-soft);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.pill.time {
+  background: var(--butter-soft);
+}
+
+.pill.status {
+  color: var(--on-accent);
+}
+
+.pill.status-placed {
+  background: var(--mint);
+  border-color: var(--ink);
+}
+
+.pill.status-unplaced {
+  background: var(--bubble-soft);
+  border-color: var(--ink);
+}
+
+.pill.status-unscheduled {
+  background: var(--butter-soft);
+  border-color: var(--ink);
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: var(--line);
+  border-radius: 50%;
+  color: var(--on-accent);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.avatar.tier-1 {
+  background: var(--bubble);
+}
+.avatar.tier-2 {
+  background: var(--lilac);
+}
+.avatar.tier-3 {
+  background: var(--mint);
+}
+
+.mood-blob {
+  width: 36px;
+  height: 36px;
+  border: var(--line);
+  border-radius: 50%;
+}
+
+.today-mood {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0;
+}
+
+/* Toasts (errors and notices) */
+
+.toast {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: var(--line);
+  border-radius: 16px;
+  background: var(--card);
+  font-size: 15px;
+}
+
+.toast.error,
+.error {
+  background: var(--bubble-soft);
+  color: var(--error-ink);
+}
+
+.toast.notice {
+  background: var(--mint-soft);
+}
+
+/* Tasks */
+
+.task-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.task-title {
+  font-size: 18px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.pills .pill {
+  background: var(--card);
+}
+
+.session {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border: 2px dashed var(--rule);
+  border-radius: 14px;
+  background: var(--card);
+  font-size: 14px;
+  text-align: left;
+}
+
+button.session {
+  cursor: pointer;
+}
+
+.session-edit,
+.confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 16px;
+  background: var(--bubble-soft);
+}
+
+.session-edit input {
+  width: auto;
+}
+
+.task-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* People */
+
+.person-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.person-top .btn {
+  margin-left: auto;
+}
+
+.person .task-actions {
+  margin-top: 12px;
+}
+
+.segmented.tabs {
+  margin-bottom: 14px;
+}
+
+.segmented.tabs .seg {
+  flex-direction: row;
+  font-size: 15px;
+  padding: 10px 8px;
+}
+
+/* Forms (inside sheets) */
+
+.form {
+  display: grid;
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 14px;
+  font-weight: 500;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.field input,
+.field select,
+.session-edit input,
+.time-field input {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px;
+  border: var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.time-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.time-field input {
+  width: auto;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.seg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border: var(--line);
+  border-radius: 16px;
+  background: var(--card);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.seg small {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.seg[aria-checked="true"],
+.seg[aria-selected="true"] {
+  background: var(--lilac);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.dots {
+  display: flex;
+  gap: 3px;
+}
+
+.dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+/* Sheets: bottom drawers for every add and edit */
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(43, 33, 64, 0.32);
+  animation: fade-in 0.2s ease;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 520px;
+  max-height: 88dvh;
+  overflow-y: auto;
+  padding: 10px 18px calc(env(safe-area-inset-bottom) + 22px);
+  background: var(--paper);
+  border: var(--line);
+  border-bottom: 0;
+  border-radius: 28px 28px 0 0;
+  animation: sheet-up 0.32s cubic-bezier(0.2, 0.9, 0.25, 1.04);
+}
+
+.sheet-grip {
+  width: 44px;
+  height: 5px;
+  margin: 0 auto 10px;
+  border-radius: 3px;
+  background: var(--ink);
+  opacity: 0.25;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.sheet-head h2 {
+  font-size: 22px;
+}
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0 18px;
+}
+
+.swatch {
+  aspect-ratio: 1;
+  padding: 0;
+  border: var(--line);
+  border-radius: 50%;
+  box-shadow: var(--lift);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.swatch[aria-pressed="true"] {
+  box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--ink);
+}
+
+/* Mood: square cells, thick ink borders, zoom levels */
+
+.zoom-pills {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.pill-btn {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.pill-btn[aria-checked="true"] {
+  background: var(--lilac);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.step-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.step-title {
+  min-width: 120px;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.mood-grid {
+  --cols: 7;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  gap: 6px;
+  touch-action: none;
+  view-transition-name: mood-grid;
+}
+
+.mood-grid.zoom-week {
+  --cols: 4;
+  gap: 10px;
+}
+
+.mood-grid.zoom-month {
+  --cols: 6;
+  gap: 6px;
+}
+
+.mood-grid.zoom-year {
+  --cols: 10;
+  gap: 4px;
+}
+
+.cell {
+  aspect-ratio: 1;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  overflow: hidden;
+  border: var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: none;
+  cursor: pointer;
+  transition: background-color 0.35s ease, transform 0.12s ease;
+}
+
+.zoom-year .cell {
+  border-width: 2px;
+  border-radius: 4px;
+}
+
+/* Filled cells carry a pastel mood color, so their label stays dark in both themes. */
+.cell[style] .cell-label {
+  color: var(--on-accent);
+  opacity: 0.8;
+}
+
+.cell.pad {
+  border-color: transparent;
+  background: transparent;
+  pointer-events: none;
+}
+
+.cell-label {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.zoom-month .cell-label,
+.zoom-year .cell-label {
+  display: none;
+}
+
+.grid-hint {
+  margin-top: 14px;
+  text-align: center;
+}
+
+::view-transition-group(mood-grid) {
+  animation-duration: 0.45s;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Motion: one sheet slide and a spinner. Everything else answers a tap. */
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::view-transition-group(*) {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

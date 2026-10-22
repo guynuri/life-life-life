@@ -5,6 +5,7 @@ import { dayKey, dayLabel, MOOD_COLORS, type MoodColor } from "./lib/moodView";
 import { loadMoods } from "./lib/moodStore";
 import { dayBounds, formatSessionTime, todaySessions, type TodaySession } from "./lib/today";
 import { listSessions, listTasks } from "./lib/tasksData";
+import { Icon } from "./Icon";
 
 // Each part loads on its own, so a failed read shows an error for that part only (SPEC principles).
 // data is undefined while loading and null after a failed read.
@@ -47,6 +48,14 @@ async function loadMood(): Promise<MoodColor | null> {
   return (await loadMoods(today, today)).get(today) ?? null;
 }
 
+const initialsOf = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+
 export function Today({ refreshTick }: { refreshTick: number }) {
   // Re-reads when the app comes back to the foreground, so a new day or a moved session shows up.
   const [reloadKey, setReloadKey] = useState(0);
@@ -65,62 +74,93 @@ export function Today({ refreshTick }: { refreshTick: number }) {
   const mood = usePart(loadMood, key);
 
   return (
-    <section className="today">
-      <h2>Today</h2>
-      <p className="status">{dayLabel(new Date())}</p>
+    <section className="page">
+      <header className="page-head">
+        <h1 className="page-title">Today</h1>
+        <p className="page-sub">{dayLabel(new Date())}</p>
+      </header>
 
-      <h3>Sessions</h3>
-      {sessions.error && (
-        <p className="error" role="alert">
-          Could not load sessions: {sessions.error}
-        </p>
-      )}
-      {sessions.data?.length === 0 && <p className="status">No sessions today.</p>}
-      {sessions.data && sessions.data.length > 0 && (
-        <div className="list">
-          {sessions.data.map((s) => (
-            <div className="today-row today-session" key={s.id}>
-              <div className="row-title">{s.title}</div>
-              <div className="status">
-                {formatSessionTime(s.start, s.end)}
-                {s.topic && ` · ${s.topic}`}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <article className="card">
+        <h2 className="card-title">
+          <span className="card-icon tint-lilac">
+            <Icon name="calendar" />
+          </span>
+          Sessions
+        </h2>
+        {sessions.error && (
+          <p className="error" role="alert">
+            Could not load sessions: {sessions.error}
+          </p>
+        )}
+        {sessions.data?.length === 0 && <p className="empty">No sessions today.</p>}
+        {sessions.data && sessions.data.length > 0 && (
+          <ul className="stack">
+            {sessions.data.map((s) => (
+              <li className="row" key={s.id}>
+                <div className="row-body">
+                  <strong>{s.title}</strong>
+                  {s.topic && <span className="meta">{s.topic}</span>}
+                </div>
+                <span className="pill time">
+                  <Icon name="clock" size={14} />
+                  {formatSessionTime(s.start, s.end)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </article>
 
-      <h3>Due</h3>
-      {due.error && (
-        <p className="error" role="alert">
-          Could not load people: {due.error}
-        </p>
-      )}
-      {due.data?.length === 0 && <p className="status">Nobody is due.</p>}
-      {due.data && due.data.length > 0 && (
-        <div className="list">
-          {due.data.map((p) => (
-            <div className="today-row today-person" key={p.id}>
-              <div className="row-title">{p.name}</div>
-              <div className="status">Tier {p.tier}</div>
-            </div>
-          ))}
-        </div>
-      )}
+      <article className="card">
+        <h2 className="card-title">
+          <span className="card-icon tint-bubble">
+            <Icon name="people" />
+          </span>
+          Due
+        </h2>
+        {due.error && (
+          <p className="error" role="alert">
+            Could not load people: {due.error}
+          </p>
+        )}
+        {due.data?.length === 0 && <p className="empty">Nobody is due.</p>}
+        {due.data && due.data.length > 0 && (
+          <ul className="stack">
+            {due.data.map((p) => (
+              <li className="row" key={p.id}>
+                <span className={`avatar tier-${p.tier}`} aria-hidden="true">
+                  {initialsOf(p.name)}
+                </span>
+                <div className="row-body">
+                  <strong>{p.name}</strong>
+                  <span className="meta">Tier {p.tier}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </article>
 
-      <h3>Mood</h3>
-      {mood.error && (
-        <p className="error" role="alert">
-          Could not load mood: {mood.error}
-        </p>
-      )}
-      {mood.data === null && !mood.error && <p className="status">Not set</p>}
-      {mood.data && (
-        <p className="today-mood">
-          <span className="today-dot" style={{ background: `rgb(${MOOD_COLORS[mood.data].join(", ")})` }} />
-          {mood.data}
-        </p>
-      )}
+      <article className="card">
+        <h2 className="card-title">
+          <span className="card-icon tint-mint">
+            <Icon name="mood" />
+          </span>
+          Mood
+        </h2>
+        {mood.error && (
+          <p className="error" role="alert">
+            Could not load mood: {mood.error}
+          </p>
+        )}
+        {mood.data === null && !mood.error && <p className="empty">Not set</p>}
+        {mood.data && (
+          <p className="today-mood">
+            <span className="mood-blob" style={{ background: `rgb(${MOOD_COLORS[mood.data].join(", ")})` }} />
+            <span className="capitalize">{mood.data}</span>
+          </p>
+        )}
+      </article>
     </section>
   );
 }

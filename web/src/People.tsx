@@ -1,13 +1,26 @@
 import { useCallback, useEffect, useState } from "react";
 import { dueNow, everyone, intervalDaysFor, type Person, type Tier, validatePersonInput } from "./lib/people";
 import { addPerson, listPeople, markContacted, removePerson, updatePerson } from "./lib/peopleStore";
+import { Icon } from "./Icon";
+import { Sheet } from "./Sheet";
 
 type View = "due" | "all";
 type Editing = { mode: "new" } | { mode: "edit"; person: Person } | null;
 
+const TIERS: Tier[] = [1, 2, 3];
+const TIER_DAYS: Record<Tier, number> = { 1: 7, 2: 14, 3: 30 };
+
 function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
+
+const initialsOf = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
 
 export function People({ refreshTick }: { refreshTick: number }) {
   const [people, setPeople] = useState<Person[] | null>(null);
@@ -57,7 +70,7 @@ export function People({ refreshTick }: { refreshTick: number }) {
 
   if (people === null) {
     return (
-      <section>
+      <section className="page">
         {loadError ? <p className="error">{loadError}</p> : <p className="status">Loading people...</p>}
       </section>
     );
@@ -67,48 +80,78 @@ export function People({ refreshTick }: { refreshTick: number }) {
   const shown = view === "due" ? dueList : everyone(people);
 
   return (
-    <section>
-      <h2>People</h2>
-      {loadError && <p className="error">{loadError}</p>}
-      {saveError && <p className="error">{saveError}</p>}
+    <section className="page">
+      <header className="page-head row-between">
+        <div>
+          <h1 className="page-title">People</h1>
+          <p className="page-sub">{people.length === 0 ? "Nobody added yet" : `${people.length} in your circle`}</p>
+        </div>
+        <button type="button" className="btn primary" onClick={() => setEditing({ mode: "new" })}>
+          <Icon name="plus" size={18} />
+          Add person
+        </button>
+      </header>
 
-      <div className="tabs" role="tablist">
-        <button type="button" role="tab" aria-selected={view === "due"} onClick={() => setView("due")}>
+      {loadError && <p className="toast error">{loadError}</p>}
+      {!editing && saveError && <p className="toast error">{saveError}</p>}
+
+      <div className="segmented tabs" role="tablist" aria-label="People lists">
+        <button type="button" role="tab" className="seg" aria-selected={view === "due"} onClick={() => setView("due")}>
+          <Icon name="bell" size={18} />
           Due now ({dueList.length})
         </button>
-        <button type="button" role="tab" aria-selected={view === "all"} onClick={() => setView("all")}>
+        <button type="button" role="tab" className="seg" aria-selected={view === "all"} onClick={() => setView("all")}>
+          <Icon name="people" size={18} />
           Everyone ({people.length})
         </button>
       </div>
 
-      {shown.length === 0 && <p className="status">{view === "due" ? "Nobody is due." : "No people yet."}</p>}
+      {shown.length === 0 && <p className="empty">{view === "due" ? "Nobody is due." : "No people yet."}</p>}
 
-      <ul className="list">
+      <ul className="stack">
         {shown.map((p) => (
-          <li key={p.id}>
-            <div className="row-title">{p.name}</div>
-            <div className="status">
-              Tier {p.tier} · every {intervalDaysFor(p)} days · last contacted{" "}
-              {p.lastContactedAt ? new Date(p.lastContactedAt).toLocaleDateString() : "never"}
-            </div>
-            <div className="row-actions">
-              <button type="button" onClick={() => void write(() => markContacted(p.id))}>
+          <li key={p.id} className="card person">
+            <div className="person-top">
+              <span className={`avatar tier-${p.tier}`} aria-hidden="true">
+                {initialsOf(p.name)}
+              </span>
+              <div className="row-body">
+                <strong>{p.name}</strong>
+                <span className="meta">
+                  Tier {p.tier} · every {intervalDaysFor(p)} days
+                </span>
+                <span className="meta">
+                  Last contacted {p.lastContactedAt ? new Date(p.lastContactedAt).toLocaleDateString() : "never"}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="btn primary small"
+                aria-label={`Mark ${p.name} as contacted`}
+                onClick={() => void write(() => markContacted(p.id))}
+              >
+                <Icon name="check" size={18} />
                 Contacted
               </button>
-              <button type="button" className="secondary" onClick={() => setEditing({ mode: "edit", person: p })}>
+            </div>
+            <div className="task-actions">
+              <button type="button" className="chip" onClick={() => setEditing({ mode: "edit", person: p })}>
+                <Icon name="pencil" size={16} />
                 Edit
               </button>
               {confirmRemoveId === p.id ? (
-                <>
-                  <button type="button" className="danger" onClick={() => void write(() => removePerson(p.id))}>
-                    Confirm remove
+                <div className="confirm">
+                  <span>Remove {p.name}?</span>
+                  <button type="button" className="btn danger small" onClick={() => void write(() => removePerson(p.id))}>
+                    Yes, remove
                   </button>
-                  <button type="button" className="secondary" onClick={() => setConfirmRemoveId(null)}>
-                    Cancel
+                  <button type="button" className="btn ghost small" onClick={() => setConfirmRemoveId(null)}>
+                    Keep
                   </button>
-                </>
+                </div>
               ) : (
-                <button type="button" className="secondary" onClick={() => setConfirmRemoveId(p.id)}>
+                <button type="button" className="chip danger" onClick={() => setConfirmRemoveId(p.id)}>
+                  <Icon name="trash" size={16} />
                   Remove
                 </button>
               )}
@@ -117,23 +160,22 @@ export function People({ refreshTick }: { refreshTick: number }) {
         ))}
       </ul>
 
-      {editing ? (
-        <PersonForm
-          key={editing.mode === "edit" ? editing.person.id : "new"}
-          person={editing.mode === "edit" ? editing.person : null}
-          onCancel={() => setEditing(null)}
-          onSave={(name, tier, interval) => {
-            const result = validatePersonInput(name, tier, interval);
-            if (!result.ok) return result.error;
-            const target = editing.mode === "edit" ? editing.person : null;
-            void write(() => (target ? updatePerson(target.id, result.value) : addPerson(result.value)));
-            return null;
-          }}
-        />
-      ) : (
-        <button type="button" onClick={() => setEditing({ mode: "new" })}>
-          Add person
-        </button>
+      {editing && (
+        <Sheet title={editing.mode === "edit" ? "Edit person" : "Add person"} onClose={() => setEditing(null)}>
+          <PersonForm
+            key={editing.mode === "edit" ? editing.person.id : "new"}
+            person={editing.mode === "edit" ? editing.person : null}
+            error={saveError}
+            onCancel={() => setEditing(null)}
+            onSave={(name, tier, interval) => {
+              const result = validatePersonInput(name, tier, interval);
+              if (!result.ok) return result.error;
+              const target = editing.mode === "edit" ? editing.person : null;
+              void write(() => (target ? updatePerson(target.id, result.value) : addPerson(result.value)));
+              return null;
+            }}
+          />
+        </Sheet>
       )}
     </section>
   );
@@ -141,10 +183,12 @@ export function People({ refreshTick }: { refreshTick: number }) {
 
 function PersonForm({
   person,
+  error,
   onSave,
   onCancel,
 }: {
   person: Person | null;
+  error: string | null;
   onSave: (name: string, tier: number, interval: string) => string | null;
   onCancel: () => void;
 }) {
@@ -155,34 +199,43 @@ function PersonForm({
 
   return (
     <form
-      className="person-form"
+      className="form"
       onSubmit={(e) => {
         e.preventDefault();
         setFormError(onSave(name, tier, intervalText));
       }}
     >
-      <h3>{person ? "Edit person" : "Add person"}</h3>
-      {formError && <p className="error">{formError}</p>}
-      <label>
-        Name
+      {(formError || error) && <p className="toast error">{formError ?? error}</p>}
+      <label className="field">
+        <span>Name</span>
         <input value={name} onChange={(e) => setName(e.target.value)} />
       </label>
-      <label>
-        Tier
-        <select value={tier} onChange={(e) => setTier(Number(e.target.value) as Tier)}>
-          <option value={1}>1 (every 7 days)</option>
-          <option value={2}>2 (every 14 days)</option>
-          <option value={3}>3 (every 30 days)</option>
-        </select>
-      </label>
-      <label>
-        Interval override in days (optional)
+      <div className="field">
+        <span>How close</span>
+        <div className="segmented" role="radiogroup" aria-label="Tier">
+          {TIERS.map((t) => (
+            <button key={t} type="button" role="radio" aria-checked={tier === t} className="seg" onClick={() => setTier(t)}>
+              <span className="dots" aria-hidden="true">
+                {TIERS.slice(0, t).map((d) => (
+                  <i key={d} />
+                ))}
+              </span>
+              Tier {t}
+              <small>every {TIER_DAYS[t]} days</small>
+            </button>
+          ))}
+        </div>
+      </div>
+      <label className="field">
+        <span>Interval override in days (optional)</span>
         <input inputMode="numeric" value={intervalText} onChange={(e) => setIntervalText(e.target.value)} />
       </label>
-      <div className="row-actions">
-        <button type="submit">Save</button>
-        <button type="button" className="secondary" onClick={onCancel}>
+      <div className="form-actions">
+        <button type="button" className="btn ghost" onClick={onCancel}>
           Cancel
+        </button>
+        <button type="submit" className="btn primary">
+          Save
         </button>
       </div>
     </form>

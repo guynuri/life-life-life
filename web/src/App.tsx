@@ -6,19 +6,21 @@ import { Tasks } from "./Tasks";
 import { People } from "./People";
 import { MoodScreen } from "./MoodScreen";
 import { Today } from "./Today";
-import { Reminders } from "./Reminders";
+import { Settings } from "./Settings";
+import { Icon, type IconName } from "./Icon";
 import { placeTasks } from "./lib/calendarSync";
 import { placementQueue } from "./lib/serialQueue";
 import { formatPage, parsePage, type PageId } from "./lib/route";
 
 // [Assumed] Four pages behind a tab bar, all in one page with no router. Each page stays mounted and is hidden
 // when another tab is open, so its state and effects keep running.
-const pages = [
-  { id: "today", label: "Today" },
-  { id: "tasks", label: "Tasks" },
-  { id: "people", label: "People" },
-  { id: "mood", label: "Mood" },
-] as const;
+const pages: { id: PageId; label: string; icon: IconName }[] = [
+  { id: "today", label: "Today", icon: "today" },
+  { id: "tasks", label: "Tasks", icon: "tasks" },
+  { id: "people", label: "People", icon: "people" },
+  { id: "mood", label: "Mood", icon: "mood" },
+  { id: "settings", label: "Settings", icon: "settings" },
+];
 
 export function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -67,39 +69,45 @@ export function App() {
   if (!session) {
     return (
       <Shell>
-        <button type="button" onClick={signIn}>
-          Sign in with Google
-        </button>
+        <section className="welcome card">
+          <p>Sign in to see your day, your tasks, and the people you want to keep in touch with.</p>
+          <button type="button" className="btn primary" onClick={signIn}>
+            Sign in with Google
+          </button>
+        </section>
       </Shell>
     );
   }
 
   return (
-    <Shell>
-      <header className="topbar">
-        <p>Signed in as {session.user.email}</p>
-        <div className="topbar-actions">
-          <button type="button" onClick={refreshAll} disabled={refreshing}>
-            {refreshing ? "Refreshing..." : "Refresh"}
+    <Shell
+      actions={
+        <>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Refresh"
+            title="Refresh"
+            onClick={refreshAll}
+            disabled={refreshing}
+          >
+            <span className={refreshing ? "spin" : undefined}>
+              <Icon name="refresh" />
+            </span>
           </button>
-          <button type="button" onClick={() => supabase!.auth.signOut()}>
-            Sign out
+          <button type="button" className="icon-btn" aria-label="Sign out" title="Sign out" onClick={() => supabase!.auth.signOut()}>
+            <Icon name="logout" />
           </button>
-        </div>
-      </header>
-      {refreshError && <p className="error" role="alert">{refreshError}</p>}
-      <nav className="tabs" role="tablist" aria-label="Pages">
-        {pages.map((p) => (
-          <button key={p.id} type="button" role="tab" aria-selected={page === p.id} onClick={() => {
-              location.hash = formatPage(p.id);
-            }}>
-            {p.label}
-          </button>
-        ))}
-      </nav>
+        </>
+      }
+    >
+      {refreshError && (
+        <p className="toast error" role="alert">
+          {refreshError}
+        </p>
+      )}
       <div hidden={page !== "today"}>
         <Today refreshTick={refreshTick} />
-        <Reminders />
       </div>
       <div hidden={page !== "tasks"}>
         <Tasks googleToken={session.provider_token ?? null} onReconnect={signIn} refreshTick={refreshTick} />
@@ -110,6 +118,27 @@ export function App() {
       <div hidden={page !== "mood"}>
         <MoodScreen refreshTick={refreshTick} />
       </div>
+      <div hidden={page !== "settings"}>
+        <Settings />
+      </div>
+
+      <nav className="tabbar" role="tablist" aria-label="Pages">
+        {pages.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            role="tab"
+            aria-selected={page === p.id}
+            className="tab"
+            onClick={() => {
+              location.hash = formatPage(p.id);
+            }}
+          >
+            <Icon name={p.icon} size={22} />
+            <span>{p.label}</span>
+          </button>
+        ))}
+      </nav>
     </Shell>
   );
 }
@@ -125,10 +154,16 @@ function signIn() {
   });
 }
 
-function Shell({ children, status }: { children?: React.ReactNode; status?: string }) {
+function Shell({ children, status, actions }: { children?: React.ReactNode; status?: string; actions?: React.ReactNode }) {
   return (
     <main className="app">
-      <h1>life-life-life</h1>
+      <header className="topbar">
+        <div className="brand">
+          <span className="brand-mark" aria-hidden="true" />
+          <span>life</span>
+        </div>
+        {actions && <div className="topbar-actions">{actions}</div>}
+      </header>
       {status && <p className="status">{status}</p>}
       {children}
     </main>
