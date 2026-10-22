@@ -59,3 +59,12 @@ The features in `SPEC.md` are not built. Also not built:
 - Table privileges are separate from RLS. Every new table needs `grant ... to authenticated` in its migration, or signed-in reads and writes fail with "permission denied".
 - Use Vitest for unit tests, Testing Library for components, and Playwright for end-to-end flows. No console-log tests. Tests live in *.test.ts and run with npm test.
 - Secrets never go in the repo.
+
+## Workflow for every change
+
+1. Never work on `main`. Before any change, create a worktree with a new branch named for the change: `git worktree add ../life-life-life-<slug> -b <slug>`. Do all work there.
+2. Before committing, run `npm run build` and `npm test -- --run` in `web/`. Commit only when both pass. End commit messages with the `Co-Authored-By:` line the harness provides.
+3. When the work is done, push the branch and open a PR against `main` with `gh pr create`. End the PR body with the Claude Code attribution line.
+4. Babysit the PR: after opening it, check `gh pr view --comments`, `gh pr checks`, and `gh api` for review comments. For each in-scope change request, fix it on the same branch, run build and tests, push, and reply to the comment saying what changed. Ask the user only when a comment is a product decision or contradicts `SPEC.md`.
+5. Review: a reviewer pass runs on each PR. The reviewer reads the diff against `main` and `SPEC.md`, checks correctness, security (RLS, grants, secrets), and the Conventions above, and leaves inline comments via `gh`. The reviewer must not edit the branch, only comment. The author handles comments per step 4.
+6. Do not merge PRs unless the user says so.
