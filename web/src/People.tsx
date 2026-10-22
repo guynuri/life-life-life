@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { dueNow, everyone, intervalDaysFor, type Person, type Tier, validatePersonInput } from "./lib/people";
+import { dueNow, everyone, initialsOf, intervalDaysFor, TIER_INTERVAL_DAYS, type Person, type Tier, validatePersonInput } from "./lib/people";
 import { addPerson, listPeople, markContacted, removePerson, updatePerson } from "./lib/peopleStore";
 import { Icon } from "./Icon";
 import { Sheet } from "./Sheet";
@@ -8,19 +8,10 @@ type View = "due" | "all";
 type Editing = { mode: "new" } | { mode: "edit"; person: Person } | null;
 
 const TIERS: Tier[] = [1, 2, 3];
-const TIER_DAYS: Record<Tier, number> = { 1: 7, 2: 14, 3: 30 };
 
 function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
-
-const initialsOf = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
 
 export function People({ refreshTick }: { refreshTick: number }) {
   const [people, setPeople] = useState<Person[] | null>(null);
@@ -221,7 +212,7 @@ function PersonForm({
                 ))}
               </span>
               Tier {t}
-              <small>every {TIER_DAYS[t]} days</small>
+              <small>every {TIER_INTERVAL_DAYS[t]} days</small>
             </button>
           ))}
         </div>

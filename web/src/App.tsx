@@ -119,7 +119,7 @@ export function App() {
         <MoodScreen refreshTick={refreshTick} />
       </div>
       <div hidden={page !== "settings"}>
-        <Settings />
+        <Settings onSaved={refreshAll} />
       </div>
 
       <nav className="tabbar" role="tablist" aria-label="Pages">

@@ -140,7 +140,7 @@ export function MoodScreen({ refreshTick }: { refreshTick: number }) {
 
       {loadError && <p className="toast error" role="alert">{loadError}</p>}
 
-      <div ref={gridRef} className={`mood-grid zoom-${view.zoom}`} role="grid" aria-label={viewTitle(view)}>
+      <div ref={gridRef} className={`mood-grid zoom-${view.zoom}`} role="group" aria-label={viewTitle(view)}>
         {Array.from({ length: leading }, (_, i) => (
           <div key={`pad-${i}`} className="cell pad" aria-hidden="true" />
         ))}

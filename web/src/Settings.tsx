@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { getWorkHours, saveWorkHours } from "./lib/tasksData";
 import type { WorkHours } from "./lib/scheduler";
+import { minutesToTime, timeToMinutes, validateWorkHours } from "./lib/workHours";
 import { Reminders } from "./Reminders";
 import { Icon } from "./Icon";
 import { applyTheme, saveTheme, type Theme } from "./lib/theme";
@@ -14,21 +15,17 @@ function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-// Parses "HH:MM" from a time input into minutes after midnight. Empty input gives NaN.
-function timeToMinutes(value: string): number {
-  if (!/^\d{2}:\d{2}$/.test(value)) return NaN;
-  const [hours = NaN, minutes = NaN] = value.split(":").map(Number);
-  return hours * 60 + minutes;
-}
-
-function minutesToTime(min: number): string {
-  return `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+interface SettingsProps {
+  // Work hours decide placement, so a saved change re-places tasks (SPEC 2.4). The shell runs the same Refresh.
+  onSaved: () => void;
 }
 
 // Settings (SPEC 2.4, 5): work hours and lunch for the scheduler, then the notification settings.
 // Shows what is stored; a failed read or save is shown here.
-export function Settings() {
+export function Settings({ onSaved }: SettingsProps) {
   const [hours, setHours] = useState<WorkHours | null>(null); // null until read
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -43,39 +40,39 @@ export function Settings() {
 
   useEffect(() => {
     let live = true;
+    setLoadError(null);
     getWorkHours().then(
       (stored) => {
         if (live) setHours(stored);
       },
       (e: unknown) => {
-        if (live) setError(`Could not read settings: ${messageOf(e)}`);
+        if (live) setLoadError(`Could not read settings: ${messageOf(e)}`);
       },
     );
     return () => {
       live = false;
     };
-  }, []);
+  }, [reloadKey]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
-    const next: WorkHours = {
+    const checked = validateWorkHours({
       startMin: timeToMinutes(String(fields.get("start"))),
       endMin: timeToMinutes(String(fields.get("end"))),
       lunchStartMin: timeToMinutes(String(fields.get("lunchStart"))),
       lunchEndMin: timeToMinutes(String(fields.get("lunchEnd"))),
-    };
-    if (Object.values(next).some(Number.isNaN)) return setError("Enter every time.");
-    if (next.endMin <= next.startMin) return setError("Work must end after it starts.");
-    if (next.lunchEndMin <= next.lunchStartMin) return setError("Lunch must end after it starts.");
+    });
+    if (!checked.ok) return setError(checked.error);
 
     setBusy(true);
     setError(null);
     setSaved(false);
     try {
-      await saveWorkHours(next);
-      setHours(next);
+      await saveWorkHours(checked.value);
+      setHours(checked.value);
       setSaved(true);
+      onSaved();
     } catch (e) {
       setError(`Could not save settings: ${messageOf(e)}`);
     } finally {
@@ -117,7 +114,18 @@ export function Settings() {
       <h2>Work hours</h2>
       <p className="meta">Work is Sunday to Thursday. Lunch is not work time, and it counts as home.</p>
       {hours === null ? (
-        <p className="status">Loading...</p>
+        loadError ? (
+          <div className="card">
+            <p role="alert" className="error">
+              {loadError}
+            </p>
+            <button type="button" className="btn ghost" onClick={() => setReloadKey((k) => k + 1)}>
+              Try again
+            </button>
+          </div>
+        ) : (
+          <p className="status">Loading...</p>
+        )
       ) : (
         <form className="form" aria-label="Work hours" onSubmit={save}>
           <div className="form-grid">

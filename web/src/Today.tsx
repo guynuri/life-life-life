@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { dueNow, type Person } from "./lib/people";
+import { dueNow, initialsOf, type Person } from "./lib/people";
 import { listPeople } from "./lib/peopleStore";
 import { dayKey, dayLabel, MOOD_COLORS, type MoodColor } from "./lib/moodView";
 import { loadMoods } from "./lib/moodStore";
@@ -48,14 +48,6 @@ async function loadMood(): Promise<MoodColor | null> {
   return (await loadMoods(today, today)).get(today) ?? null;
 }
 
-const initialsOf = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-
 export function Today({ refreshTick }: { refreshTick: number }) {
   // Re-reads when the app comes back to the foreground, so a new day or a moved session shows up.
   const [reloadKey, setReloadKey] = useState(0);
@@ -74,7 +66,7 @@ export function Today({ refreshTick }: { refreshTick: number }) {
   const mood = usePart(loadMood, key);
 
   return (
-    <section className="page">
+    <section className="page today">
       <header className="page-head">
         <h1 className="page-title">Today</h1>
         <p className="page-sub">{dayLabel(new Date())}</p>
@@ -96,7 +88,7 @@ export function Today({ refreshTick }: { refreshTick: number }) {
         {sessions.data && sessions.data.length > 0 && (
           <ul className="stack">
             {sessions.data.map((s) => (
-              <li className="row" key={s.id}>
+              <li className="row today-session" key={s.id}>
                 <div className="row-body">
                   <strong>{s.title}</strong>
                   {s.topic && <span className="meta">{s.topic}</span>}
@@ -127,7 +119,7 @@ export function Today({ refreshTick }: { refreshTick: number }) {
         {due.data && due.data.length > 0 && (
           <ul className="stack">
             {due.data.map((p) => (
-              <li className="row" key={p.id}>
+              <li className="row today-person" key={p.id}>
                 <span className={`avatar tier-${p.tier}`} aria-hidden="true">
                   {initialsOf(p.name)}
                 </span>

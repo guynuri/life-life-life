@@ -1,8 +1,19 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Icon } from "./Icon";
 
 // Bottom sheet for add and edit forms. Closes on Escape, the close button, or a tap on the backdrop.
+// Focus moves into the sheet when it opens and goes back to the trigger when it closes.
 export function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  const sheetRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const returnTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const first =
+      sheetRef.current?.querySelector<HTMLElement>("input, select, textarea") ?? sheetRef.current?.querySelector<HTMLElement>("button");
+    first?.focus();
+    return () => returnTo?.focus();
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -14,6 +25,7 @@ export function Sheet({ title, onClose, children }: { title: string; onClose: ()
   return (
     <div className="sheet-backdrop" onClick={onClose}>
       <section
+        ref={sheetRef}
         className="sheet"
         role="dialog"
         aria-modal="true"
