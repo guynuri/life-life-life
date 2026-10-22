@@ -1,4 +1,5 @@
--- Security review fixes (see the PR description). Requires 0001 through 0008.
+-- Security hardening: revoke anon table grants, tie sessions to the owner's tasks,
+-- and require https push endpoints. Requires 0001 through 0008.
 
 -- 1. Supabase grants table privileges to anon by default. RLS already returns no rows to anon,
 --    but anon has no use for these tables, so remove the privilege. The app only needs authenticated.

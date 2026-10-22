@@ -38,7 +38,8 @@ interface ReminderRow {
 
 const iso = (ms: number) => new Date(ms).toISOString();
 
-// Constant-time comparison, so the secret cannot be guessed from response timing.
+// Compares every byte of equal-length secrets, so the match position does not leak through timing.
+// A length mismatch returns early, which leaks the secret's length. That is harmless for a random secret.
 function sameSecret(given: string | null, expected: string | undefined): boolean {
   if (!given || !expected) return false;
   const a = new TextEncoder().encode(given);
