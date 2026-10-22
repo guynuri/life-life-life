@@ -17,8 +17,18 @@ export interface PersonInput {
   intervalDays: number | null;
 }
 
-const TIER_INTERVAL_DAYS: Record<Tier, number> = { 1: 7, 2: 14, 3: 30 };
+export const TIER_INTERVAL_DAYS: Record<Tier, number> = { 1: 7, 2: 14, 3: 30 };
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Up to two initials from a name, for avatars.
+export function initialsOf(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
 
 export function intervalDaysFor(person: Pick<Person, "tier" | "intervalDays">): number {
   return person.intervalDays ?? TIER_INTERVAL_DAYS[person.tier];

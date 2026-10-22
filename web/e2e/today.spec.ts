@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { SUPABASE_HOST, fixClock, serveGoogle, serveTable, signIn, taskRow, type Row } from "./helpers";
+import { FIXED_NOW, SUPABASE_HOST, fixClock, serveGoogle, serveTable, signIn, taskRow, type Row } from "./helpers";
 
 // FIXED_NOW is Monday 12 October 2026, 08:00 local, so "today" is 2026-10-12.
 const at = (day: number, h: number, m = 0) => new Date(2026, 9, day, h, m).toISOString();
@@ -25,8 +25,9 @@ async function seedToday(page: import("@playwright/test").Page) {
     session("tomorrow-s", "rent", at(13, 9), at(13, 9, 20)),
   ];
   const people: Row[] = [
-    { id: "ann", name: "Ann", tier: 1, interval_days: null, last_contacted_at: new Date(Date.now() - 8 * DAY).toISOString(), created_at: new Date(Date.now() - 60 * DAY).toISOString() },
-    { id: "bob", name: "Bob", tier: 3, interval_days: null, last_contacted_at: new Date(Date.now() - DAY).toISOString(), created_at: new Date(Date.now() - 60 * DAY).toISOString() },
+    // Dates are relative to the fixed clock the page runs on, not the real clock.
+    { id: "ann", name: "Ann", tier: 1, interval_days: null, last_contacted_at: new Date(FIXED_NOW.getTime() - 8 * DAY).toISOString(), created_at: new Date(FIXED_NOW.getTime() - 60 * DAY).toISOString() },
+    { id: "bob", name: "Bob", tier: 3, interval_days: null, last_contacted_at: new Date(FIXED_NOW.getTime() - DAY).toISOString(), created_at: new Date(FIXED_NOW.getTime() - 60 * DAY).toISOString() },
   ];
   await serveTable(page, "tasks", tasks);
   await serveTable(page, "sessions", sessions);
