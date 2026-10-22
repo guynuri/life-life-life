@@ -4,8 +4,16 @@
 
 alter table public.people alter column tier set default 2;
 
-alter table public.people
-  add constraint people_interval_days_min check (interval_days is null or interval_days >= 1);
+do $$
+begin
+  alter table public.people
+    add constraint people_interval_days_min check (interval_days is null or interval_days >= 1);
+exception when duplicate_object then null;
+end $$;
 
-alter table public.people
-  add constraint people_name_not_blank check (btrim(name) <> '');
+do $$
+begin
+  alter table public.people
+    add constraint people_name_not_blank check (btrim(name) <> '');
+exception when duplicate_object then null;
+end $$;

@@ -29,6 +29,7 @@ create table if not exists public.reminders (
 );
 
 alter table public.reminders enable row level security;
+drop policy if exists "owner only" on public.reminders;
 create policy "owner only" on public.reminders for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
 
 -- Table privileges are separate from RLS (CLAUDE.md). The app only inserts and reads its own reminders.

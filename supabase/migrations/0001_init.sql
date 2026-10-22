@@ -41,7 +41,17 @@ alter table public.people enable row level security;
 alter table public.moods enable row level security;
 alter table public.push_subscriptions enable row level security;
 
-create policy "owner only" on public.tasks for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+-- tasks is renamed to owner_id in 0003, which carries its policy along. Skip it if that already happened.
+do $$
+begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'tasks' and column_name = 'user_id') then
+    drop policy if exists "owner only" on public.tasks;
+    create policy "owner only" on public.tasks for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+  end if;
+end $$;
+drop policy if exists "owner only" on public.people;
 create policy "owner only" on public.people for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "owner only" on public.moods;
 create policy "owner only" on public.moods for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "owner only" on public.push_subscriptions;
 create policy "owner only" on public.push_subscriptions for all using (user_id = auth.uid()) with check (user_id = auth.uid());
