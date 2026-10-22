@@ -20,7 +20,9 @@ create table if not exists public.work_settings (
 alter table public.sessions enable row level security;
 alter table public.work_settings enable row level security;
 
+drop policy if exists "owner only" on public.sessions;
 create policy "owner only" on public.sessions for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+drop policy if exists "owner only" on public.work_settings;
 create policy "owner only" on public.work_settings for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
 
 grant select, insert, update, delete on public.sessions, public.work_settings to authenticated;
