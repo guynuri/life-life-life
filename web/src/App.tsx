@@ -88,7 +88,7 @@ export function App() {
         </div>
       </header>
       {refreshError && <p className="error" role="alert">{refreshError}</p>}
-      <nav className="tabs" role="tablist" aria-label="Pages">
+      <nav className="tabs page-tabs" role="tablist" aria-label="Pages">
         {pages.map((p) => (
           <button key={p.id} type="button" role="tab" aria-selected={page === p.id} onClick={() => {
               location.hash = formatPage(p.id);
