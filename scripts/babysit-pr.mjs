@@ -27,14 +27,18 @@ const seen = new Set();
 const log = (msg) => console.log(`[${new Date().toLocaleString()}] ${msg}`);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const gh = async (args) => JSON.parse((await run('gh', args, { maxBuffer: 50e6 })).stdout);
-const isHuman = (body) => !(body ?? '').startsWith(aiPrefix);
+// --slurp gives one array per page; flatten them into one list.
+const ghList = async (path) => (await gh(['api', path, '--paginate', '--slurp'])).flat();
+const owner = (await gh(['repo', 'view', '--json', 'owner'])).owner.login;
+// Only the repo owner's comments can start work. Bot accounts and AI-marked text never do.
+const isHuman = (c) => c.user?.login === owner && c.user?.type !== 'Bot' && !(c.body ?? '').startsWith(aiPrefix);
 
 async function snapshot() {
   const view = await gh(['pr', 'view', String(pr), '--json', 'state,headRefOid,statusCheckRollup']);
   const [inline, issue, reviews] = await Promise.all([
-    gh(['api', `repos/{owner}/{repo}/pulls/${pr}/comments`, '--paginate']),
-    gh(['api', `repos/{owner}/{repo}/issues/${pr}/comments`, '--paginate']),
-    gh(['api', `repos/{owner}/{repo}/pulls/${pr}/reviews`, '--paginate']),
+    ghList(`repos/{owner}/{repo}/pulls/${pr}/comments`),
+    ghList(`repos/{owner}/{repo}/issues/${pr}/comments`),
+    ghList(`repos/{owner}/{repo}/pulls/${pr}/reviews`),
   ]);
 
   const checks = (view.statusCheckRollup ?? []).map((c) => ({
@@ -42,9 +46,9 @@ async function snapshot() {
     state: c.conclusion ?? c.state ?? c.status,
   }));
   const humanIds = [
-    ...inline.filter((c) => isHuman(c.body)).map((c) => `inline:${c.id}`),
-    ...issue.filter((c) => isHuman(c.body)).map((c) => `issue:${c.id}`),
-    ...reviews.filter((r) => r.body && isHuman(r.body)).map((r) => `review:${r.id}`),
+    ...inline.filter(isHuman).map((c) => `inline:${c.id}`),
+    ...issue.filter(isHuman).map((c) => `issue:${c.id}`),
+    ...reviews.filter((r) => r.body && isHuman(r)).map((r) => `review:${r.id}`),
   ];
   const failingChecks = checks.filter((c) => failing.has(c.state));
 
@@ -70,20 +74,24 @@ function runBabysitCommand() {
         'acceptEdits',
         '--allowedTools',
         '"Bash(gh:*)" "Bash(git:*)" "Bash(npm:*)" "Bash(node:*)" Read Edit Write Grep Glob',
+        // Merging stays with a person, even though gh:* is allowed above.
+        '--disallowedTools',
+        '"Bash(gh pr merge:*)"',
       ],
       { shell: true, stdio: 'inherit' },
     );
     child.on('close', (code) => {
       log(`babysit command finished (exit ${code})`);
-      resolve();
+      resolve(code ?? 1);
     });
   });
 }
 
 async function fix(snap) {
   log(`work needed: ${snap.failingChecks.length} failing check(s), new human comments: ${snap.humanIds.filter((id) => !seen.has(id)).length}`);
-  await runBabysitCommand();
-  snap.humanIds.forEach((id) => seen.add(id));
+  const code = await runBabysitCommand();
+  // Comments count as handled only after a successful run. After a failed run they stay unseen and are retried on the next change.
+  if (code === 0) snap.humanIds.forEach((id) => seen.add(id));
   return snapshot();
 }
 
