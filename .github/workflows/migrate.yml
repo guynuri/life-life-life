@@ -1,7 +1,8 @@
 name: Migrate database
 
-# Runs every migration on push to main, after saving a full copy of the database.
-# The backup is uploaded as a workflow artifact (kept 90 days). If the backup fails, nothing is migrated.
+# Runs every migration on push to main, after dumping the database on the runner.
+# The dump is NOT uploaded: this repo is public and the dump holds personal data and push keys.
+# The dump is discarded with the runner, so there is no off-GitHub backup yet. If the dump fails, nothing is migrated.
 
 on:
   push:
@@ -24,10 +25,10 @@ jobs:
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       PROJECT_REF: uwclblkzpohkkzrpiibe
     steps:
-      - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1
         with:
-          version: latest
+          version: 2.122.0
       - name: Link to the Supabase project
         run: supabase link --project-ref "$PROJECT_REF"
       - name: Back up the database before migrating
@@ -36,12 +37,5 @@ jobs:
           stamp=$(date -u +%Y%m%dT%H%M%SZ)
           supabase db dump --linked -f "backup/schema-$stamp.sql"
           supabase db dump --linked --data-only -f "backup/data-$stamp.sql"
-      - name: Keep the backup
-        uses: actions/upload-artifact@v4
-        with:
-          name: db-backup-${{ github.run_id }}
-          path: backup/
-          retention-days: 90
-          if-no-files-found: error
       - name: Apply migrations
         run: supabase db push --linked
