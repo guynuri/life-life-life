@@ -74,10 +74,13 @@ export function Today({ refreshTick }: { refreshTick: number }) {
 
       <article className="card">
         <h2 className="card-title">
-          <span className="card-icon tint-lilac">
-            <Icon name="calendar" />
-          </span>
-          Sessions
+          <a className="card-link" href="#/tasks">
+            <span className="card-icon tint-lilac">
+              <Icon name="calendar" />
+            </span>
+            Sessions
+            <Icon name="chevronRight" size={18} />
+          </a>
         </h2>
         {sessions.error && (
           <p className="error" role="alert">
@@ -105,10 +108,13 @@ export function Today({ refreshTick }: { refreshTick: number }) {
 
       <article className="card">
         <h2 className="card-title">
-          <span className="card-icon tint-bubble">
-            <Icon name="people" />
-          </span>
-          Due
+          <a className="card-link" href="#/people">
+            <span className="card-icon tint-bubble">
+              <Icon name="people" />
+            </span>
+            Due
+            <Icon name="chevronRight" size={18} />
+          </a>
         </h2>
         {due.error && (
           <p className="error" role="alert">
@@ -135,10 +141,13 @@ export function Today({ refreshTick }: { refreshTick: number }) {
 
       <article className="card">
         <h2 className="card-title">
-          <span className="card-icon tint-mint">
-            <Icon name="mood" />
-          </span>
-          Mood
+          <a className="card-link" href="#/mood">
+            <span className="card-icon tint-mint">
+              <Icon name="mood" />
+            </span>
+            Mood
+            <Icon name="chevronRight" size={18} />
+          </a>
         </h2>
         {mood.error && (
           <p className="error" role="alert">
