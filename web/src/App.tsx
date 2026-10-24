@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { GOOGLE_CALENDAR_SCOPE } from "./lib/config";
 import { configured, supabase } from "./lib/supabase";
@@ -10,7 +10,10 @@ import { Settings } from "./Settings";
 import { Icon, type IconName } from "./Icon";
 import { placeTasks } from "./lib/calendarSync";
 import { placementQueue } from "./lib/serialQueue";
-import { formatPage, parsePage, type PageId } from "./lib/route";
+import { formatPage, parsePage, swipePage, type PageId } from "./lib/route";
+
+// Touches that start here keep their own gestures: the mood pinch, text entry, sheets, and segmented choices.
+const NO_SWIPE = "input, textarea, select, .mood-grid, .sheet-backdrop, .segmented, .tabbar";
 
 // [Assumed] Four pages behind a tab bar, all in one page with no router. Each page stays mounted and is hidden
 // when another tab is open, so its state and effects keep running.
@@ -31,6 +34,23 @@ export function App() {
   const [refreshTick, setRefreshTick] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+
+  // Swipe left or right to change tab. Starting a touch on a control with its own gesture cancels the swipe.
+  function onTouchStart(e: React.TouchEvent) {
+    const start = e.touches[0];
+    const target = e.target instanceof Element ? e.target : null;
+    touchStart.current = start && !target?.closest(NO_SWIPE) ? { x: start.clientX, y: start.clientY } : null;
+  }
+
+  function onTouchEnd(e: React.TouchEvent) {
+    const start = touchStart.current;
+    const end = e.changedTouches[0];
+    touchStart.current = null;
+    if (!start || !end) return;
+    const next = swipePage(page, end.clientX - start.x, end.clientY - start.y);
+    if (next) location.hash = formatPage(next);
+  }
 
   useEffect(() => {
     const onHash = () => setHash(location.hash);
@@ -106,20 +126,22 @@ export function App() {
           {refreshError}
         </p>
       )}
-      <div hidden={page !== "today"}>
-        <Today refreshTick={refreshTick} />
-      </div>
-      <div hidden={page !== "tasks"}>
-        <Tasks googleToken={session.provider_token ?? null} onReconnect={signIn} refreshTick={refreshTick} />
-      </div>
-      <div hidden={page !== "people"}>
-        <People refreshTick={refreshTick} />
-      </div>
-      <div hidden={page !== "mood"}>
-        <MoodScreen refreshTick={refreshTick} />
-      </div>
-      <div hidden={page !== "settings"}>
-        <Settings onSaved={refreshAll} />
+      <div className="pages" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+        <div hidden={page !== "today"}>
+          <Today refreshTick={refreshTick} />
+        </div>
+        <div hidden={page !== "tasks"}>
+          <Tasks googleToken={session.provider_token ?? null} onReconnect={signIn} refreshTick={refreshTick} />
+        </div>
+        <div hidden={page !== "people"}>
+          <People refreshTick={refreshTick} />
+        </div>
+        <div hidden={page !== "mood"}>
+          <MoodScreen refreshTick={refreshTick} />
+        </div>
+        <div hidden={page !== "settings"}>
+          <Settings onSaved={refreshAll} />
+        </div>
       </div>
 
       <nav className="tabbar" role="tablist" aria-label="Pages">

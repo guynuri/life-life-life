@@ -1,41 +1,43 @@
-/* life: outlined stickers on a dot grid. Ink lines match the mood grid, so the whole app reads as one notebook. */
-/* Light is the default. Dark is set by main.tsx from the stored choice or the phone's setting (lib/theme.ts). */
+/* life: calm and dark by default. Muted accents, hairline borders, no hard shadows, so nothing shouts. */
+/* Dark is the default. main.tsx sets data-theme from the stored choice (lib/theme.ts). */
 :root {
-  color-scheme: light;
-  --paper: #fff7ef;
-  --card: #ffffff;
-  --ink: #2b2140;
-  --ink-soft: #6f6389;
-  --on-accent: #2b2140; /* text on the colored fills; stays dark in both themes */
-  --lilac: #bfa8ff;
-  --lilac-soft: #ece4ff;
-  --bubble: #ff8fc0;
-  --bubble-soft: #ffe0ee;
-  --mint: #8ee9c9;
-  --mint-soft: #dcf8ee;
-  --butter: #ffe47a;
-  --butter-soft: #fff4c4;
-  --error-ink: #8a1c4f;
-  --dot: rgba(43, 33, 64, 0.14);
-  --rule: rgba(43, 33, 64, 0.22);
-  --line: 2px solid var(--ink);
-  --lift: 0 3px 0 #2b2140;
+  color-scheme: dark;
+  --paper: #14161c;
+  --card: #1c1f27;
+  --ink: #e4e6ec;
+  --ink-soft: #9097a8;
+  --on-accent: #14161c; /* text on the muted fills; dark in both themes */
+  --lilac: #9b95d1;
+  --lilac-soft: #272739;
+  --bubble: #d6909f;
+  --bubble-soft: #33252a;
+  --mint: #8fc7b2;
+  --mint-soft: #203029;
+  --butter: #d9c088;
+  --butter-soft: #35301f;
+  --error-ink: #f2aab6;
+  --dot: transparent;
+  --rule: rgba(228, 230, 236, 0.1);
+  --border: rgba(228, 230, 236, 0.12);
+  --line: 1px solid var(--border);
+  --lift: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --paper: #15112a;
-  --card: #211a3b;
-  --ink: #f3eeff;
-  --ink-soft: #a99ec8;
-  --lilac-soft: #33295a;
-  --bubble-soft: #4a2440;
-  --mint-soft: #1d3f3a;
-  --butter-soft: #4a4120;
-  --error-ink: #ffb3d6;
-  --dot: rgba(255, 255, 255, 0.07);
-  --rule: rgba(243, 238, 255, 0.22);
-  --lift: 0 3px 0 #07050f;
+:root[data-theme="light"] {
+  color-scheme: light;
+  --paper: #f5f4f1;
+  --card: #ffffff;
+  --ink: #22232a;
+  --ink-soft: #6b6f7d;
+  --lilac-soft: #ecebf6;
+  --bubble-soft: #f7e9ec;
+  --mint-soft: #e6f2ee;
+  --butter-soft: #f5efdc;
+  --error-ink: #8a2f45;
+  --dot: transparent;
+  --rule: rgba(34, 35, 42, 0.1);
+  --border: rgba(34, 35, 42, 0.12);
+  --lift: 0 1px 2px rgba(34, 35, 42, 0.08);
 }
 
 * {
@@ -52,9 +54,8 @@ body {
   font-weight: 400;
   color: var(--ink);
   background-color: var(--paper);
-  background-image: radial-gradient(circle, var(--dot) 1.2px, transparent 1.5px);
-  background-size: 22px 22px;
   min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
 }
 
 h1,
@@ -215,7 +216,7 @@ select {
 }
 
 .btn.danger {
-  background: #ff7a7a;
+  background: #c46d7a;
   color: var(--on-accent);
 }
 
@@ -232,13 +233,14 @@ select {
   background: var(--card);
 }
 
+/* Presses answer at once: a slight shrink, no shadow jump. */
 .btn:active,
 .icon-btn:active,
 .chip:active,
 .cell:active,
-.swatch:active {
-  transform: translateY(3px);
-  box-shadow: none;
+.swatch:active,
+.task-open:active {
+  transform: scale(0.96);
 }
 
 .btn:disabled,
@@ -268,8 +270,10 @@ select {
   animation: spin 0.9s linear infinite;
 }
 
+/* Chips are the tap targets for task and person actions: at least 40px tall. */
 .chip {
-  padding: 6px 12px;
+  min-height: 40px;
+  padding: 8px 14px;
   border-radius: 999px;
   font-size: 14px;
   font-weight: 500;
@@ -294,7 +298,7 @@ select {
 .card {
   background: var(--card);
   border: var(--line);
-  border-radius: 24px;
+  border-radius: 20px;
   padding: 16px;
   margin-bottom: 14px;
 }
@@ -494,6 +498,18 @@ select {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+/* The whole title row opens the edit sheet. */
+.task-open {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.12s ease;
 }
 
 .task-title {
