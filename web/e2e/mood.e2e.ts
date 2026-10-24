@@ -84,14 +84,14 @@ test("choose, save, fail, and reload a day's mood", async ({ page }) => {
   await setUp(page, fake);
   await page.goto("/");
   await page.getByRole("tab", { name: "Mood", exact: true }).click();
-  await expect(page.getByText("Signed in as owner@example.com")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
 
   const dayOne = page.locator(`.mood-grid button[data-key="${firstOfMonth}"]`);
   await dayOne.click();
-  const picker = page.getByRole("dialog", { name: "Choose mood" });
-  await expect(picker.getByRole("heading")).toHaveText(
-    new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
-  );
+  // The picker is named by its day, so it is found by the same title it shows.
+  const dayTitle = new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const picker = page.getByRole("dialog", { name: dayTitle });
+  await expect(picker.getByRole("heading")).toHaveText(dayTitle);
   await expect(picker.getByText("Saved: blank")).toBeVisible();
 
   await picker.getByRole("button", { name: "coral" }).click();
@@ -101,13 +101,13 @@ test("choose, save, fail, and reload a day's mood", async ({ page }) => {
   // A failed save shows the previous stored state and keeps the error until the next successful save.
   fake.failSaves = true;
   await picker.getByRole("button", { name: "blue" }).click();
-  await expect(page.locator(".mood").getByRole("alert")).toContainText("simulated save failure");
+  await expect(page.getByRole("alert")).toContainText("simulated save failure");
   await expect(dayOne).toHaveCSS("background-color", "rgb(255, 138, 128)");
   await expect(picker.getByText("Saved: coral")).toBeVisible();
 
   fake.failSaves = false;
   await picker.getByRole("button", { name: "green" }).click();
-  await expect(page.locator(".mood").getByRole("alert")).toHaveCount(0);
+  await expect(page.getByRole("alert")).toHaveCount(0);
   await expect(dayOne).toHaveCSS("background-color", "rgb(174, 213, 129)");
 
   // Stored colors survive a reload.
@@ -126,7 +126,7 @@ test("pinch in zooms out to weeks, pinch out on a week drills into that month's 
   await setUp(page, fake);
   await page.goto("/");
   await page.getByRole("tab", { name: "Mood", exact: true }).click();
-  await expect(page.getByText("Signed in as owner@example.com")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
 
   const grid = page.locator(".mood-grid");
   await expect(grid).toHaveClass(/zoom-day/);
@@ -137,6 +137,8 @@ test("pinch in zooms out to weeks, pinch out on a week drills into that month's 
   await expect(grid).toHaveClass(/zoom-week/);
 
   // Pin the pinch on the first week block, then pinch out to zoom in.
+  // The zoom morph is a View Transition that covers the grid while it runs; wait for it to end before pinching again.
+  await page.waitForFunction(() => !(document as Document & { activeViewTransition?: unknown }).activeViewTransition);
   const week = page.locator(".mood-grid button").first();
   const wb = (await week.boundingBox())!;
   await pinch(page, wb.x + wb.width / 2, wb.y + wb.height / 2, "out");

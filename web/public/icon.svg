@@ -1,1 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#0a84ff"/><text x="50" y="66" font-size="56" text-anchor="middle" fill="#fff" font-family="system-ui">L</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="24" fill="#bfa8ff"/>
+  <g stroke="#2b2140" stroke-width="3.5" stroke-linejoin="round">
+    <rect x="18" y="18" width="20" height="20" rx="5" fill="#ff8a80"/>
+    <rect x="40" y="18" width="20" height="20" rx="5" fill="#fff176"/>
+    <rect x="62" y="18" width="20" height="20" rx="5" fill="#aed581"/>
+    <rect x="18" y="40" width="20" height="20" rx="5" fill="#81d4fa"/>
+    <rect x="40" y="40" width="20" height="20" rx="5" fill="#fff7ef"/>
+    <rect x="62" y="40" width="20" height="20" rx="5" fill="#ce93d8"/>
+    <rect x="18" y="62" width="20" height="20" rx="5" fill="#ffb74d"/>
+    <rect x="40" y="62" width="20" height="20" rx="5" fill="#aed581"/>
+    <rect x="62" y="62" width="20" height="20" rx="5" fill="#ff8a80"/>
+  </g>
+</svg>

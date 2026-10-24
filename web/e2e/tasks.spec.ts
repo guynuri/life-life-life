@@ -66,24 +66,29 @@ test("a big task is placed as several sessions; tasks stay in deadline order; ed
   await expect(page.getByRole("listitem").nth(1)).toContainText("Pay rent");
   expect(sessions.filter((s) => s.task_id === "report")).toHaveLength(5);
 
-  // Add a big task over two days: two sessions of an hour each.
+  // Add a big task over two days: two sessions of an hour each. The form opens in a sheet from New.
+  await page.getByRole("button", { name: "New", exact: true }).click();
   const addForm = page.getByRole("form", { name: "Add task" });
   await addForm.getByLabel("Title").fill("Plan trip");
-  await addForm.getByLabel("Type").selectOption("big");
+  await addForm.getByRole("radio", { name: "Big" }).click();
   await addForm.getByLabel("Duration (minutes)").fill("120");
   await addForm.getByLabel("Spread over (days)").fill("2");
   await addForm.getByRole("button", { name: "Add task" }).click();
   const planItem = page.getByRole("listitem").filter({ hasText: "Plan trip" });
-  await expect(planItem).toContainText("Big · spread 2 days · Placed");
+  // Each pill is its own element, so check them separately.
+  await expect(planItem).toContainText("Big");
+  await expect(planItem).toContainText("2 days");
+  await expect(planItem).toContainText("Placed");
   await expect(page.getByRole("status").filter({ hasText: "Plan trip" })).toContainText("2 sessions");
   await expect(planItem.getByRole("button", { name: /Move session/ })).toHaveCount(2);
 
   // Edit the title of an existing task.
   const payItem = page.getByRole("listitem").filter({ hasText: "Pay rent" });
   await payItem.getByRole("button", { name: "Edit" }).click();
-  const editItem = page.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Save" }) });
-  await editItem.getByLabel("Title").fill("Pay rent now");
-  await editItem.getByRole("button", { name: "Save" }).click();
+  // The edit form opens in a sheet named Edit task.
+  const editForm = page.getByRole("form", { name: "Edit task" });
+  await editForm.getByLabel("Title").fill("Pay rent now");
+  await editForm.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "Pay rent now" })).toBeVisible();
 });
 
@@ -101,6 +106,7 @@ test("a failed save is shown and the list keeps the stored state", async ({ page
   await page.getByRole("tab", { name: "Tasks", exact: true }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "Existing" })).toBeVisible();
 
+  await page.getByRole("button", { name: "New", exact: true }).click();
   const addForm = page.getByRole("form", { name: "Add task" });
   await addForm.getByLabel("Title").fill("Will not save");
   await addForm.getByLabel("Duration (minutes)").fill("10");

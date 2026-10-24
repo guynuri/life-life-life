@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { formatTimeOfDay, parseTimeOfDay } from "./lib/reminders";
 import { DEFAULT_CONTACT_REMINDER_MIN, getContactReminderMin, saveContactReminderMin } from "./lib/remindersData";
 import { deviceStatus, needsHomeScreen, turnOff, turnOn } from "./lib/push";
+import { Icon } from "./Icon";
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : typeof error === "object" && error !== null && "message" in error ? String(error.message) : String(error);
@@ -78,29 +79,53 @@ export function Reminders() {
   }
 
   return (
-    <section>
-      <h2>Reminders</h2>
-      {enabled === null ? (
-        <p className="status">Loading notification status...</p>
-      ) : (
-        <p className="status">Notifications on this device: {enabled ? "on" : "off"}</p>
-      )}
-      {iosHint && <p className="muted">On iPhone, notifications work only after you add this app to the Home Screen (iOS 16.4 or newer).</p>}
-      <button type="button" disabled={busy || enabled === null} onClick={toggle}>
-        {enabled ? "Turn off notifications" : "Turn on notifications"}
-      </button>
-
-      <div className="person-form">
-        <label>
-          Contact reminder time
-          <input type="time" value={draft} onChange={(e) => setDraft(e.target.value)} />
-        </label>
-        <button type="button" disabled={busy} onClick={saveTime}>
-          Set time
+    <article className="card">
+      <h2 className="card-title">
+        <span className="card-icon tint-butter">
+          <Icon name="bell" />
+        </span>
+        Reminders
+      </h2>
+      <div className="row">
+        <div className="row-body">
+          <strong>Notifications</strong>
+          <span className="meta">
+            {enabled === null ? "Checking..." : enabled ? "On for this device" : "Off for this device"}
+          </span>
+        </div>
+        <button
+          type="button"
+          className={`btn ${enabled ? "ghost" : "primary"}`}
+          disabled={busy || enabled === null}
+          onClick={toggle}
+        >
+          {enabled ? "Turn off" : "Turn on"}
         </button>
       </div>
-      {storedMin !== null && <p className="status">Saved contact reminder time: {formatTimeOfDay(storedMin)}</p>}
-      {error && <p className="error" role="alert">{error}</p>}
-    </section>
+      {iosHint && <p className="meta">On iPhone, notifications work only after you add this app to the Home Screen (iOS 16.4 or newer).</p>}
+
+      <div className="row">
+        <div className="row-body">
+          <strong>Reach-out reminder</strong>
+          <span className="meta">{storedMin !== null ? `Saved for ${formatTimeOfDay(storedMin)}` : "Loading..."}</span>
+        </div>
+        <div className="time-field">
+          <input
+            aria-label="Contact reminder time"
+            type="time"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+          />
+          <button type="button" className="btn ghost" disabled={busy} onClick={saveTime}>
+            Set
+          </button>
+        </div>
+      </div>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+    </article>
   );
 }

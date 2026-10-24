@@ -100,6 +100,12 @@ describe("work and home", () => {
     expect(atNoon[0]?.start).toBe(at(MON, 12));
   });
 
+  it("uses the stored lunch window, not a fixed one", () => {
+    const work = { ...DEFAULT_WORK_HOURS, lunchStartMin: 9 * 60, lunchEndMin: 10 * 60 };
+    const placed = schedule([task({ id: "w", conditionPlace: "work" })], [], at(MON, 8), work);
+    expect(placed[0]?.start).toBe(at(MON, 10));
+  });
+
   it("lets Any tasks cross the work and lunch boundary as one session", () => {
     const placed = schedule([task({ id: "a", durationMin: 120 })], [], at(MON, 11), DEFAULT_WORK_HOURS);
     expect(placed).toEqual([{ taskId: "a", start: at(MON, 11), end: at(MON, 13) }]);
