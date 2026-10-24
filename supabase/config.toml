@@ -1,0 +1,2 @@
+# Minimal config so `supabase link` and `supabase db push` know the project. See .github/workflows/migrate.yml.
+project_id = "uwclblkzpohkkzrpiibe"

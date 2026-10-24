@@ -5,7 +5,7 @@ Personal iPhone PWA that manages the things I forget: Google Calendar events, ta
 ## Stack
 
 - React + TypeScript app built with Vite, in `web/`. `vite-plugin-pwa` generates the manifest and service worker. Deployed to GitHub Pages by `.github/workflows/pages.yml` on push to `main` (Node 20, `npm run build`, publishes `web/dist`).
-- Supabase: Postgres, Auth (Google sign-in), Edge Functions, `pg_cron`. Schema in `supabase/migrations/`.
+- Supabase: Postgres, Auth (Google sign-in), Edge Functions, `pg_cron`. Schema in `supabase/migrations/`. Migrations run automatically on push to `main` via `.github/workflows/migrate.yml`, which saves a DB backup first (kept as a workflow artifact for 90 days). Do not run migrations by hand in the Supabase SQL editor.
 - Google Calendar API v3 (`calendar.events` scope), called from the browser with the Google token.
 - Web Push via service worker, sent by a Supabase Edge Function (not built yet).
 
