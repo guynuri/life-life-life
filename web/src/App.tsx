@@ -38,7 +38,7 @@ export function App() {
 
   // Swipe left or right to change tab. Starting a touch on a control with its own gesture cancels the swipe.
   function onTouchStart(e: React.TouchEvent) {
-    const start = e.touches[0];
+    const start = e.changedTouches[0];
     const target = e.target instanceof Element ? e.target : null;
     touchStart.current = start && !target?.closest(NO_SWIPE) ? { x: start.clientX, y: start.clientY } : null;
   }

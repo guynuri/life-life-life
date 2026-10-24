@@ -294,7 +294,7 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
             const status = taskStatus(task, sessions.length > 0);
             return (
               <li key={task.id} className="card task">
-                <button type="button" className="task-top task-open" onClick={() => startEdit(task)} aria-label={`Edit ${task.title}`}>
+                <button type="button" className="task-top task-open" onClick={() => startEdit(task)}>
                   <span className={`card-icon tint-${task.type}`}>
                     <Icon name={TYPE_ICONS[task.type]} />
                   </span>

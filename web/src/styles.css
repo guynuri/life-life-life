@@ -16,7 +16,6 @@
   --butter: #d9c088;
   --butter-soft: #35301f;
   --error-ink: #f2aab6;
-  --dot: transparent;
   --rule: rgba(228, 230, 236, 0.1);
   --border: rgba(228, 230, 236, 0.12);
   --line: 1px solid var(--border);
@@ -34,7 +33,6 @@
   --mint-soft: #e6f2ee;
   --butter-soft: #f5efdc;
   --error-ink: #8a2f45;
-  --dot: transparent;
   --rule: rgba(34, 35, 42, 0.1);
   --border: rgba(34, 35, 42, 0.12);
   --lift: 0 1px 2px rgba(34, 35, 42, 0.08);
@@ -153,7 +151,7 @@ select {
   transform: translateX(-50%);
   width: min(calc(100% - 24px), 480px);
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr)); /* one column per tab in pages.length */
+  grid-template-columns: repeat(5, minmax(0, 1fr)); /* one column per tab: five pages */
   gap: 4px;
   padding: 6px;
   background: var(--card);
