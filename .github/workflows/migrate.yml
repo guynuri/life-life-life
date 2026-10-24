@@ -1,8 +1,9 @@
 name: Migrate database
 
-# Runs every migration on push to main, after dumping the database on the runner.
-# The dump is NOT uploaded: this repo is public and the dump holds personal data and push keys.
-# The dump is discarded with the runner, so there is no off-GitHub backup yet. If the dump fails, nothing is migrated.
+# Runs every migration on push to main, after backing up the database.
+# The backup is encrypted with BACKUP_PASSPHRASE and uploaded to a private Supabase Storage bucket (db-backups).
+# Backups older than 90 days are deleted. If the backup or upload fails, nothing is migrated.
+# Nothing personal is ever uploaded to GitHub artifacts: this repo is public.
 
 on:
   push:
@@ -23,6 +24,8 @@ jobs:
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
       PROJECT_REF: uwclblkzpohkkzrpiibe
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -37,5 +40,47 @@ jobs:
           stamp=$(date -u +%Y%m%dT%H%M%SZ)
           supabase db dump --linked -f "backup/schema-$stamp.sql"
           supabase db dump --linked --data-only -f "backup/data-$stamp.sql"
+      - name: Encrypt the backup
+        run: |
+          for f in backup/*.sql; do
+            gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" \
+              --symmetric --cipher-algo AES256 -o "$f.gpg" "$f"
+          done
+          rm -f backup/*.sql
+      - name: Upload the backup to a private Supabase bucket
+        run: |
+          base="https://$PROJECT_REF.supabase.co/storage/v1"
+          auth=(-H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY")
+          # Create the bucket once. 409 means it already exists.
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$base/bucket" "${auth[@]}" \
+            -H 'Content-Type: application/json' \
+            -d '{"id":"db-backups","name":"db-backups","public":false}')
+          case "$code" in 200|201|409) ;; *) echo "Creating the bucket failed: $code"; exit 1 ;; esac
+          for f in backup/*.gpg; do
+            name=$(basename "$f")
+            code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$base/object/db-backups/$name" "${auth[@]}" \
+              -H 'Content-Type: application/octet-stream' --data-binary "@$f")
+            if [ "$code" != 200 ]; then echo "Uploading $name failed: $code"; exit 1; fi
+          done
+      - name: Delete backups older than 90 days
+        # Not fatal: a failed cleanup must not block migrations.
+        run: |
+          base="https://$PROJECT_REF.supabase.co/storage/v1"
+          auth=(-H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY")
+          cutoff=$(date -u -d '-90 days' +%Y%m%dT%H%M%SZ)
+          names=$(curl -sS -X POST "$base/object/list/db-backups" "${auth[@]}" \
+            -H 'Content-Type: application/json' \
+            -d '{"prefix":"","limit":1000,"sortBy":{"column":"name","order":"asc"}}' \
+            | jq -r '.[].name') || { echo "Listing backups failed; skipping cleanup"; exit 0; }
+          old=()
+          while read -r name; do
+            stamp=$(sed -En 's/.*-([0-9]{8}T[0-9]{6}Z)\.sql\.gpg$/\1/p' <<<"$name")
+            if [ -n "$stamp" ] && [[ "$stamp" < "$cutoff" ]]; then old+=("$name"); fi
+          done <<<"$names"
+          if [ "${#old[@]}" -gt 0 ]; then
+            body=$(jq -cn '$ARGS.positional | {prefixes: .}' --args "${old[@]}")
+            curl -sS -o /dev/null -X DELETE "$base/object/db-backups" "${auth[@]}" \
+              -H 'Content-Type: application/json' -d "$body" || echo "Deleting old backups failed"
+          fi
       - name: Apply migrations
         run: supabase db push --linked
