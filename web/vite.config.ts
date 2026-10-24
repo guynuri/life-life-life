@@ -14,8 +14,8 @@ export default defineConfig({
         name: "life-life-life",
         short_name: "life",
         display: "standalone",
-        background_color: "#fff7ef",
-        theme_color: "#fff7ef",
+        background_color: "#14161c",
+        theme_color: "#14161c",
         start_url: "./",
         scope: "./",
         icons: [

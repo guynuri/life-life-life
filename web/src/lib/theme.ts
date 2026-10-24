@@ -1,13 +1,12 @@
-// Light or dark for the whole app. A choice made in Settings is kept on this device. Without one, the phone's setting decides.
+// Light or dark for the whole app. Dark is the default: it is easier on the eyes. A choice made in Settings is kept on this device.
 
 export type Theme = "light" | "dark";
 
 const KEY = "life-theme";
 
-// Pure: a stored choice wins; anything else follows the system.
-export function resolveTheme(stored: string | null, systemDark: boolean): Theme {
-  if (stored === "light" || stored === "dark") return stored;
-  return systemDark ? "dark" : "light";
+// Pure: a stored choice wins; anything else is dark.
+export function resolveTheme(stored: string | null): Theme {
+  return stored === "light" ? "light" : "dark";
 }
 
 // Browser storage can be blocked (private windows), so a failed read counts as no choice.
@@ -30,5 +29,5 @@ export function saveTheme(theme: Theme): void {
 // Sets the attribute the stylesheet reads, and the status bar color that iOS takes from the page.
 export function applyTheme(theme: Theme): void {
   document.documentElement.dataset.theme = theme;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#15112a" : "#fff7ef");
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#14161c" : "#f5f4f1");
 }

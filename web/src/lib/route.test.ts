@@ -1,5 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { formatPage, PAGE_IDS, parsePage } from "./route";
+import { formatPage, PAGE_IDS, parsePage, swipePage } from "./route";
+
+describe("swipePage", () => {
+  it("moves to the neighbour on a long, mostly horizontal swipe", () => {
+    expect(swipePage("tasks", -120, 10)).toBe("people");
+    expect(swipePage("tasks", 120, -5)).toBe("today");
+  });
+
+  it("ignores short or vertical swipes", () => {
+    expect(swipePage("tasks", -40, 0)).toBeNull();
+    expect(swipePage("tasks", -100, 80)).toBeNull();
+  });
+
+  it("stops at the first and last tab", () => {
+    expect(swipePage("today", 120, 0)).toBeNull();
+    expect(swipePage("settings", -120, 0)).toBeNull();
+  });
+});
 
 describe("parsePage", () => {
   it("reads each tab from its hash", () => {
