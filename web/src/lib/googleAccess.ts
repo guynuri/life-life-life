@@ -5,6 +5,8 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 import { stillValid } from "./googleTokenCache";
 
+// Deliberate: the refresh token lives in localStorage, the same place Supabase keeps the session. Any script on this
+// origin can read it, so a Google revoke is the way to cut access if that ever happens.
 const REFRESH_KEY = "google-refresh-token";
 
 let cached: { token: string; expiresAt: number } | null = null;
