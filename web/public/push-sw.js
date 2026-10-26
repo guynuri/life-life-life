@@ -6,7 +6,7 @@ self.addEventListener("push", (event) => {
   );
 });
 
-// No close() here: tapping a notification should open the app and leave it in Notification Center until dismissed.
 self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
   event.waitUntil(self.clients.openWindow(event.notification.data?.url || "./"));
 });

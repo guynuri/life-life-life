@@ -14,6 +14,13 @@ async function registration(): Promise<ServiceWorkerRegistration | null> {
   return (await navigator.serviceWorker.getRegistration()) ?? null;
 }
 
+// Closes every notification this app is showing, so they leave Notification Center when the app opens.
+export async function clearNotifications(): Promise<void> {
+  const reg = await registration();
+  if (!reg) return;
+  for (const n of await reg.getNotifications()) n.close();
+}
+
 // The subscription on this device, or null. Null also when the service worker is not installed (for example in dev).
 export async function currentSubscription(): Promise<PushSubscription | null> {
   return (await (await registration())?.pushManager.getSubscription()) ?? null;
