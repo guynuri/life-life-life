@@ -1,125 +1,85 @@
 import { describe, expect, it } from "vitest";
 import {
-  MOOD_COLORS,
-  average,
-  blocksFor,
+  EMOTION_NAMES,
+  MAX_SIZE,
+  MIN_SIZE,
+  anchoredScrollTop,
+  clampSize,
   dayKey,
-  monthColor,
+  daysLeft,
+  gridCells,
+  gridEnd,
+  gridStart,
   parseDayKey,
-  rangeOf,
-  step,
-  weekNumber,
-  zoomIn,
-  zoomOut,
-  type ColorOf,
-  type View,
+  rowHeight,
 } from "./moodView";
 
-const colorsOn = (map: Record<string, "coral" | "blue">): ColorOf => (day) => map[day] ?? null;
-
-describe("weekNumber", () => {
-  it("year starting on Thursday: week 1 is the week of Jan 1, and 2026 has 53 weeks", () => {
-    expect(weekNumber(new Date(2025, 11, 28))).toBe(1); // Thursday Jan 1 2026
-    expect(weekNumber(new Date(2026, 11, 27))).toBe(53); // Thursday Dec 31 2026
+describe("grid range", () => {
+  it("starts two months back, keeping the day of the month", () => {
+    expect(dayKey(gridStart(new Date(2026, 9, 27)))).toBe("2026-08-27");
   });
 
-  it("year starting on Friday: the week of Jan 1 belongs to the previous year", () => {
-    // 2021 starts on Friday. Week of Dec 27 2020 has Thursday Dec 31 2020 (2020 has 53 weeks).
-    expect(weekNumber(new Date(2020, 11, 27))).toBe(53);
-    expect(weekNumber(new Date(2021, 0, 3))).toBe(1); // Thursday Jan 7 2021
+  it("clamps the day when the earlier month is shorter", () => {
+    expect(dayKey(gridStart(new Date(2026, 2, 31)))).toBe("2026-01-31");
+    expect(dayKey(gridStart(new Date(2026, 4, 31)))).toBe("2026-03-31");
   });
 
-  it("year starting on Saturday: 2021 ends with week 52", () => {
-    // 2022 starts on Saturday. Week of Dec 26 2021 has Thursday Dec 30 2021.
-    expect(weekNumber(new Date(2021, 11, 26))).toBe(52);
-    expect(weekNumber(new Date(2022, 0, 2))).toBe(1); // Thursday Jan 6 2022
+  it("ends 65 years ahead on the same day", () => {
+    expect(dayKey(gridEnd(new Date(2026, 9, 27)))).toBe("2091-10-27");
   });
 
-  it("year starting on Wednesday: the week of Dec 29 2024 is week 1 of 2025", () => {
-    expect(weekNumber(new Date(2024, 11, 29))).toBe(1); // Thursday Jan 2 2025
-  });
-
-  it("a 53-week year without a leap day (2015) ends with week 53", () => {
-    expect(weekNumber(new Date(2015, 11, 27))).toBe(53);
+  it("counts days left from today to the end, leap days included", () => {
+    // 65 * 365 days, plus the 16 leap days (Feb 29 2028 through Feb 29 2088).
+    expect(daysLeft(new Date(2026, 9, 27), gridEnd(new Date(2026, 9, 27)))).toBe(23741);
+    expect(daysLeft(new Date(2026, 9, 27), new Date(2026, 9, 27))).toBe(0);
   });
 });
 
-describe("average", () => {
-  it("averages channel by channel and has no value for no colors", () => {
-    expect(average([MOOD_COLORS.coral, MOOD_COLORS.blue])).toEqual([
-      (255 + 129) / 2,
-      (138 + 212) / 2,
-      (128 + 250) / 2,
-    ]);
-    expect(average([])).toBeNull();
+describe("gridCells", () => {
+  it("lays days in Sunday-start rows of 7, blank outside the range", () => {
+    // Thu Aug 27 2026 to Mon Sep 7 2026: the first row starts Sun Aug 23, the last row ends Sat Sep 12.
+    const cells = gridCells(new Date(2026, 7, 27), new Date(2026, 8, 7));
+    expect(cells.length % 7).toBe(0);
+    expect(cells.slice(0, 4)).toEqual([null, null, null, null]);
+    expect(cells[4]).toBe("2026-08-27");
+    expect(cells.filter((c) => c !== null)).toHaveLength(12);
+    expect(cells.indexOf("2026-09-07")).toBeGreaterThan(-1);
+    expect(cells.at(-1)).toBeNull();
+  });
+
+  it("covers the whole 65-year range with no gaps", () => {
+    const today = new Date(2026, 9, 27);
+    const cells = gridCells(gridStart(today), gridEnd(today));
+    const days = cells.filter((c): c is string => c !== null);
+    expect(days[0]).toBe("2026-08-27");
+    expect(days.at(-1)).toBe("2091-10-27");
+    expect(days).toHaveLength(Math.round((Date.UTC(2091, 9, 27) - Date.UTC(2026, 7, 27)) / 86_400_000) + 1);
   });
 });
 
-describe("blocks", () => {
-  it("a week averages its colored days and blank days do not count", () => {
-    // Sun Oct 4 2026 to Sat Oct 10 2026 is one week.
-    const colorOf = colorsOn({ "2026-10-04": "coral", "2026-10-06": "blue" });
-    const week = blocksFor({ zoom: "week", year: 2026, month: 9 }, colorOf).find((b) => b.key === "2026-10-04");
-    expect(week?.color).toEqual(average([MOOD_COLORS.coral, MOOD_COLORS.blue]));
+describe("pinch anchoring", () => {
+  it("keeps the row under the pointer in place after the box size changes", () => {
+    const oldSize = 36;
+    const newSize = 72;
+    const scrollTop = 500;
+    const pointerY = 100;
+    const next = anchoredScrollTop(scrollTop, pointerY, oldSize, newSize);
+    const rowBefore = (scrollTop + pointerY) / rowHeight(oldSize);
+    const rowAfter = (next + pointerY) / rowHeight(newSize);
+    expect(rowAfter).toBeCloseTo(rowBefore, 9);
   });
 
-  it("a week with no colored days has no color", () => {
-    const week = blocksFor({ zoom: "week", year: 2026, month: 9 }, colorsOn({})).find((b) => b.key === "2026-10-04");
-    expect(week?.color).toBeNull();
-  });
-
-  it("a week touching two months counts toward both months", () => {
-    // Sun Sep 27 2026 to Sat Oct 3 2026 touches September and October.
-    const colorOf = colorsOn({ "2026-09-28": "coral" });
-    expect(monthColor(2026, 8, colorOf)).toEqual(MOOD_COLORS.coral);
-    expect(monthColor(2026, 9, colorOf)).toEqual(MOOD_COLORS.coral);
-  });
-
-  it("day blocks cover only the viewed month", () => {
-    const days = blocksFor({ zoom: "day", year: 2026, month: 9 }, colorsOn({}));
-    expect(days).toHaveLength(31);
-    expect(days[0]?.key).toBe("2026-10-01");
-  });
-
-  it("year view shows 10 years ending with the viewed year", () => {
-    const years = blocksFor({ zoom: "year", year: 2026, month: 0 }, colorsOn({})).map((b) => b.key);
-    expect(years[0]).toBe("2017");
-    expect(years[9]).toBe("2026");
+  it("clamps box sizes to the allowed range", () => {
+    expect(clampSize(1)).toBe(MIN_SIZE);
+    expect(clampSize(999)).toBe(MAX_SIZE);
+    expect(clampSize(36.4)).toBe(36);
   });
 });
 
-describe("zoom and navigation", () => {
-  const week: View = { zoom: "week", year: 2026, month: 9 };
-
-  it("drilling into a week shows only the viewed month's days", () => {
-    const day = zoomIn(week, "2026-09-27");
-    expect(day).toEqual({ zoom: "day", year: 2026, month: 9 });
-    const days = blocksFor(day!, colorsOn({}));
-    expect(days[0]?.key).toBe("2026-10-01");
-    expect(days.some((b) => b.key.startsWith("2026-09"))).toBe(false);
-  });
-
-  it("zooms in and out one level at a time", () => {
-    const year: View = { zoom: "year", year: 2026, month: 9 };
-    const month = zoomIn(year, "2025")!;
-    expect(month).toEqual({ zoom: "month", year: 2025, month: 9 });
-    expect(zoomIn(month, "8")).toEqual({ zoom: "day", year: 2025, month: 8 });
-    expect(zoomOut({ zoom: "day", year: 2025, month: 8 })).toEqual({ zoom: "week", year: 2025, month: 8 });
-    expect(zoomOut(year)).toBeNull();
-    expect(zoomIn({ zoom: "day", year: 2025, month: 8 }, "2025-09-01")).toBeNull();
-  });
-
-  it("steps by month, year, or ten years by zoom level", () => {
-    expect(step({ zoom: "day", year: 2026, month: 11 }, 1)).toEqual({ zoom: "day", year: 2027, month: 0 });
-    expect(step({ zoom: "week", year: 2026, month: 0 }, -1)).toEqual({ zoom: "week", year: 2025, month: 11 });
-    expect(step({ zoom: "month", year: 2026, month: 3 }, 1)).toEqual({ zoom: "month", year: 2027, month: 3 });
-    expect(step({ zoom: "year", year: 2026, month: 3 }, -1)).toEqual({ zoom: "year", year: 2016, month: 3 });
-  });
-
-  it("the stored range covers the year view's first year and week padding", () => {
-    const range = rangeOf({ zoom: "year", year: 2026, month: 0 });
-    expect(range.from <= "2017-01-01").toBe(true);
-    expect(range.to >= "2026-12-31").toBe(true);
+describe("emotions and keys", () => {
+  it("offers eight emotions", () => {
+    expect(EMOTION_NAMES).toHaveLength(8);
+    expect(EMOTION_NAMES).toContain("happy");
   });
 
   it("day keys round-trip through parseDayKey", () => {

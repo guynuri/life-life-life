@@ -1,21 +1,20 @@
 import { useEffect, useRef, type RefObject } from "react";
 
-export type PinchDir = "out" | "in";
+// Reports a two-finger gesture continuously. ratio is the current finger distance over the distance when the
+// gesture started (above 1 means fingers apart). x and y are the midpoint in client pixels.
+export interface PinchHandlers {
+  onStart: () => void;
+  onScale: (ratio: number, x: number, y: number) => void;
+}
 
-// Fires once per gesture when the distance between two touches changes past the threshold.
-// Pinch out (fingers apart) is "out"; pinch in (fingers together) is "in".
-const OUT_RATIO = 1.25;
-const IN_RATIO = 0.8;
-
-export function usePinch(ref: RefObject<HTMLElement>, onPinch: (dir: PinchDir, x: number, y: number) => void) {
-  const handler = useRef(onPinch);
-  handler.current = onPinch;
+export function usePinch(ref: RefObject<HTMLElement>, handlers: PinchHandlers) {
+  const latest = useRef(handlers);
+  latest.current = handlers;
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     let startDist = 0;
-    let fired = false;
 
     const points = (list: TouchList) => {
       const a = list.item(0);
@@ -27,24 +26,18 @@ export function usePinch(ref: RefObject<HTMLElement>, onPinch: (dir: PinchDir, x
       const p = points(e.touches);
       if (!p) return;
       startDist = Math.hypot(p.a.clientX - p.b.clientX, p.a.clientY - p.b.clientY);
-      fired = false;
+      if (startDist > 0) latest.current.onStart();
     };
 
     const onMove = (e: TouchEvent) => {
       const p = points(e.touches);
-      if (!p || fired || startDist === 0) return;
+      if (!p || startDist === 0) return;
       const ratio = Math.hypot(p.a.clientX - p.b.clientX, p.a.clientY - p.b.clientY) / startDist;
-      const dir: PinchDir | null = ratio >= OUT_RATIO ? "out" : ratio <= IN_RATIO ? "in" : null;
-      if (!dir) return;
-      fired = true;
-      handler.current(dir, (p.a.clientX + p.b.clientX) / 2, (p.a.clientY + p.b.clientY) / 2);
+      latest.current.onScale(ratio, (p.a.clientX + p.b.clientX) / 2, (p.a.clientY + p.b.clientY) / 2);
     };
 
     const onEnd = (e: TouchEvent) => {
-      if (e.touches.length < 2) {
-        startDist = 0;
-        fired = false;
-      }
+      if (e.touches.length < 2) startDist = 0;
     };
 
     el.addEventListener("touchstart", onStart, { passive: true });
