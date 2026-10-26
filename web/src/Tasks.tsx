@@ -198,16 +198,16 @@ export function Tasks({ googleToken, googleReady, onReconnect, refreshTick }: Ta
     await refresh();
   }
 
-  // Shows the change at once, saves it, and puts the last loaded data back with an error if the save fails.
-  // After a save, the list is reloaded in the background so placement catches up without holding up the tap.
+  // Shows the change at once, saves it, and shows the error if the save fails. A failure reloads what is stored, so
+  // overlapping taps cannot leave a stale snapshot on screen. After a save, the list is reloaded in the background
+  // so placement catches up without holding up the tap.
   async function optimistic(change: (loaded: Loaded) => Loaded, save: () => Promise<unknown>, failure: string) {
-    const before = data;
-    if (before) setData(change(before));
+    setData((d) => d && change(d));
     setErrors([]);
     try {
       await save();
     } catch (error) {
-      if (before) setData(before);
+      await loadStored();
       return fail(failure, error);
     }
     void refresh();

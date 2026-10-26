@@ -33,7 +33,7 @@ test("placed sessions show; a session can be moved; unschedule holds; Schedule r
   await item.getByRole("button", { name: "Unschedule" }).click();
   await expect(item).toContainText("Unscheduled");
   await expect(item.getByRole("button", { name: /Move session/ })).toHaveCount(0);
-  expect(sessions).toHaveLength(0);
+  await expect.poll(() => sessions.length).toBe(0);
 
   // Schedule releases the hold, so the task is placed again.
   await item.getByRole("button", { name: "Schedule" }).click();
@@ -181,8 +181,9 @@ test("Done removes the task's events and sessions and moves it to the Completed 
   const drawer = page.locator("details.done-drawer");
   await expect(drawer.locator("summary")).toHaveText("Completed (1)");
   await expect(page.locator("li.task:not(.done-item)").filter({ hasText: "Pay rent" })).toHaveCount(0);
-  expect(googleEvents).toHaveLength(0);
-  expect(sessions).toHaveLength(0);
+  // The change shows before the save finishes, so wait for the mock state to catch up.
+  await expect.poll(() => googleEvents.length).toBe(0);
+  await expect.poll(() => sessions.length).toBe(0);
 
   await drawer.locator("summary").click();
   await drawer.getByRole("listitem").filter({ hasText: "Pay rent" }).getByRole("button", { name: "Reopen" }).click();
