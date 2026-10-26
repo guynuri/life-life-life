@@ -14,7 +14,7 @@ import {
 } from "./lib/tasks";
 import { insertTask, listSessions, listTasks, releaseHold, setDone, updateTaskEdit, type StoredSession } from "./lib/tasksData";
 import { completeTask, deleteTaskWithEvents, moveSessionWithEvent, placeTasks, replacePlacement, unscheduleTask } from "./lib/calendarSync";
-import { playDing } from "./lib/ding";
+import { playDing, primeDing } from "./lib/ding";
 import { isGoogleAuthError } from "./lib/calendar";
 import type { Placement } from "./lib/scheduler";
 import { Icon, type IconName } from "./Icon";
@@ -347,7 +347,7 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
                       {task.topic && <span className="meta">{task.topic}</span>}
                     </span>
                   </button>
-                  <button type="button" className="done-button" aria-label={`Mark done: ${task.title}`} onClick={() => complete(task.id)}>
+                  <button type="button" className="done-button" aria-label={`Mark done: ${task.title}`} onClick={() => { primeDing(); void complete(task.id); }}>
                     <Icon name="check" size={20} />
                   </button>
                 </div>

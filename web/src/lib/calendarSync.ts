@@ -62,7 +62,7 @@ async function insertPlacements(token: string | null, tasks: Task[], placed: Pla
 // in this run and has a deadline it cannot meet. The unplaced flag is saved after the message is queued, so a failed run is retried.
 async function announceUnplaced(tasks: Task[], sessions: StoredSession[], placedRows: NewSession[], now: number): Promise<void> {
   const placedIds = new Set([...sessions.map((s) => s.taskId), ...placedRows.map((r) => r.taskId)]);
-  const unplaced = tasks.filter((t) => !t.held && !placedIds.has(t.id));
+  const unplaced = tasks.filter((t) => !t.done && !t.held && !placedIds.has(t.id));
   const newly = newlyUnplacedTitles(unplaced.map((t) => ({ title: t.title, deadline: t.deadline, wasUnplaced: t.unplaced })));
   const titles = new Map(tasks.map((t) => [t.id, t.title]));
   const reminder = placementReminder(
