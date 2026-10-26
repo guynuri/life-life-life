@@ -93,6 +93,15 @@ export function clampSize(size: number): number {
   return Math.min(MAX_SIZE, Math.max(MIN_SIZE, Math.round(size)));
 }
 
+// Rows to render for the viewport (inclusive indices), plus a buffer above and below so a fast scroll does not show gaps.
+export function visibleRows(scrollTop: number, viewHeight: number, size: number, totalRows: number, buffer: number): { start: number; end: number } {
+  const h = rowHeight(size);
+  return {
+    start: Math.max(0, Math.floor(scrollTop / h) - buffer),
+    end: Math.min(totalRows - 1, Math.floor((scrollTop + viewHeight) / h) + buffer),
+  };
+}
+
 export function dayLabel(d: Date): string {
   return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 }

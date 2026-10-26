@@ -12,7 +12,20 @@ import {
   gridStart,
   parseDayKey,
   rowHeight,
+  visibleRows,
 } from "./moodView";
+
+describe("visible rows", () => {
+  it("renders the rows under the viewport plus a buffer on each side", () => {
+    // Row height at size 36 is 39px. Scrolled to row 100 with a 390px viewport (10 rows).
+    expect(visibleRows(3900, 390, 36, 1000, 10)).toEqual({ start: 90, end: 120 });
+  });
+
+  it("clamps to the first and last row", () => {
+    expect(visibleRows(0, 300, 36, 1000, 10)).toEqual({ start: 0, end: 17 });
+    expect(visibleRows(rowHeight(36) * 995, 390, 36, 1000, 10)).toEqual({ start: 985, end: 999 });
+  });
+});
 
 describe("grid range", () => {
   it("starts two months back, keeping the day of the month", () => {

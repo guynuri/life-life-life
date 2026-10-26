@@ -890,11 +890,13 @@ button.session {
   touch-action: pan-y;
 }
 
-.mood-grid {
+/* One row per week. The grid wrapper is a plain block; spacers above and below it stand in for unrendered rows. */
+.mood-row {
   display: grid;
   grid-template-columns: repeat(7, var(--cell));
   justify-content: center;
   gap: 3px;
+  margin-bottom: 3px;
 }
 
 .cell {

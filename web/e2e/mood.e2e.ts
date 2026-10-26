@@ -152,3 +152,15 @@ test("pinch out grows the day boxes and pinch in shrinks them", async ({ page })
   await pinch(page, cx, cy, "in");
   await expect.poll(width).toBeLessThan(grown);
 });
+
+test("the grid renders only the rows near the viewport, not all 65 years", async ({ page }) => {
+  const fake: Fake = { rows: new Map(), failSaves: false };
+  await setUp(page, fake);
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Mood", exact: true }).click();
+  await expect(page.locator(`.mood-grid button[data-key="${todayKey}"]`)).toBeVisible();
+
+  const rendered = await page.locator(".mood-grid button[data-key]").count();
+  expect(rendered).toBeGreaterThan(0);
+  expect(rendered).toBeLessThan(1000);
+});
