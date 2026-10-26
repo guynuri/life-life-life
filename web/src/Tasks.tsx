@@ -20,7 +20,8 @@ import { Icon, type IconName } from "./Icon";
 import { Sheet } from "./Sheet";
 
 interface TasksProps {
-  googleToken: string | null; // from the Supabase session; null when Google access is missing
+  googleToken: string | null; // from googleAccessToken; null when Google access is missing
+  googleReady: boolean; // false until the first token check has finished, so the first placement does not run without a token
   onReconnect: () => void;
   refreshTick: number; // bumped by the shell's Refresh, after it has placed (SPEC Pages)
 }
@@ -82,7 +83,7 @@ function describeSession(task: Task, session: StoredSession): string {
   return `${day} to ${new Date(session.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
 
-export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
+export function Tasks({ googleToken, googleReady, onReconnect, refreshTick }: TasksProps) {
   // Holds what was last read from the database. Writes never change it locally; the data is reloaded after each save.
   const [data, setData] = useState<Loaded | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -140,9 +141,9 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
 
   // First mount places and loads. A later tick comes from the shell after it has placed, so this page only reloads.
   useEffect(() => {
-    if (refreshTick === 0) void refresh();
-    else void placementQueue(() => loadStored());
-  }, [refreshTick]);
+    if (refreshTick !== 0) void placementQueue(() => loadStored());
+    else if (googleReady) void refresh();
+  }, [refreshTick, googleReady]);
 
   function openAdd() {
     setErrors([]);

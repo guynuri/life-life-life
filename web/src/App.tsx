@@ -29,6 +29,7 @@ const pages: { id: PageId; label: string; icon: IconName }[] = [
 export function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [googleToken, setGoogleToken] = useState<string | null>(null);
+  const [googleReady, setGoogleReady] = useState(false);
   const [ready, setReady] = useState(!configured);
   // The open tab lives only in the URL hash, so back, forward, and reload keep it (SPEC Pages).
   const [hash, setHash] = useState(location.hash);
@@ -77,9 +78,14 @@ export function App() {
   useEffect(() => {
     if (!session) {
       setGoogleToken(null);
+      setGoogleReady(false);
       return;
     }
-    const refreshToken = () => googleAccessToken(session).then(setGoogleToken);
+    const refreshToken = () =>
+      googleAccessToken(session).then((token) => {
+        setGoogleToken(token);
+        setGoogleReady(true);
+      });
     refreshToken();
     const timer = setInterval(refreshToken, 10 * 60 * 1000);
     return () => clearInterval(timer);
@@ -150,7 +156,7 @@ export function App() {
           <Today refreshTick={refreshTick} />
         </div>
         <div hidden={page !== "tasks"}>
-          <Tasks googleToken={googleToken} onReconnect={signIn} refreshTick={refreshTick} />
+          <Tasks googleToken={googleToken} googleReady={googleReady} onReconnect={signIn} refreshTick={refreshTick} />
         </div>
         <div hidden={page !== "people"}>
           <People refreshTick={refreshTick} />

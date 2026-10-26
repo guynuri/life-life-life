@@ -48,7 +48,7 @@ export async function googleAccessToken(session: Session | null): Promise<string
   const { data, error } = await supabase.functions.invoke<{ access_token?: string; expires_in?: number }>("google-token", {
     body: { refresh_token: refresh },
   });
-  if (error || !data?.access_token) return null;
+  if (error || !data?.access_token) return session?.provider_token ?? null;
   cached = { token: data.access_token, expiresAt: now + (data.expires_in ?? 3600) * 1000 };
   return cached.token;
 }
