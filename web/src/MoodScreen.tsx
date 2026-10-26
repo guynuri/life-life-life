@@ -152,6 +152,12 @@ export function MoodScreen({ refreshTick }: { refreshTick: number }) {
 
   // Pinch sets the box size from the size at gesture start, and keeps the row under the fingers in place.
   // The scroll is applied after React commits the new size, because the content height changes with it.
+  // A rotation or the iOS toolbar changes the scroller's height (100dvh), so the window is recomputed on resize too.
+  useEffect(() => {
+    window.addEventListener("resize", syncWindow);
+    return () => window.removeEventListener("resize", syncWindow);
+  }, [syncWindow]);
+
   // Runs on mount too, after the open-on-today effect above, so the first window matches the scroll position.
   useLayoutEffect(() => {
     const el = scrollRef.current;
