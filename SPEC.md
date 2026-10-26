@@ -79,13 +79,14 @@ Where this spec differs from the original spec, the change is listed under "Chan
 - Lunch, 12:00 to 13:30, is not available work time. It is excluded from the work hours used for scheduling. [Decided]
 - Friday and Saturday are days off. [Decided]
 - Any time outside work hours counts as home. [Decided]
+- Lunch is not home. A Home task never lands in work hours, lunch included, so its placement is outside the work span (9:00 to 19:00, Sunday to Thursday). [Decided, changed from "lunch counts as home"]
 - **Work day** tasks have no time slot, so the lunch window does not apply to them. The scheduler assigns each one to a work day, and their durations add up within that day, so a day can hold several tasks and still have time left. [Decided]
   - Each work day keeps about 2 hours of work time open as a hard reserve (assumed to be the last 2 hours before 19:00). Work day tasks never fill it. [Decided, reserve window Assumed]
   - If a Work day task does not fit on its assigned day, it moves to another day in its window, before its deadline if one is set. [Decided]
   - If it still cannot fit by its deadline, it is unplaced and I am notified (section 5). [Decided]
 - The **Place** condition limits where a task goes. [Assumed]
   - Work: every minute of the placement falls in work hours.
-  - Home: every minute falls outside work hours.
+  - Home: every minute falls outside work hours, lunch included.
   - Any: no limit.
   - When a place is set, a placement never straddles the boundary.
 - A session with Place = Any may cross the work/home boundary. It is shown as one session, not split. [Assumed]

@@ -4,7 +4,7 @@ import { sortTasks, type Task } from "./tasks";
 export interface WorkHours {
   startMin: number; // minutes after local midnight
   endMin: number;
-  lunchStartMin: number; // [Decided] lunch is excluded from work time and counts as home
+  lunchStartMin: number; // [Decided] lunch is excluded from work time and is never Home
   lunchEndMin: number;
 }
 export interface Session {
@@ -172,22 +172,35 @@ function inDayWindow(start: number, end: number): boolean {
   return from >= DAY_START_MIN && from + (end - start) / 60_000 <= DAY_END_MIN;
 }
 
-// Every 15-minute grid cell in [start, end) must be work time (place Work), or none may be (place Home).
+// Every 15-minute grid cell in [start, end) must be work time (place Work), or none may be inside work hours (place Home).
 function fitsPlace(place: Task["conditionPlace"], start: number, end: number, work: WorkHours): boolean {
   if (place === "any") return true;
-  const wantWork = place === "work";
   for (let cell = Math.floor(start / STEP_MS) * STEP_MS; cell < end; cell += STEP_MS) {
-    if (isWorkTime(cell, work) !== wantWork) return false;
+    const ok = place === "work" ? isWorkTime(cell, work) : !inWorkHours(cell, work) && !inLunch(cell, work);
+    if (!ok) return false;
   }
   return true;
 }
 
-// Work time: Sunday to Thursday, within work hours, outside lunch.
+// Work time: work hours, outside lunch. Lunch is neither work nor home (SPEC 2.4).
 function isWorkTime(time: number, work: WorkHours): boolean {
+  return inWorkHours(time, work) && !inLunch(time, work);
+}
+
+function inLunch(time: number, work: WorkHours): boolean {
+  const minute = minuteOfDay(time);
+  return minute >= work.lunchStartMin && minute < work.lunchEndMin;
+}
+
+// Inside the work span on a work day, lunch included. Home tasks must stay outside this span.
+function inWorkHours(time: number, work: WorkHours): boolean {
+  const minute = minuteOfDay(time);
+  return new Date(time).getDay() <= 4 && minute >= work.startMin && minute < work.endMin;
+}
+
+function minuteOfDay(time: number): number {
   const date = new Date(time);
-  const minute = date.getHours() * 60 + date.getMinutes();
-  const inLunch = minute >= work.lunchStartMin && minute < work.lunchEndMin;
-  return date.getDay() <= 4 && minute >= work.startMin && minute < work.endMin && !inLunch;
+  return date.getHours() * 60 + date.getMinutes();
 }
 
 // Local calendar day key; sessions on the same key share a day.

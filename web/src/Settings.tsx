@@ -112,7 +112,7 @@ export function Settings({ onSaved }: SettingsProps) {
       </div>
 
       <h2>Work hours</h2>
-      <p className="meta">Work is Sunday to Thursday. Lunch is not work time, and it counts as home.</p>
+      <p className="meta">Work is Sunday to Thursday. Lunch is not work time, and Home tasks never go in work hours, lunch included.</p>
       {hours === null ? (
         loadError ? (
           <div className="card">
