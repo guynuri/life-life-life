@@ -21,6 +21,7 @@ test("placed sessions show; a session can be moved; unschedule holds; Schedule r
   expect(sessions).toHaveLength(1);
 
   // Move the session to 10:00.
+  await item.locator("summary").click(); // placement times are collapsed by default
   await item.getByRole("button", { name: /Move session/ }).click();
   await item.getByLabel("New start").fill("2026-10-12T10:00");
   await item.getByRole("button", { name: "Save time" }).click();
@@ -80,6 +81,7 @@ test("a big task is placed as several sessions; tasks stay in deadline order; ed
   await expect(planItem).toContainText("2 days");
   await expect(planItem).toContainText("Placed");
   await expect(page.getByRole("status").filter({ hasText: "Plan trip" })).toContainText("2 sessions");
+  await planItem.locator("summary").click();
   await expect(planItem.getByRole("button", { name: /Move session/ })).toHaveCount(2);
 
   // Edit the title of an existing task.

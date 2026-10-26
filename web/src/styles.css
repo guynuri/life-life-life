@@ -622,6 +622,22 @@ button.session {
   border-color: var(--ink);
 }
 
+/* A task's placement times sit in a drawer that is closed until opened. */
+.sessions-drawer {
+  margin-top: 10px;
+}
+
+.sessions-drawer > summary {
+  color: var(--ink-soft, inherit);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sessions-drawer .session {
+  margin-top: 8px;
+}
+
 /* Completed tasks sit in a drawer that is closed until opened. */
 .done-drawer {
   margin-top: 20px;

@@ -28,6 +28,7 @@ test("placement creates one event per session, linked to the task; a move update
   expect(sessions[0]?.calendar_event_id).toBe(googleEvents[0]?.id);
 
   // Moving the session moves the Google event to the same time.
+  await item.locator("summary").click(); // placement times are collapsed by default
   await item.getByRole("button", { name: /Move session/ }).click();
   await item.getByLabel("New start").fill("2026-10-12T10:00");
   await item.getByRole("button", { name: "Save time" }).click();
@@ -65,6 +66,7 @@ test("sync on refresh: a moved event moves the session (even outside work hours)
   googleEvents[0] = { ...googleEvents[0], start: { dateTime: iso(21) }, end: { dateTime: iso(21, 20) } };
   await page.reload();
   await page.getByRole("tab", { name: "Tasks", exact: true }).click();
+  await page.getByRole("listitem").filter({ hasText: "Pay rent" }).locator("summary").click();
   await expect(page.getByRole("listitem").filter({ hasText: "Pay rent" }).getByRole("button", { name: /Move session/ })).toContainText("09:00 PM");
   expect(sessions).toHaveLength(1);
   expect(sessions[0]?.start_at).toBe(iso(21));
@@ -100,6 +102,7 @@ test("a Google error on move is shown and the session keeps its stored time", as
   await page.goto("/");
   await page.getByRole("tab", { name: "Tasks", exact: true }).click();
   const item = page.getByRole("listitem").filter({ hasText: "Pay rent" });
+  await item.locator("summary").click(); // placement times are collapsed by default
   await item.getByRole("button", { name: /Move session/ }).click();
   await item.getByLabel("New start").fill("2026-10-12T10:00");
   await item.getByRole("button", { name: "Save time" }).click();

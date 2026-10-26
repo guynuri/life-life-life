@@ -364,6 +364,9 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
                   <span className={`pill status status-${status}`}>{STATUS_LABELS[status]}</span>
                 </div>
 
+                {sessions.length > 0 && (
+                <details className="sessions-drawer">
+                <summary>{sessions.length === 1 ? "1 session" : `${sessions.length} sessions`}</summary>
                 {sessions.map((session) =>
                   movingId === session.id ? (
                     <div className="session-edit" key={session.id}>
@@ -397,6 +400,8 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
                       {describeSession(task, session)}
                     </button>
                   ),
+                )}
+                </details>
                 )}
 
                 <div className="task-actions">
