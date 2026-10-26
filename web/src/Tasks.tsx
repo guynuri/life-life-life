@@ -70,6 +70,10 @@ function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function setTask(tasks: Task[], id: string, change: Partial<Task>): Task[] {
+  return tasks.map((t) => (t.id === id ? { ...t, ...change } : t));
+}
+
 async function loadAll(): Promise<Loaded> {
   const [tasks, sessions] = await Promise.all([listTasks(), listSessions()]);
   return { tasks, sessions };
@@ -194,47 +198,46 @@ export function Tasks({ googleToken, googleReady, onReconnect, refreshTick }: Ta
     await refresh();
   }
 
-  // Google is called before the database, so a failure here leaves the stored state on screen unchanged.
-  async function unschedule(id: string) {
-    try {
-      await unscheduleTask(googleToken, id);
-    } catch (error) {
-      return fail("Could not unschedule task", error);
-    }
+  // Shows the change at once, saves it, and puts the last loaded data back with an error if the save fails.
+  // After a save, the list is reloaded in the background so placement catches up without holding up the tap.
+  async function optimistic(change: (loaded: Loaded) => Loaded, save: () => Promise<unknown>, failure: string) {
+    const before = data;
+    if (before) setData(change(before));
     setErrors([]);
-    await refresh();
+    try {
+      await save();
+    } catch (error) {
+      if (before) setData(before);
+      return fail(failure, error);
+    }
+    void refresh();
   }
 
-  // Removes the task's Google events and sessions, then marks it done. The ding plays once the save has gone through.
-  async function complete(id: string) {
-    try {
-      await completeTask(googleToken, id);
-    } catch (error) {
-      return fail("Could not complete task", error);
-    }
+  function unschedule(id: string) {
+    return optimistic(
+      (l) => ({ tasks: setTask(l.tasks, id, { held: true }), sessions: l.sessions.filter((s) => s.taskId !== id) }),
+      () => unscheduleTask(googleToken, id),
+      "Could not unschedule task",
+    );
+  }
+
+  // The ding plays on the tap, not after the save, so it feels immediate.
+  function complete(id: string) {
     playDing();
-    setErrors([]);
-    await refresh();
+    return optimistic(
+      (l) => ({ tasks: setTask(l.tasks, id, { done: true }), sessions: l.sessions.filter((s) => s.taskId !== id) }),
+      () => completeTask(googleToken, id),
+      "Could not complete task",
+    );
   }
 
-  async function reopen(id: string) {
-    try {
-      await setDone(id, false);
-    } catch (error) {
-      return setErrors([`Could not reopen task: ${messageOf(error)}`]);
-    }
-    setErrors([]);
-    await refresh();
+  function reopen(id: string) {
+    return optimistic((l) => ({ ...l, tasks: setTask(l.tasks, id, { done: false }) }), () => setDone(id, false), "Could not reopen task");
   }
 
-  async function releaseTask(id: string) {
-    try {
-      await releaseHold(id);
-    } catch (error) {
-      return setErrors([`Could not schedule task: ${messageOf(error)}`]);
-    }
-    setErrors([]);
-    await refresh();
+  // Sessions come back from the placement run that follows, so only the hold is shown here.
+  function releaseTask(id: string) {
+    return optimistic((l) => ({ ...l, tasks: setTask(l.tasks, id, { held: false }) }), () => releaseHold(id), "Could not schedule task");
   }
 
   function startMove(session: StoredSession) {
@@ -255,15 +258,13 @@ export function Tasks({ googleToken, googleReady, onReconnect, refreshTick }: Ta
     await refresh();
   }
 
-  async function remove(id: string) {
-    try {
-      await deleteTaskWithEvents(googleToken, id);
-    } catch (error) {
-      return fail("Could not delete task", error);
-    }
+  function remove(id: string) {
     setConfirmingId(null);
-    setErrors([]);
-    await refresh();
+    return optimistic(
+      (l) => ({ tasks: l.tasks.filter((t) => t.id !== id), sessions: l.sessions.filter((s) => s.taskId !== id) }),
+      () => deleteTaskWithEvents(googleToken, id),
+      "Could not delete task",
+    );
   }
 
   const errorList = errors.map((message) => (

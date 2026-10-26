@@ -437,23 +437,24 @@ select {
   background: var(--butter-soft);
 }
 
+/* Status chips: readable ink on a light tint of their accent, in both themes. */
 .pill.status {
-  color: var(--on-accent);
+  color: var(--ink);
 }
 
 .pill.status-placed {
-  background: var(--mint);
-  border-color: var(--ink);
+  background: color-mix(in srgb, var(--mint) 28%, var(--card));
+  border-color: color-mix(in srgb, var(--mint) 60%, transparent);
 }
 
 .pill.status-unplaced {
-  background: var(--bubble-soft);
-  border-color: var(--ink);
+  background: color-mix(in srgb, var(--bubble) 28%, var(--card));
+  border-color: color-mix(in srgb, var(--bubble) 60%, transparent);
 }
 
 .pill.status-unscheduled {
-  background: var(--butter-soft);
-  border-color: var(--ink);
+  background: color-mix(in srgb, var(--butter) 28%, var(--card));
+  border-color: color-mix(in srgb, var(--butter) 60%, transparent);
 }
 
 .avatar {
