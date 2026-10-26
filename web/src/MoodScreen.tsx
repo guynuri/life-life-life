@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { usePinch } from "./hooks/usePinch";
 import { loadMoods, saveMood } from "./lib/moodStore";
 import {
@@ -28,6 +28,44 @@ const message = (e: unknown) => (typeof e === "object" && e !== null && "message
 
 // Below this box size the date numbers would be unreadable, so they are hidden.
 const LABEL_MIN_SIZE = 18;
+
+type Cell = { key: string; day: number } | null;
+
+// Memoized so a pinch, which only changes the scroller's size, does not rebuild ~24,000 day buttons on every move.
+const DayGrid = memo(function DayGrid({
+  cells,
+  todayKey,
+  stored,
+  onOpen,
+}: {
+  cells: Cell[];
+  todayKey: string;
+  stored: Moods;
+  onOpen: (key: string) => void;
+}) {
+  return (
+    <div className="mood-grid">
+      {cells.map((cell, i) => {
+        if (cell === null) return <div key={`pad-${i}`} className="cell pad" aria-hidden="true" />;
+        const entry = stored.get(cell.key);
+        const classes = `cell${cell.key === todayKey ? " today" : ""}`;
+        return (
+          <button
+            type="button"
+            key={cell.key}
+            data-key={cell.key}
+            className={classes}
+            style={entry ? { background: rgbCss(EMOTIONS[entry.emotion]) } : undefined}
+            aria-label={entry ? `${cell.key}, ${entry.emotion}` : cell.key}
+            onClick={() => onOpen(cell.key)}
+          >
+            <span className="cell-label">{cell.day}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+});
 
 export function MoodScreen({ refreshTick }: { refreshTick: number }) {
   // The range is fixed when the screen mounts: two months back through 65 years ahead.
@@ -107,11 +145,15 @@ export function MoodScreen({ refreshTick }: { refreshTick: number }) {
     },
   });
 
-  function open(key: string) {
+  const open = useCallback((key: string) => {
     setSelected(key);
-    setDraft(stored.get(key)?.note ?? "");
     setSaveError(null);
-  }
+  }, []);
+
+  // The note box starts from the stored note each time a day opens.
+  useEffect(() => {
+    setDraft(selected ? (stored.get(selected)?.note ?? "") : "");
+  }, [selected]);
 
   async function save(entry: MoodEntry | null) {
     if (!selected || saving) return;
@@ -155,26 +197,7 @@ export function MoodScreen({ refreshTick }: { refreshTick: number }) {
         className={`mood-scroll${size < LABEL_MIN_SIZE ? " tiny" : ""}`}
         style={{ "--cell": `${size}px` } as CSSProperties}
       >
-        <div className="mood-grid">
-          {range.cells.map((cell, i) => {
-            if (cell === null) return <div key={`pad-${i}`} className="cell pad" aria-hidden="true" />;
-            const entry = stored.get(cell.key);
-            const classes = `cell${cell.key === range.todayKey ? " today" : ""}`;
-            return (
-              <button
-                type="button"
-                key={cell.key}
-                data-key={cell.key}
-                className={classes}
-                style={entry ? { background: rgbCss(EMOTIONS[entry.emotion]) } : undefined}
-                aria-label={entry ? `${cell.key}, ${entry.emotion}` : cell.key}
-                onClick={() => open(cell.key)}
-              >
-                <span className="cell-label">{cell.day}</span>
-              </button>
-            );
-          })}
-        </div>
+        <DayGrid cells={range.cells} todayKey={range.todayKey} stored={stored} onOpen={open} />
       </div>
 
       {selected && (

@@ -7,6 +7,6 @@ alter table public.moods drop column color;
 
 alter table public.moods
   add column emotion text not null check (emotion in ('happy', 'excited', 'proud', 'calm', 'tired', 'anxious', 'annoyed', 'sad')),
-  add column note text;
+  add column note text check (char_length(note) <= 500);
 
 -- Grants from 0005 cover the table; the new columns inherit them.
