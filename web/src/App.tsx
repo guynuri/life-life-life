@@ -11,6 +11,7 @@ import { Icon, type IconName } from "./Icon";
 import { placeTasks } from "./lib/calendarSync";
 import { placementQueue } from "./lib/serialQueue";
 import { formatPage, parsePage, swipePage, type PageId } from "./lib/route";
+import { forgetGoogleAccess, googleAccessToken, rememberGoogleSession } from "./lib/googleAccess";
 
 // Touches that start here keep their own gestures: the mood pinch, text entry, sheets, and segmented choices.
 const NO_SWIPE = "input, textarea, select, .mood-grid, .sheet-backdrop, .segmented, .tabbar";
@@ -27,6 +28,7 @@ const pages: { id: PageId; label: string; icon: IconName }[] = [
 
 export function App() {
   const [session, setSession] = useState<Session | null>(null);
+  const [googleToken, setGoogleToken] = useState<string | null>(null);
   const [ready, setReady] = useState(!configured);
   // The open tab lives only in the URL hash, so back, forward, and reload keep it (SPEC Pages).
   const [hash, setHash] = useState(location.hash);
@@ -64,15 +66,32 @@ export function App() {
       setSession(data.session);
       setReady(true);
     });
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
+    const { data } = supabase.auth.onAuthStateChange((_event, next) => {
+      rememberGoogleSession(next);
+      setSession(next);
+    });
     return () => data.subscription.unsubscribe();
   }, []);
+
+  // Keeps a fresh Google token for the open session: checked on sign-in and every 10 minutes (tokens last about an hour).
+  useEffect(() => {
+    if (!session) {
+      setGoogleToken(null);
+      return;
+    }
+    const refreshToken = () => googleAccessToken(session).then(setGoogleToken);
+    refreshToken();
+    const timer = setInterval(refreshToken, 10 * 60 * 1000);
+    return () => clearInterval(timer);
+  }, [session]);
 
   // SPEC Pages: Refresh re-reads Google and places tasks first, then every page reloads what is stored.
   async function refreshAll() {
     setRefreshing(true);
     try {
-      await placementQueue(() => placeTasks(session?.provider_token ?? null, Date.now()));
+      const token = await googleAccessToken(session);
+      setGoogleToken(token);
+      await placementQueue(() => placeTasks(token, Date.now()));
       setRefreshError(null);
     } catch (error) {
       setRefreshError(`Refresh failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -115,7 +134,7 @@ export function App() {
               <Icon name="refresh" />
             </span>
           </button>
-          <button type="button" className="icon-btn" aria-label="Sign out" title="Sign out" onClick={() => supabase!.auth.signOut()}>
+          <button type="button" className="icon-btn" aria-label="Sign out" title="Sign out" onClick={signOut}>
             <Icon name="logout" />
           </button>
         </>
@@ -131,7 +150,7 @@ export function App() {
           <Today refreshTick={refreshTick} />
         </div>
         <div hidden={page !== "tasks"}>
-          <Tasks googleToken={session.provider_token ?? null} onReconnect={signIn} refreshTick={refreshTick} />
+          <Tasks googleToken={googleToken} onReconnect={signIn} refreshTick={refreshTick} />
         </div>
         <div hidden={page !== "people"}>
           <People refreshTick={refreshTick} />
@@ -163,6 +182,11 @@ export function App() {
       </nav>
     </Shell>
   );
+}
+
+function signOut() {
+  forgetGoogleAccess();
+  supabase!.auth.signOut();
 }
 
 function signIn() {
