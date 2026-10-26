@@ -32,7 +32,7 @@ async function seedToday(page: import("@playwright/test").Page) {
   await serveTable(page, "tasks", tasks);
   await serveTable(page, "sessions", sessions);
   await serveTable(page, "people", people);
-  await serveTable(page, "moods", [{ day: "2026-10-12", color: "green" }]);
+  await serveTable(page, "moods", [{ day: "2026-10-12", emotion: "calm", note: "Quiet morning" }]);
   await serveTable(page, "work_settings", []);
   await serveGoogle(page, []);
   return { tasks, sessions, people };
@@ -60,7 +60,7 @@ test("Today shows today's sessions in time order, due people, and the mood color
   await expect(dueItems).toHaveCount(1);
   await expect(dueItems.first()).toContainText("Ann");
 
-  await expect(today.locator(".today-mood")).toContainText("green");
+  await expect(today.locator(".today-mood")).toContainText("calm");
 });
 
 test("a failed people read shows an error for that part and keeps the sessions", async ({ page }) => {
@@ -75,5 +75,5 @@ test("a failed people read shows an error for that part and keeps the sessions",
   await expect(today.getByRole("alert")).toContainText("Could not load people: people unavailable");
   const sessionItems = today.locator(".today-session");
   await expect(sessionItems).toHaveCount(2);
-  await expect(today.locator(".today-mood")).toContainText("green");
+  await expect(today.locator(".today-mood")).toContainText("calm");
 });

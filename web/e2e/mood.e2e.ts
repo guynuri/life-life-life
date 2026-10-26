@@ -21,8 +21,12 @@ const session = {
   },
 };
 
+interface Entry {
+  emotion: string;
+  note: string | null;
+}
 interface Fake {
-  rows: Map<string, string>;
+  rows: Map<string, Entry>;
   failSaves: boolean;
 }
 
@@ -34,15 +38,15 @@ async function setUp(page: Page, fake: Fake) {
     if (req.method() === "GET") {
       const from = url.searchParams.getAll("day").find((b) => b.startsWith("gte."))!.slice(4);
       const to = url.searchParams.getAll("day").find((b) => b.startsWith("lte."))!.slice(4);
-      const body = [...fake.rows].filter(([d]) => d >= from && d <= to).map(([day, color]) => ({ day, color }));
+      const body = [...fake.rows].filter(([d]) => d >= from && d <= to).map(([day, e]) => ({ day, ...e }));
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
     }
     if (req.method() === "POST") {
       if (fake.failSaves) {
         return route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ message: "simulated save failure", code: "XX000" }) });
       }
-      const row = req.postDataJSON() as { day: string; color: string };
-      fake.rows.set(row.day, row.color);
+      const row = req.postDataJSON() as { day: string; emotion: string; note: string | null };
+      fake.rows.set(row.day, { emotion: row.emotion, note: row.note });
       return route.fulfill({ status: 201, body: "" });
     }
     if (req.method() === "DELETE") {
@@ -76,78 +80,87 @@ async function pinch(page: Page, cx: number, cy: number, dir: "out" | "in") {
 
 const now = new Date();
 const pad = (n: number) => String(n).padStart(2, "0");
-const firstOfMonth = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
-const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+const todayKey = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+const todayTitle = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
-test("choose, save, fail, and reload a day's mood", async ({ page }) => {
+test("choose an emotion and a note, fail a save, and reload a day's entry", async ({ page }) => {
   const fake: Fake = { rows: new Map(), failSaves: false };
   await setUp(page, fake);
   await page.goto("/");
   await page.getByRole("tab", { name: "Mood", exact: true }).click();
   await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
 
-  const dayOne = page.locator(`.mood-grid button[data-key="${firstOfMonth}"]`);
-  await dayOne.click();
+  const today = page.locator(`.mood-grid button[data-key="${todayKey}"]`);
+  await expect(today).toHaveClass(/today/);
+  await today.click();
   // The picker is named by its day, so it is found by the same title it shows.
-  const dayTitle = new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-  const picker = page.getByRole("dialog", { name: dayTitle });
-  await expect(picker.getByRole("heading")).toHaveText(dayTitle);
+  const picker = page.getByRole("dialog", { name: todayTitle });
+  await expect(picker.getByRole("heading")).toHaveText(todayTitle);
   await expect(picker.getByText("Saved: blank")).toBeVisible();
 
-  await picker.getByRole("button", { name: "coral" }).click();
-  await expect(dayOne).toHaveCSS("background-color", "rgb(255, 138, 128)");
-  expect(fake.rows.get(firstOfMonth)).toBe("coral");
+  await picker.getByRole("button", { name: "happy" }).click();
+  await expect(today).toHaveCSS("background-color", "rgb(255, 213, 79)");
+  expect(fake.rows.get(todayKey)).toEqual({ emotion: "happy", note: null });
+
+  await picker.locator("textarea").fill("Talked with a lot of people");
+  await picker.getByRole("button", { name: "Save note" }).click();
+  await expect(picker.getByText("Saved: happy")).toBeVisible();
+  expect(fake.rows.get(todayKey)).toEqual({ emotion: "happy", note: "Talked with a lot of people" });
 
   // A failed save shows the previous stored state and keeps the error until the next successful save.
   fake.failSaves = true;
-  await picker.getByRole("button", { name: "blue" }).click();
+  await picker.getByRole("button", { name: "annoyed" }).click();
   await expect(page.getByRole("alert")).toContainText("simulated save failure");
-  await expect(dayOne).toHaveCSS("background-color", "rgb(255, 138, 128)");
-  await expect(picker.getByText("Saved: coral")).toBeVisible();
+  await expect(today).toHaveCSS("background-color", "rgb(255, 213, 79)");
+  await expect(picker.getByText("Saved: happy")).toBeVisible();
 
   fake.failSaves = false;
-  await picker.getByRole("button", { name: "green" }).click();
+  await picker.getByRole("button", { name: "sad" }).click();
   await expect(page.getByRole("alert")).toHaveCount(0);
-  await expect(dayOne).toHaveCSS("background-color", "rgb(174, 213, 129)");
+  await expect(today).toHaveCSS("background-color", "rgb(121, 134, 203)");
 
-  // Stored colors survive a reload.
+  // Stored entries survive a reload.
   await page.reload();
   await page.getByRole("tab", { name: "Mood", exact: true }).click();
-  await expect(page.locator(`.mood-grid button[data-key="${firstOfMonth}"]`)).toHaveCSS("background-color", "rgb(174, 213, 129)");
+  await expect(page.locator(`.mood-grid button[data-key="${todayKey}"]`)).toHaveCSS("background-color", "rgb(121, 134, 203)");
 
-  await page.locator(`.mood-grid button[data-key="${firstOfMonth}"]`).click();
+  await page.locator(`.mood-grid button[data-key="${todayKey}"]`).click();
   await page.getByRole("dialog").getByRole("button", { name: "Clear" }).click();
-  await expect(page.locator(`.mood-grid button[data-key="${firstOfMonth}"]`)).not.toHaveCSS("background-color", "rgb(174, 213, 129)");
-  expect(fake.rows.has(firstOfMonth)).toBe(false);
+  await expect(page.locator(`.mood-grid button[data-key="${todayKey}"]`)).not.toHaveCSS("background-color", "rgb(121, 134, 203)");
+  expect(fake.rows.has(todayKey)).toBe(false);
 });
 
-test("pinch in zooms out to weeks, pinch out on a week drills into that month's days", async ({ page }) => {
+test("pinch out grows the day boxes and pinch in shrinks them", async ({ page }) => {
   const fake: Fake = { rows: new Map(), failSaves: false };
   await setUp(page, fake);
   await page.goto("/");
   await page.getByRole("tab", { name: "Mood", exact: true }).click();
   await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
 
-  const grid = page.locator(".mood-grid");
-  await expect(grid).toHaveClass(/zoom-day/);
-  // The Today section sits above the mood grid, so scroll it into view before pinching.
-  await grid.scrollIntoViewIfNeeded();
-  const box = (await grid.boundingBox())!;
-  await pinch(page, box.x + box.width / 2, box.y + box.height / 2, "in");
-  await expect(grid).toHaveClass(/zoom-week/);
+  const scroller = page.locator(".mood-scroll");
+  const cell = page.locator(`.mood-grid button[data-key="${todayKey}"]`);
+  const width = () => cell.evaluate((el) => el.getBoundingClientRect().width);
+  const box = (await scroller.boundingBox())!;
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
 
-  // Pin the pinch on the first week block, then pinch out to zoom in.
-  // The zoom morph is a View Transition that covers the grid while it runs; wait for it to end before pinching again.
-  await page.waitForFunction(() => !(document as Document & { activeViewTransition?: unknown }).activeViewTransition);
-  const week = page.locator(".mood-grid button").first();
-  const wb = (await week.boundingBox())!;
-  await pinch(page, wb.x + wb.width / 2, wb.y + wb.height / 2, "out");
-  await expect(grid).toHaveClass(/zoom-day/);
+  const start = await width();
+  await pinch(page, cx, cy, "out");
+  await expect.poll(width).toBeGreaterThan(start);
 
-  // Only the viewed month's days are shown, not the days of the previous month in that week.
-  const keys = await page.locator(".mood-grid button[data-key]").evaluateAll((els) =>
-    els.map((el) => (el as HTMLElement).dataset.key ?? ""),
-  );
-  expect(keys).toHaveLength(daysInMonth);
-  expect(keys.every((k) => k.startsWith(firstOfMonth.slice(0, 8)))).toBe(true);
+  const grown = await width();
+  await pinch(page, cx, cy, "in");
+  await expect.poll(width).toBeLessThan(grown);
+});
+
+test("the grid renders only the rows near the viewport, not all 65 years", async ({ page }) => {
+  const fake: Fake = { rows: new Map(), failSaves: false };
+  await setUp(page, fake);
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Mood", exact: true }).click();
+  await expect(page.locator(`.mood-grid button[data-key="${todayKey}"]`)).toBeVisible();
+
+  const rendered = await page.locator(".mood-grid button[data-key]").count();
+  expect(rendered).toBeGreaterThan(0);
+  expect(rendered).toBeLessThan(1000);
 });

@@ -145,37 +145,29 @@ Where this spec differs from the original spec, the change is listed under "Chan
 - **Remove** deletes the person. It asks for confirmation first. [Assumed]
 - Editing a person after creation: name, tier, and interval. [Decided]
 
-## 4. Mood colors
+## 4. Mood
+
+[Decided] Mood v2 replaces the six pastel colors. Each day has one emotion and an optional note, and the owner sees how the days feel across a long span.
 
 ### 4.1 Setting a day
 
-- One color per day. Tap a day to choose a color, or clear it. [Assumed] Days can be left blank. [Decided] Blank days are never counted as a color. [Decided]
-- The palette is six pastel colors: coral, orange, yellow, green, blue, purple. [Decided]
-- The day picker shows the date in a readable form, for example "Friday, October 9". [Assumed]
-- A color is shown as saved only after it is stored. If the save fails, the day shows its previous stored state and the error stays visible until my next successful save. [Assumed]
-- Hourly logging is out of scope for v1. [Decided]
+- Tap a day to open its sheet. Pick one emotion, or clear the day. [Decided] Days can be left blank. [Decided] Blank days are never stored. [Decided]
+- The emotions are fixed: happy, excited, proud, calm, tired, anxious, annoyed, sad. Each has one color. [Decided]
+- A note is optional and free text, up to 500 characters, for what happened that day. [Decided] Saving an emotion keeps the note already typed; "Save note" saves the note with the emotion as stored. [Assumed]
+- The sheet shows "Saved: <emotion>" or "Saved: blank". A save that fails keeps the previous stored state and shows the error until the next successful save. [Assumed]
 
-### 4.2 Zoom levels
+### 4.2 The grid
 
-- Four levels, from finest to coarsest: day, week, month, year. [Decided]
-- **Day**: every day of the month being viewed. [Assumed]
-- **Week**: Sunday-start weeks that touch the month being viewed. [Assumed]
-  - A week's label is its week number, counted by the week's Thursday. Week 1 is the first week whose Thursday falls in January. [Assumed]
-  - A year that ends with a 53rd week shows week 53. [Decided]
-- **Month**: the 12 months of the year being viewed. [Assumed]
-- **Year**: 10 years ending with the year being viewed. [Assumed]
-- Zoom with a pinch gesture inside the app: pinch out on a block to zoom in one level, pinch in to zoom out. [Decided] Drilling down stays inside the month being viewed: zooming into a week in October shows October's days only, so the days of September that fall in that week are not shown. [Assumed]
-- Previous and next move by one month at the day and week levels, one year at the month level, and ten years at the year level. [Assumed]
+- One vertical scrolling grid. Each row is a Sunday-start week, each box is a day. [Decided]
+- The grid runs from two months before today to 65 years after today. [Decided] Future days are blank. Today is marked with an outline. [Assumed]
+- The header shows how many days are left until the end of the grid. [Decided]
+- The grid opens on today. [Assumed]
+- Pinch changes the box size smoothly, from very small to large. The row under the fingers stays in place. There are no zoom levels and no averaging. [Decided]
+- Very small boxes drop their borders and date numbers so the colors read as one picture. [Assumed]
 
-### 4.3 Colors of coarser blocks
+### 4.3 Stored data
 
-- [Decided] Zoomed-out blocks combine the blocks below them into one color, per the original spec.
-- [Decided] The combined color is the average of the colors of the blocks directly below. Each level averages the level below.
-- [Assumed] Blocks with no colored children have no color.
-- [Decided] A week that touches two months counts toward both months.
-- [Decided] A week's color is the average of all seven of its days, including days outside the month being viewed.
-- [Decided] Colors are averaged channel by channel in RGB for now. A perceptual color space may come later.
-- Each day's color is stored and survives reloads. [Decided]
+- One row per owner per day, with an emotion and an optional note. The old color column is dropped and its data is deleted. [Decided]
 
 ## 5. Reminders
 
@@ -198,14 +190,14 @@ Where this spec differs from the original spec, the change is listed under "Chan
 
 ## 6. Today view
 
-- [Decided] Shows today's placed sessions, the people who are due, and today's mood color.
+- [Decided] Shows today's placed sessions, the people who are due, and today's mood (emotion and note).
 - [Assumed] Each session shows its time, task title, and topic, in time order.
 - [Assumed] Unplaced and unscheduled tasks are not shown on Today. They are on the Tasks screen.
 - [Decided] Sign-in and sign-out already exist. Keep them working.
 - [Assumed] Today is the first section on the signed-in screen, above the Tasks screen.
 - [Assumed] "Today" is the device's local calendar day. A session is shown when it starts that day.
 - [Assumed] Due people use the due rule in 3.2, the same as the Due now list. Someone who became due on an earlier day and was not contacted is still shown.
-- [Assumed] Today shows the saved mood color for today, or "Not set" when the day is blank.
+- [Assumed] Today shows the saved emotion and note for today, or "Not set" when the day is blank.
 - [Assumed] Sessions, due people, and mood each load separately. A failed read shows an error in that part; the other parts still show. The stored data is what is shown, not what was attempted.
 - [Assumed] Today re-reads when the app comes back to the foreground.
 
@@ -235,7 +227,7 @@ These are the places where the owner's answers changed or filled in the original
 | Topics | Optional, grouped | Optional free text, label only, no grouping | [Decided] |
 | Tier intervals | "for example tier 1 every 7 days" | 7, 14, 30 days | [Decided] |
 | Contacted action | Resets timer when marking someone contacted | Shown for every person | [Assumed] |
-| Zoom-out color | "Combine the blocks below into one color" | Average of the level below | [Decided] |
-| Zoom gesture | Not stated | Pinch to zoom in and out | [Decided] |
+| Zoom-out color | "Combine the blocks below into one color" | Replaced in Mood v2: one emotion per day, no averaging | [Decided] |
+| Zoom gesture | Not stated | Pinch to zoom the day grid continuously | [Decided] |
 | Week labels | Not stated | Week number; a year can have 53 weeks | [Decided] |
 | Time zone | Not stated | Device local time | [Decided] |

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { dueNow, initialsOf, type Person } from "./lib/people";
 import { listPeople } from "./lib/peopleStore";
-import { dayKey, dayLabel, MOOD_COLORS, type MoodColor } from "./lib/moodView";
+import { dayKey, dayLabel, EMOTIONS, type MoodEntry } from "./lib/moodView";
 import { loadMoods } from "./lib/moodStore";
 import { dayBounds, formatSessionTime, todaySessions, type TodaySession } from "./lib/today";
 import { listSessions, listTasks } from "./lib/tasksData";
@@ -43,7 +43,7 @@ async function loadDue(): Promise<Person[]> {
   return dueNow(await listPeople(), Date.now());
 }
 
-async function loadMood(): Promise<MoodColor | null> {
+async function loadMood(): Promise<MoodEntry | null> {
   const today = dayKey(new Date());
   return (await loadMoods(today, today)).get(today) ?? null;
 }
@@ -157,10 +157,11 @@ export function Today({ refreshTick }: { refreshTick: number }) {
         {mood.data === null && !mood.error && <p className="empty">Not set</p>}
         {mood.data && (
           <p className="today-mood">
-            <span className="mood-blob" style={{ background: `rgb(${MOOD_COLORS[mood.data].join(", ")})` }} />
-            <span className="capitalize">{mood.data}</span>
+            <span className="mood-blob" style={{ background: `rgb(${EMOTIONS[mood.data.emotion].join(", ")})` }} />
+            <span className="capitalize">{mood.data.emotion}</span>
           </p>
         )}
+        {mood.data?.note && <p className="meta">{mood.data.note}</p>}
       </article>
     </section>
   );

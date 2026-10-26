@@ -866,89 +866,59 @@ button.session {
   box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--ink);
 }
 
-/* Mood: square cells, thick ink borders, zoom levels */
+/* Mood: a scrolling grid of day boxes. --cell sets the box size; pinch changes it. */
 
-.zoom-pills {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.pill-btn {
-  padding: 6px 14px;
-  border-radius: 999px;
-  font-size: 14px;
+.days-left {
+  margin: 0;
+  font-size: 15px;
   font-weight: 500;
-  box-shadow: none;
+  text-align: right;
 }
 
-.pill-btn[aria-checked="true"] {
-  background: var(--lilac);
-  color: var(--on-accent);
-  font-weight: 600;
+.days-left-num {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
-.step-nav {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* One vertical scroller. pan-y keeps one-finger scrolling; two fingers are read by the pinch hook. */
+.mood-scroll {
+  height: calc(100dvh - 240px);
+  min-height: 240px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
-.step-title {
-  min-width: 120px;
-  text-align: center;
-  font-size: 17px;
-  font-weight: 600;
-}
-
-.mood-grid {
-  --cols: 7;
+/* One row per week. The grid wrapper is a plain block; spacers above and below it stand in for unrendered rows. */
+.mood-row {
   display: grid;
-  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
-  gap: 6px;
-  touch-action: none;
-  view-transition-name: mood-grid;
-}
-
-.mood-grid.zoom-week {
-  --cols: 4;
-  gap: 10px;
-}
-
-.mood-grid.zoom-month {
-  --cols: 6;
-  gap: 6px;
-}
-
-.mood-grid.zoom-year {
-  --cols: 10;
-  gap: 4px;
+  grid-template-columns: repeat(7, var(--cell));
+  justify-content: center;
+  gap: 3px;
+  margin-bottom: 3px;
 }
 
 .cell {
-  aspect-ratio: 1;
+  width: var(--cell);
+  height: var(--cell);
   min-width: 0;
   display: grid;
   place-items: center;
   padding: 0;
   overflow: hidden;
   border: var(--line);
-  border-radius: 8px;
+  border-radius: min(8px, calc(var(--cell) * 0.2));
   background: var(--card);
   box-shadow: none;
   cursor: pointer;
   transition: background-color 0.35s ease, transform 0.12s ease;
 }
 
-.zoom-year .cell {
-  border-width: 2px;
-  border-radius: 4px;
-}
-
-/* Filled cells carry a pastel mood color, so their label stays dark in both themes. */
-.cell[style] .cell-label {
-  color: var(--on-accent);
-  opacity: 0.8;
+.cell.today {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
 }
 
 .cell.pad {
@@ -957,26 +927,68 @@ button.session {
   pointer-events: none;
 }
 
+/* Tiny boxes drop their borders and date numbers so the colors read as one picture. */
+.mood-scroll.tiny .cell {
+  border: 0;
+  border-radius: 1px;
+}
+
+/* Filled cells carry an emotion color, so their label stays dark in both themes. */
+.cell[style] .cell-label {
+  color: var(--on-accent);
+  opacity: 0.8;
+}
+
 .cell-label {
-  font-size: 12px;
+  font-size: calc(var(--cell) * 0.36);
   font-weight: 600;
+  line-height: 1;
   opacity: 0.7;
 }
 
-.zoom-month .cell-label,
-.zoom-year .cell-label {
+.mood-scroll.tiny .cell-label {
   display: none;
 }
 
-.grid-hint {
-  margin-top: 14px;
-  text-align: center;
+.emotions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
 }
 
-::view-transition-group(mood-grid) {
-  animation-duration: 0.45s;
-  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+.emotion-chip {
+  padding: 8px 14px;
+  border: var(--line);
+  border-radius: 999px;
+  color: var(--on-accent);
+  font-weight: 600;
+  box-shadow: none;
 }
+
+.emotion-chip[aria-pressed="true"] {
+  box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--ink);
+}
+
+.note-field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.note-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  resize: vertical;
+}
+
 
 /* Motion: one sheet slide and a spinner. Everything else answers a tap. */
 
