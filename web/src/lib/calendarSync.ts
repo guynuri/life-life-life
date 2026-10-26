@@ -2,7 +2,7 @@
 // so a failed Google call leaves the stored state as it was.
 import { busyHorizon, busySpans, decideSync, eventBody } from "./calendarEvents";
 import { createEvent, deleteEvent, getEvent, listEvents, moveEvent } from "./calendar";
-import { deleteSessionsOf, deleteTask, getWorkHours, holdTask, insertSessions, listSessions, listTasks, moveSession, setUnplaced, type NewSession, type StoredSession } from "./tasksData";
+import { deleteSessionsOf, deleteTask, getWorkHours, holdTask, insertSessions, listSessions, listTasks, moveSession, setDone, setUnplaced, type NewSession, type StoredSession } from "./tasksData";
 import { schedule, type Placement } from "./scheduler";
 import { newlyUnplacedTitles, placementReminder } from "./reminders";
 import { insertReminder } from "./remindersData";
@@ -96,6 +96,13 @@ export async function replacePlacement(token: string | null, taskId: string): Pr
 export async function deleteTaskWithEvents(token: string | null, taskId: string): Promise<void> {
   await removeEvents(token, taskId);
   await deleteTask(taskId);
+}
+
+// Removes the task's events and sessions, then marks it done. It is not placed again unless reopened.
+export async function completeTask(token: string | null, taskId: string): Promise<void> {
+  await removeEvents(token, taskId);
+  await deleteSessionsOf(taskId);
+  await setDone(taskId, true);
 }
 
 // Updates the event's time first, then the stored session.

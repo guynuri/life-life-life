@@ -14,6 +14,7 @@ interface TaskRow {
   spread_days: number | null;
   condition_place: ConditionPlace;
   held: boolean;
+  done: boolean;
   unplaced: boolean;
 }
 
@@ -64,6 +65,7 @@ function fromRow(row: TaskRow): Task {
     spreadDays: row.spread_days,
     conditionPlace: row.condition_place,
     held: row.held,
+    done: row.done,
     unplaced: row.unplaced,
   };
 }
@@ -103,6 +105,11 @@ export async function holdTask(id: string): Promise<void> {
   check(await client().from("tasks").update({ held: true }).eq("id", id).select());
   const result = await client().from("sessions").delete().eq("task_id", id);
   if (result.error) throw new Error(result.error.message);
+}
+
+// Marks the task done or reopens it. Done tasks are never placed; their sessions must be removed first (see calendarSync).
+export async function setDone(id: string, done: boolean): Promise<void> {
+  check(await client().from("tasks").update({ done }).eq("id", id).select());
 }
 
 // A "Schedule" action: releases the hold so the next placement run can place the task (SPEC 2.5).

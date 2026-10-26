@@ -19,6 +19,8 @@ const RESERVE_MIN = 120; // [Assumed] last 2 hours of work time, never filled by
 const SESSION_MIN = 60; // [Decided] default session length
 const HORIZON_DAYS = 14; // [Assumed] window for tasks with no deadline (short fixed and Work day)
 const STEP_MS = 15 * 60_000; // candidate starts and the work/home check use a 15-minute grid
+const DAY_START_MIN = 9 * 60; // timed tasks (Big, Short fixed) stay between 9 AM and 10 PM local time
+const DAY_END_MIN = 22 * 60;
 
 export interface Interval {
   start: number;
@@ -49,7 +51,7 @@ export function schedule(
   const sessionTaskIds = new Set(sessions.map((session) => session.taskId));
   const placements: Placement[] = [];
   for (const task of sortTasks(tasks)) {
-    if (task.held || sessionTaskIds.has(task.id)) continue;
+    if (task.done || task.held || sessionTaskIds.has(task.id)) continue;
     if (task.type === "work_day") {
       const placed = placeWorkDay(task, now, work, dayUse);
       if (placed) placements.push(...placed);
@@ -74,9 +76,12 @@ function placeTimed(task: Task, now: number, work: WorkHours, busy: readonly Int
       : Math.min(deadline, addDays(now, HORIZON_DAYS));
   const spreadOffset = task.type === "big" ? 0.5 : 0; // big sessions aim at the middle of each slice of the window
   const maxSessions = task.type === "big" ? Math.ceil(task.durationMin / SESSION_MIN) : 1;
-  for (let count = maxSessions; count >= 1; count--) {
-    const placed = tryPlace(task, count, Math.ceil(task.durationMin / count), now, to, spreadOffset, work, busy);
-    if (placed) return placed;
+  // Sessions get their own days first. Sharing a day is allowed only when no placement exists otherwise (the deadline forces it).
+  for (const distinctDays of [true, false]) {
+    for (let count = maxSessions; count >= 1; count--) {
+      const placed = tryPlace(task, count, Math.ceil(task.durationMin / count), now, to, spreadOffset, distinctDays, work, busy);
+      if (placed) return placed;
+    }
   }
   return null;
 }
@@ -88,6 +93,7 @@ function tryPlace(
   from: number,
   to: number,
   offset: number,
+  distinctDays: boolean,
   work: WorkHours,
   busy: readonly Interval[],
 ): Placement[] | null {
@@ -97,7 +103,7 @@ function tryPlace(
   const placed: Placement[] = [];
   for (let i = 0; i < count; i++) {
     const target = from + ((i + offset) * (to - from)) / count;
-    const start = nearestSlot(task, target, from, to, length, work, local, usedDays);
+    const start = nearestSlot(task, target, from, to, length, distinctDays ? usedDays : null, work, local);
     if (start === null) return null;
     const session = { taskId: task.id, start, end: start + length };
     placed.push(session);
@@ -107,21 +113,23 @@ function tryPlace(
   return placed;
 }
 
-// The free start (on the grid, inside one day, on a day not yet used) closest to the target.
+// The free start (on the grid, inside one day and the 9 AM to 10 PM window, on a day not yet used when `usedDays` is set)
+// closest to the target.
 function nearestSlot(
   task: Task,
   target: number,
   from: number,
   to: number,
   length: number,
+  usedDays: Set<string> | null,
   work: WorkHours,
   busy: readonly Interval[],
-  usedDays: Set<string>,
 ): number | null {
   let best: number | null = null;
   for (let start = Math.ceil(from / STEP_MS) * STEP_MS; start + length <= to; start += STEP_MS) {
     const key = dayKey(start);
-    if (usedDays.has(key) || dayKey(start + length - 1) !== key) continue;
+    if (usedDays?.has(key) || dayKey(start + length - 1) !== key) continue;
+    if (!inDayWindow(start, start + length)) continue;
     if (!fitsPlace(task.conditionPlace, start, start + length, work)) continue;
     if (busy.some((b) => start < b.end && b.start < start + length)) continue;
     if (best === null || Math.abs(start - target) < Math.abs(best - target)) best = start;
@@ -155,6 +163,13 @@ function workDayCapacity(work: WorkHours): number {
     if (m < work.lunchStartMin || m >= work.lunchEndMin) minutes++;
   }
   return minutes;
+}
+
+// The whole interval lies between DAY_START_MIN and DAY_END_MIN on its (single) local day.
+function inDayWindow(start: number, end: number): boolean {
+  const date = new Date(start);
+  const from = date.getHours() * 60 + date.getMinutes();
+  return from >= DAY_START_MIN && from + (end - start) / 60_000 <= DAY_END_MIN;
 }
 
 // Every 15-minute grid cell in [start, end) must be work time (place Work), or none may be (place Home).

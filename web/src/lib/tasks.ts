@@ -14,6 +14,7 @@ export interface Task {
   spreadDays: number | null;
   conditionPlace: ConditionPlace;
   held: boolean;
+  done: boolean; // completed (Done button); completed tasks are never placed and sit in the Completed drawer
   unplaced: boolean; // unplaced after the last placement run; lets a newly unplaced task be announced once (SPEC 5)
 }
 
@@ -34,7 +35,7 @@ export interface TaskEditInput {
   deadline: string;
 }
 
-export type NewTask = Omit<Task, "id" | "held" | "unplaced">;
+export type NewTask = Omit<Task, "id" | "held" | "done" | "unplaced">;
 export type TaskEdit = Pick<Task, "title" | "durationMin" | "deadline">;
 
 export type ParseResult<T> = { ok: true; value: T } | { ok: false; errors: string[] };
