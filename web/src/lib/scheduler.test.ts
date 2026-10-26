@@ -95,10 +95,10 @@ describe("work and home", () => {
     expect(placed[0]?.start).toBe(at(MON, 13, 30));
   });
 
-  it("places Home tasks outside work hours, and counts lunch as home", () => {
-    expect(run([task({ id: "h", conditionPlace: "home" })])[0]?.start).toBe(at(MON, 12));
+  it("places Home tasks outside work hours, and never at lunch", () => {
+    expect(run([task({ id: "h", conditionPlace: "home" })])[0]?.start).toBe(at(MON, 19));
     const atNoon = schedule([task({ id: "h", conditionPlace: "home" })], [], at(MON, 11, 30), DEFAULT_WORK_HOURS);
-    expect(atNoon[0]?.start).toBe(at(MON, 12));
+    expect(atNoon[0]?.start).toBe(at(MON, 19));
   });
 
   it("uses the stored lunch window, not a fixed one", () => {
