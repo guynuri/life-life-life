@@ -337,7 +337,7 @@ select {
   text-decoration: none;
 }
 
-.card-link .icon {
+.card-link > .icon {
   margin-left: auto;
   color: var(--ink-soft);
 }
@@ -547,7 +547,7 @@ select {
   margin-top: 10px;
 }
 
-.pills .pill {
+.pills .pill:not(.status) {
   background: var(--card);
 }
 
