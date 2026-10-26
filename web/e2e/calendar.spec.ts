@@ -40,8 +40,9 @@ test("placement creates one event per session, linked to the task; a move update
   // Unschedule deletes the event and holds the task.
   await item.getByRole("button", { name: "Unschedule" }).click();
   await expect(item).toContainText("Unscheduled");
-  expect(googleEvents).toHaveLength(0);
-  expect(sessions).toHaveLength(0);
+  // The UI changes before the save finishes, so wait for the mock state to catch up.
+  await expect.poll(() => googleEvents.length).toBe(0);
+  await expect.poll(() => sessions.length).toBe(0);
 });
 
 test("sync on refresh: a moved event moves the session (even outside work hours); a deleted event unschedules and holds the task", async ({ page }) => {

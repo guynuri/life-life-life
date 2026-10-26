@@ -59,6 +59,20 @@ export function People({ refreshTick }: { refreshTick: number }) {
     await reload();
   }
 
+  // Shows the change at once and saves it. A failed save puts the list back and shows the error. No reload needed on success.
+  async function optimistic(change: (list: Person[]) => Person[], action: () => Promise<void>) {
+    const before = people;
+    if (before) setPeople(change(before));
+    try {
+      await action();
+      setSaveError(null);
+      setConfirmRemoveId(null);
+    } catch (e) {
+      if (before) setPeople(before);
+      setSaveError(`Save failed: ${errorText(e)}`);
+    }
+  }
+
   if (people === null) {
     return (
       <section className="page">
@@ -119,7 +133,12 @@ export function People({ refreshTick }: { refreshTick: number }) {
                 type="button"
                 className="btn primary small"
                 aria-label={`Mark ${p.name} as contacted`}
-                onClick={() => void write(() => markContacted(p.id))}
+                onClick={() =>
+                  void optimistic(
+                    (list) => list.map((x) => (x.id === p.id ? { ...x, lastContactedAt: new Date().toISOString() } : x)),
+                    () => markContacted(p.id),
+                  )
+                }
               >
                 <Icon name="check" size={18} />
                 Contacted
@@ -133,7 +152,7 @@ export function People({ refreshTick }: { refreshTick: number }) {
               {confirmRemoveId === p.id ? (
                 <div className="confirm">
                   <span>Remove {p.name}?</span>
-                  <button type="button" className="btn danger small" onClick={() => void write(() => removePerson(p.id))}>
+                  <button type="button" className="btn danger small" onClick={() => void optimistic((list) => list.filter((x) => x.id !== p.id), () => removePerson(p.id))}>
                     Yes, remove
                   </button>
                   <button type="button" className="btn ghost small" onClick={() => setConfirmRemoveId(null)}>
