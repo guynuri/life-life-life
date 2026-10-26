@@ -101,6 +101,12 @@ describe("work and home", () => {
     expect(atNoon[0]?.start).toBe(at(MON, 19));
   });
 
+  it("keeps Home tasks out of lunch even when lunch is outside work hours", () => {
+    const work = { ...DEFAULT_WORK_HOURS, lunchStartMin: 20 * 60, lunchEndMin: 20 * 60 + 30 };
+    const placed = schedule([task({ id: "h", conditionPlace: "home" })], [], at(MON, 19, 30), work);
+    expect(placed[0]?.start).toBe(at(MON, 20, 30));
+  });
+
   it("uses the stored lunch window, not a fixed one", () => {
     const work = { ...DEFAULT_WORK_HOURS, lunchStartMin: 9 * 60, lunchEndMin: 10 * 60 };
     const placed = schedule([task({ id: "w", conditionPlace: "work" })], [], at(MON, 8), work);

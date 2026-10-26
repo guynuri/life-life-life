@@ -176,7 +176,7 @@ function inDayWindow(start: number, end: number): boolean {
 function fitsPlace(place: Task["conditionPlace"], start: number, end: number, work: WorkHours): boolean {
   if (place === "any") return true;
   for (let cell = Math.floor(start / STEP_MS) * STEP_MS; cell < end; cell += STEP_MS) {
-    const ok = place === "work" ? isWorkTime(cell, work) : !inWorkHours(cell, work);
+    const ok = place === "work" ? isWorkTime(cell, work) : !inWorkHours(cell, work) && !inLunch(cell, work);
     if (!ok) return false;
   }
   return true;
@@ -184,9 +184,12 @@ function fitsPlace(place: Task["conditionPlace"], start: number, end: number, wo
 
 // Work time: work hours, outside lunch. Lunch is neither work nor home (SPEC 2.4).
 function isWorkTime(time: number, work: WorkHours): boolean {
+  return inWorkHours(time, work) && !inLunch(time, work);
+}
+
+function inLunch(time: number, work: WorkHours): boolean {
   const minute = minuteOfDay(time);
-  const inLunch = minute >= work.lunchStartMin && minute < work.lunchEndMin;
-  return inWorkHours(time, work) && !inLunch;
+  return minute >= work.lunchStartMin && minute < work.lunchEndMin;
 }
 
 // Inside the work span on a work day, lunch included. Home tasks must stay outside this span.
