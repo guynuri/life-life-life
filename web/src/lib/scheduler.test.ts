@@ -19,6 +19,7 @@ function task(overrides: Partial<Task>): Task {
     spreadDays: null,
     conditionPlace: "any",
     held: false,
+    done: false,
     unplaced: false,
     ...overrides,
   };
@@ -37,10 +38,10 @@ describe("big tasks", () => {
   });
 
   it("lengthens sessions when the window has fewer days than sessions", () => {
-    // Two spread days from Monday 08:00 touch three calendar days, so 5 and 4 sessions cannot each get their own day.
+    // Two spread days from Monday 08:00 leave two days inside the 9 AM to 10 PM window, so 5, 4 and 3 sessions cannot each get their own day.
     const placed = run([task({ id: "big", type: "big", durationMin: 300, spreadDays: 2 })]);
-    expect(placed).toHaveLength(3);
-    expect(placed.every((p) => minutes(p.start, p.end) === 100)).toBe(true);
+    expect(placed).toHaveLength(2);
+    expect(placed.every((p) => minutes(p.start, p.end) === 150)).toBe(true);
   });
 
   it("places nothing when the task cannot fit", () => {
@@ -62,8 +63,8 @@ describe("order", () => {
       task({ id: "soon", deadline: new Date(2026, 9, MON, 18).toISOString() }),
     ]);
     const start = (id: string) => placed.find((p) => p.taskId === id)?.start;
-    expect(start("soon")).toBe(at(MON, 8));
-    expect(start("none")).toBe(at(MON, 9));
+    expect(start("soon")).toBe(at(MON, 9));
+    expect(start("none")).toBe(at(MON, 10));
   });
 
   it("skips held tasks and tasks that already have sessions", () => {
@@ -95,7 +96,7 @@ describe("work and home", () => {
   });
 
   it("places Home tasks outside work hours, and counts lunch as home", () => {
-    expect(run([task({ id: "h", conditionPlace: "home" })])[0]?.start).toBe(at(MON, 8));
+    expect(run([task({ id: "h", conditionPlace: "home" })])[0]?.start).toBe(at(MON, 12));
     const atNoon = schedule([task({ id: "h", conditionPlace: "home" })], [], at(MON, 11, 30), DEFAULT_WORK_HOURS);
     expect(atNoon[0]?.start).toBe(at(MON, 12));
   });
@@ -144,5 +145,33 @@ describe("external busy time", () => {
     const external = [{ start: at(MON, 8), end: at(MON, 9) }];
     const [placed] = schedule([task({ durationMin: 60 })], [], now, DEFAULT_WORK_HOURS, external);
     expect(placed?.start).toBeGreaterThanOrEqual(at(MON, 9));
+  });
+});
+
+describe("timed tasks stay between 9 AM and 10 PM", () => {
+  it("never starts a timed task at night, even when placement begins at 00:30", () => {
+    const [placed] = schedule([task({ durationMin: 60 })], [], at(MON, 0, 30), DEFAULT_WORK_HOURS);
+    expect(placed?.start).toBe(at(MON, 9));
+  });
+
+  it("does not let a session run past 10 PM", () => {
+    const [placed] = schedule([task({ durationMin: 60 })], [], at(MON, 21, 30), DEFAULT_WORK_HOURS);
+    expect(placed?.start).toBe(at(MON + 1, 9));
+  });
+});
+
+describe("same day sharing", () => {
+  it("shares a day only when the deadline leaves no other choice", () => {
+    // Work-only, 400 minutes: no single block fits (the longest work block is 330 minutes), so seven sessions must share Monday.
+    const deadline = new Date(at(MON, 19)).toISOString();
+    const placed = run([task({ id: "big", type: "big", durationMin: 400, spreadDays: 1, conditionPlace: "work", deadline })]);
+    expect(placed).toHaveLength(7);
+    expect(new Set(placed.map((p) => new Date(p.start).toDateString())).size).toBe(1);
+  });
+});
+
+describe("done tasks", () => {
+  it("are never placed", () => {
+    expect(run([task({ id: "d", done: true })])).toEqual([]);
   });
 });

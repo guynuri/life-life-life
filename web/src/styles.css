@@ -592,6 +592,75 @@ button.session {
   margin-top: 12px;
 }
 
+/* Title row: the open button fills the row, the round Done button sits at its right. */
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.task-row .task-open {
+  flex: 1;
+  min-width: 0;
+}
+
+.done-button {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 2px solid var(--rule);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.done-button:hover {
+  border-color: var(--ink);
+}
+
+/* A task's placement times sit in a drawer that is closed until opened. */
+.sessions-drawer {
+  margin-top: 10px;
+}
+
+.sessions-drawer > summary {
+  color: var(--ink-soft, inherit);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sessions-drawer .session {
+  margin-top: 8px;
+}
+
+/* Completed tasks sit in a drawer that is closed until opened. */
+.done-drawer {
+  margin-top: 20px;
+}
+
+.done-drawer > summary {
+  padding: 10px 4px;
+  color: var(--ink-soft, inherit);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.done-drawer .stack {
+  margin-top: 10px;
+}
+
+.done-title {
+  font-size: 16px;
+  text-decoration: line-through;
+  opacity: 0.7;
+  overflow-wrap: anywhere;
+}
+
 /* People */
 
 .person-top {

@@ -12,8 +12,9 @@ import {
   type TaskInput,
   type TaskType,
 } from "./lib/tasks";
-import { insertTask, listSessions, listTasks, releaseHold, updateTaskEdit, type StoredSession } from "./lib/tasksData";
-import { deleteTaskWithEvents, moveSessionWithEvent, placeTasks, replacePlacement, unscheduleTask } from "./lib/calendarSync";
+import { insertTask, listSessions, listTasks, releaseHold, setDone, updateTaskEdit, type StoredSession } from "./lib/tasksData";
+import { completeTask, deleteTaskWithEvents, moveSessionWithEvent, placeTasks, replacePlacement, unscheduleTask } from "./lib/calendarSync";
+import { playDing, primeDing } from "./lib/ding";
 import { isGoogleAuthError } from "./lib/calendar";
 import type { Placement } from "./lib/scheduler";
 import { Icon, type IconName } from "./Icon";
@@ -203,6 +204,28 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
     await refresh();
   }
 
+  // Removes the task's Google events and sessions, then marks it done. The ding plays once the save has gone through.
+  async function complete(id: string) {
+    try {
+      await completeTask(googleToken, id);
+    } catch (error) {
+      return fail("Could not complete task", error);
+    }
+    playDing();
+    setErrors([]);
+    await refresh();
+  }
+
+  async function reopen(id: string) {
+    try {
+      await setDone(id, false);
+    } catch (error) {
+      return setErrors([`Could not reopen task: ${messageOf(error)}`]);
+    }
+    setErrors([]);
+    await refresh();
+  }
+
   async function releaseTask(id: string) {
     try {
       await releaseHold(id);
@@ -248,6 +271,24 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
     </p>
   ));
   const editingTask = sheet?.mode === "edit" ? data?.tasks.find((t) => t.id === sheet.id) : undefined;
+  const active = sortTasks(data?.tasks.filter((t) => !t.done) ?? []);
+  const done = data?.tasks.filter((t) => t.done) ?? [];
+
+  // The confirm row for deleting a task. Shared by the active list and the Completed drawer.
+  function deleteConfirm(task: Task) {
+    if (confirmingId !== task.id) return null;
+    return (
+      <div className="confirm">
+        <span>Delete &ldquo;{task.title}&rdquo;?</span>
+        <button type="button" className="btn danger small" onClick={() => remove(task.id)}>
+          Yes, delete
+        </button>
+        <button type="button" className="btn ghost small" onClick={() => setConfirmingId(null)}>
+          Keep it
+        </button>
+      </div>
+    );
+  }
 
   return (
     <section className="page" aria-labelledby="tasks-heading">
@@ -256,7 +297,7 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
           <h1 className="page-title" id="tasks-heading">
             Tasks
           </h1>
-          {data && <p className="page-sub">{data.tasks.length === 0 ? "Nothing yet" : `${data.tasks.length} on your list`}</p>}
+          {data && <p className="page-sub">{data.tasks.length === 0 ? "Nothing yet" : `${active.length} on your list`}</p>}
         </div>
         <div className="topbar-actions">
           <button type="button" className="btn primary" onClick={openAdd}>
@@ -286,23 +327,30 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
       ) : data.tasks.length === 0 ? (
         <p className="empty">No tasks yet. Tap New to add the first one.</p>
       ) : (
-        <ul className="stack">
-          {sortTasks(data.tasks).map((task) => {
+        <>
+          {active.length === 0 && <p className="empty">Nothing left to do. Nice.</p>}
+          <ul className="stack">
+          {active.map((task) => {
             const sessions = data.sessions
               .filter((session) => session.taskId === task.id)
               .sort((a, b) => a.start - b.start);
             const status = taskStatus(task, sessions.length > 0);
             return (
               <li key={task.id} className="card task">
-                <button type="button" className="task-top task-open" onClick={() => startEdit(task)}>
-                  <span className={`card-icon tint-${task.type}`}>
-                    <Icon name={TYPE_ICONS[task.type]} />
-                  </span>
-                  <span className="row-body">
-                    <strong className="task-title">{task.title}</strong>
-                    {task.topic && <span className="meta">{task.topic}</span>}
-                  </span>
-                </button>
+                <div className="task-row">
+                  <button type="button" className="task-top task-open" onClick={() => startEdit(task)}>
+                    <span className={`card-icon tint-${task.type}`}>
+                      <Icon name={TYPE_ICONS[task.type]} />
+                    </span>
+                    <span className="row-body">
+                      <strong className="task-title">{task.title}</strong>
+                      {task.topic && <span className="meta">{task.topic}</span>}
+                    </span>
+                  </button>
+                  <button type="button" className="done-button" aria-label={`Mark done: ${task.title}`} onClick={() => { primeDing(); void complete(task.id); }}>
+                    <Icon name="check" size={20} />
+                  </button>
+                </div>
 
                 <div className="pills">
                   <span className="pill">{TYPE_LABELS[task.type]}</span>
@@ -316,6 +364,9 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
                   <span className={`pill status status-${status}`}>{STATUS_LABELS[status]}</span>
                 </div>
 
+                {sessions.length > 0 && (
+                <details className="sessions-drawer">
+                <summary>{sessions.length === 1 ? "1 session" : `${sessions.length} sessions`}</summary>
                 {sessions.map((session) =>
                   movingId === session.id ? (
                     <div className="session-edit" key={session.id}>
@@ -350,6 +401,8 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
                     </button>
                   ),
                 )}
+                </details>
+                )}
 
                 <div className="task-actions">
                   <button type="button" className="chip" onClick={() => startEdit(task)}>
@@ -373,21 +426,38 @@ export function Tasks({ googleToken, onReconnect, refreshTick }: TasksProps) {
                   </button>
                 </div>
 
-                {confirmingId === task.id && (
-                  <div className="confirm">
-                    <span>Delete &ldquo;{task.title}&rdquo;?</span>
-                    <button type="button" className="btn danger small" onClick={() => remove(task.id)}>
-                      Yes, delete
-                    </button>
-                    <button type="button" className="btn ghost small" onClick={() => setConfirmingId(null)}>
-                      Keep it
-                    </button>
-                  </div>
-                )}
+                {deleteConfirm(task)}
               </li>
             );
           })}
-        </ul>
+          </ul>
+
+          {done.length > 0 && (
+            <details className="done-drawer">
+              <summary>Completed ({done.length})</summary>
+              <ul className="stack">
+                {done.map((task) => (
+                  <li key={task.id} className="card task done-item">
+                    <div className="task-row">
+                      <span className="done-title">{task.title}</span>
+                    </div>
+                    <div className="task-actions">
+                      <button type="button" className="chip" onClick={() => reopen(task.id)}>
+                        <Icon name="refresh" size={16} />
+                        Reopen
+                      </button>
+                      <button type="button" className="chip danger" onClick={() => setConfirmingId(task.id)}>
+                        <Icon name="trash" size={16} />
+                        Delete task
+                      </button>
+                    </div>
+                    {deleteConfirm(task)}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </>
       )}
 
       {sheet?.mode === "add" && (

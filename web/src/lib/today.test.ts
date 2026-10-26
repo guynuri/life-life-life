@@ -14,6 +14,7 @@ const task = (id: string, title: string, topic: string | null = null): Task => (
   spreadDays: null,
   conditionPlace: "any",
   held: false,
+  done: false,
   unplaced: false,
 });
 

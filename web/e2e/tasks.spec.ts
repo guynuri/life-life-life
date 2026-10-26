@@ -21,6 +21,7 @@ test("placed sessions show; a session can be moved; unschedule holds; Schedule r
   expect(sessions).toHaveLength(1);
 
   // Move the session to 10:00.
+  await item.locator("summary").click(); // placement times are collapsed by default
   await item.getByRole("button", { name: /Move session/ }).click();
   await item.getByLabel("New start").fill("2026-10-12T10:00");
   await item.getByRole("button", { name: "Save time" }).click();
@@ -80,6 +81,7 @@ test("a big task is placed as several sessions; tasks stay in deadline order; ed
   await expect(planItem).toContainText("2 days");
   await expect(planItem).toContainText("Placed");
   await expect(page.getByRole("status").filter({ hasText: "Plan trip" })).toContainText("2 sessions");
+  await planItem.locator("summary").click();
   await expect(planItem.getByRole("button", { name: /Move session/ })).toHaveCount(2);
 
   // Edit the title of an existing task.
@@ -157,4 +159,33 @@ test("each tab has a URL; back and reload keep the open tab", async ({ page }) =
 
   await page.reload();
   await expect(tasksTab).toHaveAttribute("aria-selected", "true");
+});
+
+test("Done removes the task's events and sessions and moves it to the Completed drawer; Reopen brings it back", async ({ page }) => {
+  await signIn(page);
+  await fixClock(page);
+  const sessions: Row[] = [];
+  const googleEvents: Row[] = [];
+  await serveTable(page, "tasks", [taskRow({ id: "pay", title: "Pay rent", duration_min: 20 })]);
+  await serveTable(page, "sessions", sessions);
+  await serveTable(page, "work_settings", []);
+  await serveTable(page, "reminders", []);
+  await serveGoogle(page, googleEvents);
+
+  await page.goto("/#/tasks");
+  const active = page.getByRole("listitem").filter({ hasText: "Pay rent" }).first();
+  await expect(active).toContainText("Placed");
+  expect(googleEvents).toHaveLength(1);
+
+  await active.getByRole("button", { name: "Mark done: Pay rent" }).click();
+  const drawer = page.locator("details.done-drawer");
+  await expect(drawer.locator("summary")).toHaveText("Completed (1)");
+  await expect(page.locator("li.task:not(.done-item)").filter({ hasText: "Pay rent" })).toHaveCount(0);
+  expect(googleEvents).toHaveLength(0);
+  expect(sessions).toHaveLength(0);
+
+  await drawer.locator("summary").click();
+  await drawer.getByRole("listitem").filter({ hasText: "Pay rent" }).getByRole("button", { name: "Reopen" }).click();
+  await expect(drawer).toHaveCount(0);
+  await expect(page.getByRole("listitem").filter({ hasText: "Pay rent" }).first()).toContainText("Placed");
 });

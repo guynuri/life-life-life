@@ -2,7 +2,7 @@
 // so a failed Google call leaves the stored state as it was.
 import { busyHorizon, busySpans, decideSync, eventBody } from "./calendarEvents";
 import { createEvent, deleteEvent, getEvent, listEvents, moveEvent } from "./calendar";
-import { deleteSessionsOf, deleteTask, getWorkHours, holdTask, insertSessions, listSessions, listTasks, moveSession, setUnplaced, type NewSession, type StoredSession } from "./tasksData";
+import { deleteSessionsOf, deleteTask, getWorkHours, holdTask, insertSessions, listSessions, listTasks, moveSession, setDone, setUnplaced, type NewSession, type StoredSession } from "./tasksData";
 import { schedule, type Placement } from "./scheduler";
 import { newlyUnplacedTitles, placementReminder } from "./reminders";
 import { insertReminder } from "./remindersData";
@@ -62,7 +62,7 @@ async function insertPlacements(token: string | null, tasks: Task[], placed: Pla
 // in this run and has a deadline it cannot meet. The unplaced flag is saved after the message is queued, so a failed run is retried.
 async function announceUnplaced(tasks: Task[], sessions: StoredSession[], placedRows: NewSession[], now: number): Promise<void> {
   const placedIds = new Set([...sessions.map((s) => s.taskId), ...placedRows.map((r) => r.taskId)]);
-  const unplaced = tasks.filter((t) => !t.held && !placedIds.has(t.id));
+  const unplaced = tasks.filter((t) => !t.done && !t.held && !placedIds.has(t.id));
   const newly = newlyUnplacedTitles(unplaced.map((t) => ({ title: t.title, deadline: t.deadline, wasUnplaced: t.unplaced })));
   const titles = new Map(tasks.map((t) => [t.id, t.title]));
   const reminder = placementReminder(
@@ -96,6 +96,13 @@ export async function replacePlacement(token: string | null, taskId: string): Pr
 export async function deleteTaskWithEvents(token: string | null, taskId: string): Promise<void> {
   await removeEvents(token, taskId);
   await deleteTask(taskId);
+}
+
+// Removes the task's events and sessions, then marks it done. It is not placed again unless reopened.
+export async function completeTask(token: string | null, taskId: string): Promise<void> {
+  await removeEvents(token, taskId);
+  await deleteSessionsOf(taskId);
+  await setDone(taskId, true);
 }
 
 // Updates the event's time first, then the stored session.
