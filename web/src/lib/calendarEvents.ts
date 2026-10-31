@@ -30,7 +30,8 @@ export interface EventBody {
   summary: string;
   start: { dateTime: string };
   end: { dateTime: string };
-  extendedProperties: { private: { taskId: string; sessionId: string } };
+  extendedProperties: { private: Record<string, string> };
+  reminders?: { useDefault: boolean };
 }
 
 export type SyncDecision = { kind: "keep" } | { kind: "move"; start: number; end: number } | { kind: "deleted" };
