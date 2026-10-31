@@ -6,6 +6,8 @@ import {
   deleteFixedEvent,
   fixedEventBody,
   fixedEventsFrom,
+  parseLocalInput,
+  toLocalInput,
   updateFixedEvent,
   validateFixedEvent,
   type FixedEventInput,
@@ -81,6 +83,18 @@ describe("fixedEventsFrom", () => {
   it("carries the title and calendar", () => {
     const [item] = fixedEventsFrom([{ calendarId: "cal-1", event: fixedEv("a", "2026-11-03T08:00:00", "2026-11-03T09:00:00") }]);
     expect(item).toMatchObject({ eventId: "a", calendarId: "cal-1", title: "Fixed a" });
+  });
+});
+
+describe("local date-time input values", () => {
+  it("formats a time for a datetime-local input in device time", () => {
+    expect(toLocalInput(new Date(2026, 10, 3, 9, 5).getTime())).toBe("2026-11-03T09:05");
+  });
+  it("reads the input back as the same device time", () => {
+    expect(parseLocalInput("2026-11-03T09:05")).toBe(new Date(2026, 10, 3, 9, 5).getTime());
+  });
+  it("returns NaN for an empty input", () => {
+    expect(parseLocalInput("")).toBeNaN();
   });
 });
 

@@ -153,7 +153,7 @@ export function App() {
       )}
       <div className="pages" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <div hidden={page !== "today"}>
-          <Today refreshTick={refreshTick} />
+          <Today refreshTick={refreshTick} googleToken={googleToken} />
         </div>
         <div hidden={page !== "tasks"}>
           <Tasks googleToken={googleToken} googleReady={googleReady} onReconnect={signIn} refreshTick={refreshTick} />

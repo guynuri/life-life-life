@@ -32,6 +32,21 @@ export function validateFixedEvent(input: FixedEventInput, now: number): string 
   return null;
 }
 
+// Device-local "YYYY-MM-DDTHH:mm", the value a datetime-local input uses.
+const pad = (n: number) => String(n).padStart(2, "0");
+export function toLocalInput(time: number): string {
+  const d = new Date(time);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// The epoch ms for a datetime-local value read as device time; NaN when empty or malformed.
+export function parseLocalInput(value: string): number {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
+  if (!match) return NaN;
+  const [, y, mo, d, h, mi] = match.map(Number) as [number, number, number, number, number, number];
+  return new Date(y, mo - 1, d, h, mi).getTime();
+}
+
 // Google calls. Each validates first and throws the message, so the form can show it; nothing is hidden.
 export interface FixedEventRef {
   eventId: string;

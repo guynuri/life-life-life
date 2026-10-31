@@ -5,6 +5,10 @@ import { dayKey, dayLabel, EMOTIONS, type MoodEntry } from "./lib/moodView";
 import { loadMoods } from "./lib/moodStore";
 import { dayBounds, formatSessionTime, todaySessions, type TodaySession } from "./lib/today";
 import { listSessions, listTasks } from "./lib/tasksData";
+import { listAllEvents } from "./lib/calendar";
+import { fixedEventsFrom, type FixedEvent } from "./lib/fixedEvents";
+import { formatClock } from "./lib/today";
+import { FixedEventSheet } from "./FixedEventSheet";
 import { Icon } from "./Icon";
 
 // Each part loads on its own, so a failed read shows an error for that part only (SPEC principles).
@@ -18,7 +22,7 @@ function messageOf(e: unknown): string {
   return typeof e === "object" && e !== null && "message" in e ? String(e.message) : String(e);
 }
 
-function usePart<T>(load: () => Promise<T>, reloadKey: number): Part<T> {
+function usePart<T>(load: () => Promise<T>, deps: unknown[]): Part<T> {
   const [part, setPart] = useState<Part<T>>({ data: undefined, error: null });
   useEffect(() => {
     let live = true;
@@ -29,9 +33,16 @@ function usePart<T>(load: () => Promise<T>, reloadKey: number): Part<T> {
     return () => {
       live = false;
     };
-    // load is recreated each render; reloadKey is the trigger.
-  }, [reloadKey]);
+    // load is recreated each render; deps are the triggers.
+  }, deps);
   return part;
+}
+
+// Fixed events that start today, from Google (they live only there).
+async function loadFixed(token: string | null): Promise<FixedEvent[]> {
+  const bounds = dayBounds(new Date());
+  const fixed = fixedEventsFrom(await listAllEvents(token, bounds.start, bounds.end));
+  return fixed.filter((f) => f.start >= bounds.start && f.start < bounds.end);
 }
 
 async function loadSessions(): Promise<TodaySession[]> {
@@ -48,7 +59,9 @@ async function loadMood(): Promise<MoodEntry | null> {
   return (await loadMoods(today, today)).get(today) ?? null;
 }
 
-export function Today({ refreshTick }: { refreshTick: number }) {
+export function Today({ refreshTick, googleToken }: { refreshTick: number; googleToken: string | null }) {
+  // The add/edit sheet: null when closed, { current: null } to add a new event.
+  const [sheet, setSheet] = useState<{ current: FixedEvent | null } | null>(null);
   // Re-reads when the app comes back to the foreground, so a new day or a moved session shows up.
   const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
@@ -61,9 +74,10 @@ export function Today({ refreshTick }: { refreshTick: number }) {
 
   // The shell Refresh bumps refreshTick after it has placed; the parts reload on either trigger.
   const key = reloadKey + refreshTick;
-  const sessions = usePart(loadSessions, key);
-  const due = usePart(loadDue, key);
-  const mood = usePart(loadMood, key);
+  const sessions = usePart(loadSessions, [key]);
+  const fixed = usePart(() => loadFixed(googleToken), [key, googleToken]);
+  const due = usePart(loadDue, [key]);
+  const mood = usePart(loadMood, [key]);
 
   return (
     <section className="page today">
@@ -105,6 +119,51 @@ export function Today({ refreshTick }: { refreshTick: number }) {
           </ul>
         )}
       </article>
+
+      <article className="card">
+        <h2 className="card-title">
+          Fixed events
+          <button type="button" className="btn primary small" onClick={() => setSheet({ current: null })}>
+            <Icon name="plus" size={18} />
+            Add event
+          </button>
+        </h2>
+        {fixed.error && (
+          <p className="error" role="alert">
+            Could not load fixed events: {fixed.error}
+          </p>
+        )}
+        {fixed.data?.length === 0 && <p className="empty">No fixed events today.</p>}
+        {fixed.data && fixed.data.length > 0 && (
+          <ul className="stack">
+            {fixed.data.map((f) => (
+              <li key={f.eventId}>
+                <button type="button" className="row today-fixed" onClick={() => setSheet({ current: f })}>
+                  <div className="row-body">
+                    <strong>{f.title || "(no title)"}</strong>
+                  </div>
+                  <span className="pill time">
+                    <Icon name="clock" size={14} />
+                    {formatClock(f.start)}–{formatClock(f.end)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </article>
+
+      {sheet && (
+        <FixedEventSheet
+          googleToken={googleToken}
+          current={sheet.current}
+          onClose={() => setSheet(null)}
+          onSaved={() => {
+            setSheet(null);
+            setReloadKey((k) => k + 1);
+          }}
+        />
+      )}
 
       <article className="card">
         <h2 className="card-title">
