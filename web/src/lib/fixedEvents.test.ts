@@ -142,10 +142,12 @@ describe("fixed event Google calls", () => {
     expect(patchEvent).toHaveBeenCalledWith("t", "c", "e", expect.any(Object));
   });
 
-  it("moves to the new calendar, then patches there, when the category changes", async () => {
+  it("patches on the old calendar, then moves, when the category changes", async () => {
     await updateFixedEvent("t", { eventId: "e", calendarId: "c" }, { ...ok, calendarId: "d" });
+    expect(patchEvent).toHaveBeenCalledWith("t", "c", "e", expect.any(Object));
     expect(moveEventToCalendar).toHaveBeenCalledWith("t", "c", "e", "d");
-    expect(patchEvent).toHaveBeenCalledWith("t", "d", "e", expect.any(Object));
+    // A failed move can be retried from the same form: the event is still on the calendar the form holds.
+    expect(vi.mocked(patchEvent).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(moveEventToCalendar).mock.invocationCallOrder[0] ?? 0);
   });
 
   it("refuses an invalid edit before calling Google", async () => {

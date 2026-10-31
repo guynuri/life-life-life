@@ -80,17 +80,16 @@ export async function createFixedEvent(token: string | null, input: FixedEventIn
   return createEvent(token, input.calendarId, fixedEventBody(input));
 }
 
-// A category change moves the event first, then the fields are patched on its new calendar.
+// Fields are patched first, on the calendar the form holds, then a category change moves the event. If the move
+// fails, the form still holds the old calendar, so a retry patches and moves again.
 export async function updateFixedEvent(token: string | null, current: FixedEventRef, next: FixedEventInput): Promise<void> {
   const problem = validateFixedEvent(next, Date.now());
   if (problem) throw new Error(problem);
-  let calendarId = current.calendarId;
+  const body = fixedEventBody(next);
+  await patchEvent(token, current.calendarId, current.eventId, { summary: body.summary, start: body.start, end: body.end });
   if (next.calendarId !== current.calendarId) {
     await moveEventToCalendar(token, current.calendarId, current.eventId, next.calendarId);
-    calendarId = next.calendarId;
   }
-  const body = fixedEventBody(next);
-  await patchEvent(token, calendarId, current.eventId, { summary: body.summary, start: body.start, end: body.end });
 }
 
 export async function deleteFixedEvent(token: string | null, current: FixedEventRef): Promise<void> {
