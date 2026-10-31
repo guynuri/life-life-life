@@ -100,6 +100,17 @@ export async function moveEvent(token: string | null, calendarId: string, eventI
   await json<GoogleEvent>(await request(token, "PATCH", `${eventsUrl(calendarId)}/${encodeURIComponent(eventId)}`, body));
 }
 
+// Changes only the fields given (title, start, end).
+export async function patchEvent(token: string | null, calendarId: string, eventId: string, body: Partial<EventBody>): Promise<void> {
+  await json<GoogleEvent>(await request(token, "PATCH", `${eventsUrl(calendarId)}/${encodeURIComponent(eventId)}`, body));
+}
+
+// Moves an event to another calendar the user can write to (Google's events.move).
+export async function moveEventToCalendar(token: string | null, fromCalendarId: string, eventId: string, toCalendarId: string): Promise<void> {
+  const url = `${eventsUrl(fromCalendarId)}/${encodeURIComponent(eventId)}/move?destination=${encodeURIComponent(toCalendarId)}`;
+  await json<GoogleEvent>(await request(token, "POST", url));
+}
+
 // Deleting an event that is already gone is not an error.
 export async function deleteEvent(token: string | null, calendarId: string, eventId: string): Promise<void> {
   const response = await request(token, "DELETE", `${eventsUrl(calendarId)}/${encodeURIComponent(eventId)}`);

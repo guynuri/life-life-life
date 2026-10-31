@@ -1,6 +1,22 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { GoogleEvent } from "./calendarEvents";
-import { fixedEventBody, fixedEventsFrom, validateFixedEvent, type FixedEventInput } from "./fixedEvents";
+import { createEvent, deleteEvent, moveEventToCalendar, patchEvent } from "./calendar";
+import {
+  createFixedEvent,
+  deleteFixedEvent,
+  fixedEventBody,
+  fixedEventsFrom,
+  updateFixedEvent,
+  validateFixedEvent,
+  type FixedEventInput,
+} from "./fixedEvents";
+
+vi.mock("./calendar", () => ({
+  createEvent: vi.fn(),
+  patchEvent: vi.fn(),
+  moveEventToCalendar: vi.fn(),
+  deleteEvent: vi.fn(),
+}));
 
 const fixedEv = (id: string, start: string, end: string): GoogleEvent => ({
   id,
@@ -78,5 +94,42 @@ describe("fixedEventBody", () => {
   it("ends the event after its duration", () => {
     const body = fixedEventBody(ok);
     expect(Date.parse(body.end.dateTime) - Date.parse(body.start.dateTime)).toBe(60 * 60_000);
+  });
+});
+
+describe("fixed event Google calls", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("patches without moving when the category is unchanged", async () => {
+    await updateFixedEvent("t", { eventId: "e", calendarId: "c" }, { ...ok, calendarId: "c" });
+    expect(moveEventToCalendar).not.toHaveBeenCalled();
+    expect(patchEvent).toHaveBeenCalledWith("t", "c", "e", expect.any(Object));
+  });
+
+  it("moves to the new calendar, then patches there, when the category changes", async () => {
+    await updateFixedEvent("t", { eventId: "e", calendarId: "c" }, { ...ok, calendarId: "d" });
+    expect(moveEventToCalendar).toHaveBeenCalledWith("t", "c", "e", "d");
+    expect(patchEvent).toHaveBeenCalledWith("t", "d", "e", expect.any(Object));
+  });
+
+  it("refuses an invalid edit before calling Google", async () => {
+    await expect(updateFixedEvent("t", { eventId: "e", calendarId: "c" }, { ...ok, durationMinutes: 1 })).rejects.toThrow();
+    expect(patchEvent).not.toHaveBeenCalled();
+  });
+
+  it("refuses an invalid create before calling Google", async () => {
+    await expect(createFixedEvent("t", { ...ok, title: "" })).rejects.toThrow();
+    expect(createEvent).not.toHaveBeenCalled();
+  });
+
+  it("creates on the chosen calendar and returns the new id", async () => {
+    vi.mocked(createEvent).mockResolvedValue("new-id");
+    await expect(createFixedEvent("t", ok)).resolves.toBe("new-id");
+    expect(createEvent).toHaveBeenCalledWith("t", "cal", expect.objectContaining({ summary: "Haircut" }));
+  });
+
+  it("deletes on the event's own calendar", async () => {
+    await deleteFixedEvent("t", { eventId: "e", calendarId: "c" });
+    expect(deleteEvent).toHaveBeenCalledWith("t", "c", "e");
   });
 });

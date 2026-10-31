@@ -1,5 +1,6 @@
 // Pure fixed-event rules (design: pre-timed events). No DOM, no network. Times are epoch ms.
 import { eventSpan, rfc3339, type EventBody, type GoogleEvent } from "./calendarEvents";
+import { createEvent, deleteEvent, moveEventToCalendar, patchEvent } from "./calendar";
 
 // A fixed event as the Today view and the form see it.
 export interface FixedEvent {
@@ -29,6 +30,35 @@ export function validateFixedEvent(input: FixedEventInput, now: number): string 
   if (input.calendarId === "") return "Choose a category.";
   if (input.start < now) return "The start is in the past.";
   return null;
+}
+
+// Google calls. Each validates first and throws the message, so the form can show it; nothing is hidden.
+export interface FixedEventRef {
+  eventId: string;
+  calendarId: string;
+}
+
+export async function createFixedEvent(token: string | null, input: FixedEventInput): Promise<string> {
+  const problem = validateFixedEvent(input, Date.now());
+  if (problem) throw new Error(problem);
+  return createEvent(token, input.calendarId, fixedEventBody(input));
+}
+
+// A category change moves the event first, then the fields are patched on its new calendar.
+export async function updateFixedEvent(token: string | null, current: FixedEventRef, next: FixedEventInput): Promise<void> {
+  const problem = validateFixedEvent(next, Date.now());
+  if (problem) throw new Error(problem);
+  let calendarId = current.calendarId;
+  if (next.calendarId !== current.calendarId) {
+    await moveEventToCalendar(token, current.calendarId, current.eventId, next.calendarId);
+    calendarId = next.calendarId;
+  }
+  const body = fixedEventBody(next);
+  await patchEvent(token, calendarId, current.eventId, { summary: body.summary, start: body.start, end: body.end });
+}
+
+export async function deleteFixedEvent(token: string | null, current: FixedEventRef): Promise<void> {
+  await deleteEvent(token, current.calendarId, current.eventId);
 }
 
 // The fixed events among the given items, in start order. Cancelled and all-day events are skipped.
