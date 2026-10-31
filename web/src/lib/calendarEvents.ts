@@ -2,6 +2,7 @@
 
 export interface GoogleEvent {
   id: string;
+  summary?: string;
   status?: string;
   transparency?: string;
   start?: { dateTime?: string; date?: string };

@@ -1,7 +1,7 @@
 // Ties Google Calendar to the stored tasks and sessions (SPEC 1, 2.5). Google is called first where an event changes,
 // so a failed Google call leaves the stored state as it was.
 import { busyHorizon, busySpans, decideSync, eventBody } from "./calendarEvents";
-import { createEvent, deleteEvent, getEvent, listEvents, moveEvent } from "./calendar";
+import { createEvent, deleteEvent, getEvent, listAllEvents, moveEvent } from "./calendar";
 import { deleteSessionsOf, deleteTask, getWorkHours, holdTask, insertSessions, listSessions, listTasks, moveSession, setDone, setUnplaced, type NewSession, type StoredSession } from "./tasksData";
 import { schedule, type Placement } from "./scheduler";
 import { newlyUnplacedTitles, placementReminder } from "./reminders";
@@ -30,7 +30,8 @@ export async function placeTasks(token: string | null, now: number): Promise<Pla
   await syncCalendar(token);
   const [tasks, sessions, work] = await Promise.all([listTasks(), listSessions(), getWorkHours()]);
   const horizon = busyHorizon(tasks.filter((t) => !t.held && !sessions.some((s) => s.taskId === t.id)), now);
-  const external = busySpans(await listEvents(token, PRIMARY, now, horizon));
+  // Busy time comes from every calendar, so a fixed event on any category blocks placement (design, call 5).
+  const external = busySpans((await listAllEvents(token, now, horizon)).map((item) => item.event));
   const placed = schedule(tasks, sessions, now, work, external);
   const rows = placed.length > 0 ? await insertPlacements(token, tasks, placed) : [];
   await announceUnplaced(tasks, sessions, rows, now);
