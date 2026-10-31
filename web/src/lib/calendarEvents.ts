@@ -14,6 +14,18 @@ export interface Span {
   end: number;
 }
 
+// A calendar in the user's list. writable is true for owner and writer access.
+export interface CalendarInfo {
+  id: string;
+  summary: string;
+  writable: boolean;
+}
+
+// Categories are the calendars the app can write fixed events to, in list order.
+export function writableCalendars(calendars: readonly CalendarInfo[]): CalendarInfo[] {
+  return calendars.filter((c) => c.writable);
+}
+
 export interface EventBody {
   summary: string;
   start: { dateTime: string };

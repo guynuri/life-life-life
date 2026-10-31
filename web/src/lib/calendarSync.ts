@@ -8,13 +8,16 @@ import { newlyUnplacedTitles, placementReminder } from "./reminders";
 import { insertReminder } from "./remindersData";
 import type { Task } from "./tasks";
 
+// Session events always live on the primary calendar (SPEC 1).
+const PRIMARY = "primary";
+
 
 // Moved events move their session; deleted events unschedule their task (SPEC 1). Runs before placement.
 export async function syncCalendar(token: string | null): Promise<void> {
   const deletedTasks = new Set<string>();
   for (const session of await listSessions()) {
     if (session.calendarEventId === null) continue;
-    const decision = decideSync(session, await getEvent(token, session.calendarEventId));
+    const decision = decideSync(session, await getEvent(token, PRIMARY, session.calendarEventId));
     if (decision.kind === "move") await moveSession(session.id, decision.start, decision.end);
     if (decision.kind === "deleted") deletedTasks.add(session.taskId);
   }
@@ -27,7 +30,7 @@ export async function placeTasks(token: string | null, now: number): Promise<Pla
   await syncCalendar(token);
   const [tasks, sessions, work] = await Promise.all([listTasks(), listSessions(), getWorkHours()]);
   const horizon = busyHorizon(tasks.filter((t) => !t.held && !sessions.some((s) => s.taskId === t.id)), now);
-  const external = busySpans(await listEvents(token, now, horizon));
+  const external = busySpans(await listEvents(token, PRIMARY, now, horizon));
   const placed = schedule(tasks, sessions, now, work, external);
   const rows = placed.length > 0 ? await insertPlacements(token, tasks, placed) : [];
   await announceUnplaced(tasks, sessions, rows, now);
@@ -45,14 +48,14 @@ async function insertPlacements(token: string | null, tasks: Task[], placed: Pla
       const id = crypto.randomUUID();
       let calendarEventId: string | null = null;
       if (task.type !== "work_day") {
-        calendarEventId = await createEvent(token, eventBody(task, { id, start: p.start, end: p.end }));
+        calendarEventId = await createEvent(token, PRIMARY, eventBody(task, { id, start: p.start, end: p.end }));
         created.push(calendarEventId);
       }
       rows.push({ id, taskId: p.taskId, start: p.start, end: p.end, calendarEventId });
     }
     await insertSessions(rows);
   } catch (error) {
-    await Promise.all(created.map((eventId) => deleteEvent(token, eventId).catch(() => undefined)));
+    await Promise.all(created.map((eventId) => deleteEvent(token, PRIMARY, eventId).catch(() => undefined)));
     throw error;
   }
   return rows;
@@ -107,12 +110,12 @@ export async function completeTask(token: string | null, taskId: string): Promis
 
 // Updates the event's time first, then the stored session.
 export async function moveSessionWithEvent(token: string | null, session: StoredSession, start: number, end: number): Promise<void> {
-  if (session.calendarEventId !== null) await moveEvent(token, session.calendarEventId, { start, end });
+  if (session.calendarEventId !== null) await moveEvent(token, PRIMARY, session.calendarEventId, { start, end });
   await moveSession(session.id, start, end);
 }
 
 async function removeEvents(token: string | null, taskId: string): Promise<void> {
   for (const session of await listSessions()) {
-    if (session.taskId === taskId && session.calendarEventId !== null) await deleteEvent(token, session.calendarEventId);
+    if (session.taskId === taskId && session.calendarEventId !== null) await deleteEvent(token, PRIMARY, session.calendarEventId);
   }
 }

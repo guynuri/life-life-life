@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { busyHorizon, busySpans, decideSync, eventBody, eventSpan, rfc3339, type GoogleEvent } from "./calendarEvents";
+import { busyHorizon, busySpans, decideSync, eventBody, eventSpan, rfc3339, writableCalendars, type GoogleEvent } from "./calendarEvents";
+
+it("keeps only writable calendars, in order", () => {
+  const cals = [
+    { id: "a", summary: "Work", writable: true },
+    { id: "h", summary: "Holidays", writable: false },
+    { id: "b", summary: "Haircut", writable: true },
+  ];
+  expect(writableCalendars(cals).map((c) => c.id)).toEqual(["a", "b"]);
+});
 
 // Monday 12 October 2026, device local time.
 const at = (hour: number, minute = 0) => new Date(2026, 9, 12, hour, minute).getTime();
