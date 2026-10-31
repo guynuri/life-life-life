@@ -50,6 +50,37 @@ test("add, edit, and delete a fixed event from Today", async ({ page }) => {
   await expect.poll(() => googleEvents.length).toBe(0);
 });
 
+test("refresh follows Google: an event deleted in Google Calendar leaves Today", async ({ page }) => {
+  await signIn(page);
+  await fixClock(page);
+  // An event that already exists in Google, made outside the app (no fixed tag needed to show here: it is tagged as fixed).
+  const googleEvents: Row[] = [
+    {
+      id: "fixed1",
+      summary: "Dentist",
+      start: { dateTime: "2026-10-12T11:00:00Z" },
+      end: { dateTime: "2026-10-12T11:30:00Z" },
+      extendedProperties: { private: { lifeKind: "fixed" } },
+    },
+  ];
+  await serveTable(page, "tasks", []);
+  await serveTable(page, "sessions", []);
+  await serveTable(page, "people", []);
+  await serveTable(page, "moods", []);
+  await serveTable(page, "work_settings", []);
+  await serveTable(page, "reminders", []);
+  await serveGoogle(page, googleEvents);
+  await serveCalendarList(page);
+
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: /Dentist/ })).toBeVisible();
+
+  // Deleted in Google Calendar, then Refresh.
+  googleEvents.splice(0, googleEvents.length);
+  await page.getByRole("button", { name: "Refresh" }).click();
+  await expect(page.getByRole("button", { name: /Dentist/ })).toHaveCount(0);
+});
+
 test("a failed save shows the error and keeps the sheet open", async ({ page }) => {
   await signIn(page);
   await fixClock(page);
