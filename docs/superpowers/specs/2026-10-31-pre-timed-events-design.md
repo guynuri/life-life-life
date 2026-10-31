@@ -1,6 +1,6 @@
 # Pre-timed events: design
 
-Status: draft, waiting for approval. Nothing is built yet.
+Status: approved by the requester. Nothing is built yet; the plan comes next.
 
 ## Intent and why
 
@@ -16,7 +16,6 @@ Adding a fixed-time event in Google Calendar takes too many fields. Most of the 
 ## Non-goals
 
 - Guests, location, description, recurrence, and colors. Not in this version.
-- Editing or deleting a pre-timed event from the app. Google Calendar is used for that in v1 (see "Decided for you" below).
 - Creating or changing categories. The categories are the calendars I already have in Google.
 - Push reminders from the app for pre-timed events. Google's own reminders cover them.
 
@@ -36,6 +35,8 @@ Adding a fixed-time event in Google Calendar takes too many fields. Most of the 
 
 - The form takes a title, a start time, a duration in minutes, and a category. No end-time field.
 - A category is a Google calendar, and its default reminders apply to the event.
+- The event can be edited (title, start, duration, category) and deleted from the app.
+- A pre-timed event appears on the Today view as a fixed item, and it also blocks time for placed tasks.
 
 ## Decided for you (my calls, to check while reading)
 
@@ -54,6 +55,8 @@ Adding a fixed-time event in Google Calendar takes too many fields. Most of the 
 
 - **Form:** title (required), start date and time (required), duration in minutes (required), category (required, default to the primary calendar).
 - **Create:** one `events.insert` call on the chosen calendar, with summary, start, end (start plus duration), `reminders.useDefault: true`, and the private extended property from call 2.
+- **Edit:** a form pre-filled from the event. Title, start, and duration use `events.patch`. A category change uses `events.move` to the new calendar. Edits follow the same failure rule as create.
+- **Delete:** `events.delete` on the event's calendar, after a confirmation prompt.
 - **Read back:** the existing refresh reads events from each calendar in the list, not only primary. Events with the property show as fixed events.
 - **Scheduler input:** busy intervals from all calendars feed the existing placement logic. No change to the scheduler rules otherwise.
 
@@ -62,11 +65,10 @@ Adding a fixed-time event in Google Calendar takes too many fields. Most of the 
 - The exact date and time input control. Native `datetime-local` is preferred if it works well on iPhone.
 - How the calendar list is cached between refreshes.
 - How a fixed event is shown on Today, following the existing Today spec (section 6, not reread for this design).
+- Whether edits to a pre-timed event made in Google Calendar are re-read on refresh. They should be, because Google wins.
 - Test plan: unit tests for duration and busy-time merging, and one Playwright flow for create-then-see-on-refresh.
 
-## Open questions for the requester
+## Answered by the requester
 
-These are the only points where the answer changes what gets built.
-
-1. Do you want to edit or delete a pre-timed event from the app, or is Google Calendar enough for that? The design assumes Google is enough for v1.
-2. Should a pre-timed event appear in the Today view as a fixed item, or only as busy time that placed tasks avoid? The design assumes it appears on Today.
+1. Edit and delete from the app: yes.
+2. Shows on Today and blocks time: both.
