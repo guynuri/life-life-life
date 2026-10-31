@@ -25,8 +25,9 @@ Where this spec differs from the original spec, the change is listed under "Chan
 
 ## 1. Google Calendar
 
-- Read events from my primary calendar. A refresh re-reads Google, so edits I make there appear in the app. [Decided]
-- Read busy times to find open slots for the scheduler. [Decided]
+- Read events from every calendar I can write to. Task sessions are created on my primary calendar. A refresh re-reads Google, so edits I make there appear in the app. [Decided]
+- Read busy times from every calendar I can write to, to find open slots for the scheduler. [Decided]
+- I can add, edit, and delete fixed-time events from the app: title, start, duration in minutes, and category. A category is one of my Google calendars. The event gets that calendar's default reminders. Fixed events show on Today and block time for placed tasks. Google Calendar stays the only place they are stored. [Decided]
 - Create calendar events for scheduled tasks. Each app-created event links back to its task. [Decided]
   - One event per session, titled with the task's title. [Assumed]
 - Sync on each refresh: [Decided]
@@ -209,7 +210,7 @@ Where this spec differs from the original spec, the change is listed under "Chan
 - Hourly mood logging. [Decided]
 - Learning from my habits to improve scheduling. [Decided]
 - A native iOS app. [Decided]
-- Calendars other than the primary calendar. [Decided]
+- Calendars I cannot write to (holiday and shared calendars) as categories or for fixed events. [Decided]
 - Per-task session length for big tasks. [Assumed]
 - Time zones other than the device's. [Decided]
 

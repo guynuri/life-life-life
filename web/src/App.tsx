@@ -9,6 +9,7 @@ import { Today } from "./Today";
 import { Settings } from "./Settings";
 import { Icon, type IconName } from "./Icon";
 import { placeTasks } from "./lib/calendarSync";
+import { clearCalendarCache } from "./lib/fixedEvents";
 import { placementQueue } from "./lib/serialQueue";
 import { formatPage, parsePage, swipePage, type PageId } from "./lib/route";
 import { forgetGoogleAccess, googleAccessToken, rememberGoogleSession } from "./lib/googleAccess";
@@ -94,6 +95,7 @@ export function App() {
   // SPEC Pages: Refresh re-reads Google and places tasks first, then every page reloads what is stored.
   async function refreshAll() {
     setRefreshing(true);
+    clearCalendarCache();
     try {
       const token = await googleAccessToken(session);
       setGoogleToken(token);
@@ -153,7 +155,7 @@ export function App() {
       )}
       <div className="pages" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <div hidden={page !== "today"}>
-          <Today refreshTick={refreshTick} />
+          <Today refreshTick={refreshTick} googleToken={googleToken} />
         </div>
         <div hidden={page !== "tasks"}>
           <Tasks googleToken={googleToken} googleReady={googleReady} onReconnect={signIn} refreshTick={refreshTick} />
