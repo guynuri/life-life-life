@@ -1,7 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { listWritableCalendars } from "./lib/calendar";
 import type { CalendarInfo } from "./lib/calendarEvents";
-import { createFixedEvent, deleteFixedEvent, parseLocalInput, toLocalInput, updateFixedEvent, type FixedEvent } from "./lib/fixedEvents";
+import { createFixedEvent, deleteFixedEvent, getCalendars, parseLocalInput, toLocalInput, updateFixedEvent, type FixedEvent } from "./lib/fixedEvents";
 import { Sheet } from "./Sheet";
 
 // Add or edit a fixed-time event: title, start, duration, category (a calendar). Google is called before the sheet closes.
@@ -39,7 +38,7 @@ export function FixedEventSheet({
 
   useEffect(() => {
     let live = true;
-    listWritableCalendars(googleToken).then(
+    getCalendars(googleToken).then(
       (list) => {
         if (!live) return;
         setCalendars(list);

@@ -1,11 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { GoogleEvent } from "./calendarEvents";
-import { createEvent, deleteEvent, moveEventToCalendar, patchEvent } from "./calendar";
+import { createEvent, deleteEvent, listCalendars, moveEventToCalendar, patchEvent } from "./calendar";
 import {
+  clearCalendarCache,
   createFixedEvent,
   deleteFixedEvent,
   fixedEventBody,
   fixedEventsFrom,
+  getCalendars,
   parseLocalInput,
   toLocalInput,
   updateFixedEvent,
@@ -18,6 +20,10 @@ vi.mock("./calendar", () => ({
   patchEvent: vi.fn(),
   moveEventToCalendar: vi.fn(),
   deleteEvent: vi.fn(),
+  listCalendars: vi.fn(async () => [
+    { id: "primary", summary: "Me", writable: true },
+    { id: "holidays", summary: "Holidays", writable: false },
+  ]),
 }));
 
 const fixedEv = (id: string, start: string, end: string): GoogleEvent => ({
@@ -108,6 +114,22 @@ describe("fixedEventBody", () => {
   it("ends the event after its duration", () => {
     const body = fixedEventBody(ok);
     expect(Date.parse(body.end.dateTime) - Date.parse(body.start.dateTime)).toBe(60 * 60_000);
+  });
+});
+
+describe("category list cache", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    clearCalendarCache();
+  });
+
+  it("lists writable calendars once per session until cleared", async () => {
+    await expect(getCalendars("t")).resolves.toEqual([{ id: "primary", summary: "Me", writable: true }]);
+    await getCalendars("t");
+    expect(listCalendars).toHaveBeenCalledTimes(1);
+    clearCalendarCache();
+    await getCalendars("t");
+    expect(listCalendars).toHaveBeenCalledTimes(2);
   });
 });
 

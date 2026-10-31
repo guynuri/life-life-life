@@ -1,6 +1,6 @@
 // Pure fixed-event rules (design: pre-timed events). No DOM, no network. Times are epoch ms.
-import { eventSpan, rfc3339, type EventBody, type GoogleEvent } from "./calendarEvents";
-import { createEvent, deleteEvent, moveEventToCalendar, patchEvent } from "./calendar";
+import { eventSpan, rfc3339, writableCalendars, type CalendarInfo, type EventBody, type GoogleEvent } from "./calendarEvents";
+import { createEvent, deleteEvent, listCalendars, moveEventToCalendar, patchEvent } from "./calendar";
 
 // A fixed event as the Today view and the form see it.
 export interface FixedEvent {
@@ -30,6 +30,27 @@ export function validateFixedEvent(input: FixedEventInput, now: number): string 
   if (input.calendarId === "") return "Choose a category.";
   if (input.start < now) return "The start is in the past.";
   return null;
+}
+
+// The writable calendars (categories), kept in memory for the session. A failed read is not kept.
+let calendarCache: Promise<CalendarInfo[]> | null = null;
+
+export function getCalendars(token: string | null): Promise<CalendarInfo[]> {
+  if (calendarCache === null) {
+    calendarCache = listCalendars(token).then(
+      (list) => writableCalendars(list),
+      (e: unknown) => {
+        calendarCache = null;
+        throw e;
+      },
+    );
+  }
+  return calendarCache;
+}
+
+// Called by Refresh, so a calendar added in Google shows up.
+export function clearCalendarCache(): void {
+  calendarCache = null;
 }
 
 // Device-local "YYYY-MM-DDTHH:mm", the value a datetime-local input uses.
