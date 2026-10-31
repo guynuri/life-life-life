@@ -72,6 +72,7 @@ export function parseLocalInput(value: string): number {
 export interface FixedEventRef {
   eventId: string;
   calendarId: string;
+  start?: number; // the start as stored; lets an edit that keeps the start skip the past-start check
 }
 
 export async function createFixedEvent(token: string | null, input: FixedEventInput): Promise<string> {
@@ -83,7 +84,9 @@ export async function createFixedEvent(token: string | null, input: FixedEventIn
 // Fields are patched first, on the calendar the form holds, then a category change moves the event. If the move
 // fails, the form still holds the old calendar, so a retry patches and moves again.
 export async function updateFixedEvent(token: string | null, current: FixedEventRef, next: FixedEventInput): Promise<void> {
-  const problem = validateFixedEvent(next, Date.now());
+  // An event that already started can be renamed or moved to another category; only a new start must be in the future.
+  const startChanged = current.start === undefined || current.start !== next.start;
+  const problem = validateFixedEvent(next, startChanged ? Date.now() : Number.NEGATIVE_INFINITY);
   if (problem) throw new Error(problem);
   const body = fixedEventBody(next);
   await patchEvent(token, current.calendarId, current.eventId, { summary: body.summary, start: body.start, end: body.end });

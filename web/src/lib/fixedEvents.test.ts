@@ -150,6 +150,18 @@ describe("fixed event Google calls", () => {
     expect(vi.mocked(patchEvent).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(moveEventToCalendar).mock.invocationCallOrder[0] ?? 0);
   });
 
+  it("edits the title of an event that already started", async () => {
+    const started = Date.now() - 60 * 60_000;
+    await updateFixedEvent("t", { eventId: "e", calendarId: "c", start: started }, { ...ok, title: "Renamed", start: started });
+    expect(patchEvent).toHaveBeenCalledWith("t", "c", "e", expect.objectContaining({ summary: "Renamed" }));
+  });
+
+  it("refuses moving an event into the past", async () => {
+    const started = Date.now() - 60 * 60_000;
+    await expect(updateFixedEvent("t", { eventId: "e", calendarId: "c", start: ok.start }, { ...ok, start: started })).rejects.toThrow();
+    expect(patchEvent).not.toHaveBeenCalled();
+  });
+
   it("refuses an invalid edit before calling Google", async () => {
     await expect(updateFixedEvent("t", { eventId: "e", calendarId: "c" }, { ...ok, durationMinutes: 1 })).rejects.toThrow();
     expect(patchEvent).not.toHaveBeenCalled();

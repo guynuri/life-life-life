@@ -75,10 +75,11 @@ export async function listEvents(token: string | null, calendarId: string, from:
   return events;
 }
 
-// Events in the window across every calendar the user can see, each tagged with its calendar.
+// Events in the window across every calendar the user can write to, each tagged with its calendar.
+// Read-only calendars (shared, holidays) are never requested, so they do not block placement (SPEC 1).
 export async function listAllEvents(token: string | null, from: number, to: number): Promise<{ calendarId: string; event: GoogleEvent }[]> {
   const items: { calendarId: string; event: GoogleEvent }[] = [];
-  for (const calendar of await listCalendars(token)) {
+  for (const calendar of writableCalendars(await listCalendars(token))) {
     for (const event of await listEvents(token, calendar.id, from, to)) items.push({ calendarId: calendar.id, event });
   }
   return items;
@@ -116,9 +117,4 @@ export async function deleteEvent(token: string | null, calendarId: string, even
   const response = await request(token, "DELETE", `${eventsUrl(calendarId)}/${encodeURIComponent(eventId)}`);
   if (isGone(response)) return;
   if (!response.ok) throw await failure(response);
-}
-
-// Only the writable calendars, for the category picker.
-export async function listWritableCalendars(token: string | null): Promise<CalendarInfo[]> {
-  return writableCalendars(await listCalendars(token));
 }

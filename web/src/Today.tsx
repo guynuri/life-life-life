@@ -3,11 +3,10 @@ import { dueNow, initialsOf, type Person } from "./lib/people";
 import { listPeople } from "./lib/peopleStore";
 import { dayKey, dayLabel, EMOTIONS, type MoodEntry } from "./lib/moodView";
 import { loadMoods } from "./lib/moodStore";
-import { dayBounds, formatSessionTime, todaySessions, type TodaySession } from "./lib/today";
+import { dayBounds, formatClock, formatSessionTime, todaySessions, type TodaySession } from "./lib/today";
 import { listSessions, listTasks } from "./lib/tasksData";
 import { listAllEvents } from "./lib/calendar";
 import { fixedEventsFrom, type FixedEvent } from "./lib/fixedEvents";
-import { formatClock } from "./lib/today";
 import { FixedEventSheet } from "./FixedEventSheet";
 import { Icon } from "./Icon";
 
