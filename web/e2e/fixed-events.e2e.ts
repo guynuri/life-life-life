@@ -81,6 +81,24 @@ test("refresh follows Google: an event deleted in Google Calendar leaves Today",
   await expect(page.getByRole("button", { name: /Dentist/ })).toHaveCount(0);
 });
 
+test("a 403 from the calendar list offers Reconnect Google instead of a raw error", async ({ page }) => {
+  await signIn(page);
+  await fixClock(page);
+  await serveTable(page, "tasks", []);
+  await serveTable(page, "sessions", []);
+  await serveTable(page, "people", []);
+  await serveTable(page, "moods", []);
+  await serveGoogle(page, []);
+  // An old grant without the calendar list scope.
+  await page.route(`https://${GOOGLE_HOST}/calendar/v3/users/me/calendarList`, (route) =>
+    route.fulfill({ status: 403, json: { error: { code: 403, message: "Insufficient Permission" } } }),
+  );
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Add event" }).click();
+  await expect(page.getByRole("button", { name: "Reconnect Google" })).toBeVisible();
+});
+
 test("a failed save shows the error and keeps the sheet open", async ({ page }) => {
   await signIn(page);
   await fixClock(page);

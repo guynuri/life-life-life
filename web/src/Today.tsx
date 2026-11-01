@@ -58,7 +58,15 @@ async function loadMood(): Promise<MoodEntry | null> {
   return (await loadMoods(today, today)).get(today) ?? null;
 }
 
-export function Today({ refreshTick, googleToken }: { refreshTick: number; googleToken: string | null }) {
+export function Today({
+  refreshTick,
+  googleToken,
+  onReconnect,
+}: {
+  refreshTick: number;
+  googleToken: string | null;
+  onReconnect?: () => void;
+}) {
   // The add/edit sheet: null when closed, { current: null } to add a new event.
   const [sheet, setSheet] = useState<{ current: FixedEvent | null } | null>(null);
   // Re-reads when the app comes back to the foreground, so a new day or a moved session shows up.
@@ -155,6 +163,7 @@ export function Today({ refreshTick, googleToken }: { refreshTick: number; googl
       {sheet && (
         <FixedEventSheet
           googleToken={googleToken}
+          onReconnect={onReconnect}
           current={sheet.current}
           onClose={() => setSheet(null)}
           onSaved={() => {
