@@ -6,6 +6,7 @@ import { Tasks } from "./Tasks";
 import { People } from "./People";
 import { MoodScreen } from "./MoodScreen";
 import { Today } from "./Today";
+import { Events } from "./Events";
 import { Settings } from "./Settings";
 import { Icon, type IconName } from "./Icon";
 import { placeTasks } from "./lib/calendarSync";
@@ -21,6 +22,7 @@ const NO_SWIPE = "input, textarea, select, .mood-grid, .sheet-backdrop, .segment
 // when another tab is open, so its state and effects keep running.
 const pages: { id: PageId; label: string; icon: IconName }[] = [
   { id: "today", label: "Today", icon: "today" },
+  { id: "events", label: "Events", icon: "calendar" },
   { id: "tasks", label: "Tasks", icon: "tasks" },
   { id: "people", label: "People", icon: "people" },
   { id: "mood", label: "Mood", icon: "mood" },
@@ -156,6 +158,9 @@ export function App() {
       <div className="pages" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <div hidden={page !== "today"}>
           <Today refreshTick={refreshTick} googleToken={googleToken} />
+        </div>
+        <div hidden={page !== "events"}>
+          <Events googleToken={googleToken} refreshTick={refreshTick} />
         </div>
         <div hidden={page !== "tasks"}>
           <Tasks googleToken={googleToken} googleReady={googleReady} onReconnect={signIn} refreshTick={refreshTick} />

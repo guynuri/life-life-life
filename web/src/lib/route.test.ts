@@ -4,7 +4,8 @@ import { formatPage, PAGE_IDS, parsePage, swipePage } from "./route";
 describe("swipePage", () => {
   it("moves to the neighbour on a long, mostly horizontal swipe", () => {
     expect(swipePage("tasks", -120, 10)).toBe("people");
-    expect(swipePage("tasks", 120, -5)).toBe("today");
+    expect(swipePage("tasks", 120, -5)).toBe("events");
+    expect(swipePage("events", 120, 0)).toBe("today");
   });
 
   it("ignores short or vertical swipes", () => {
@@ -23,6 +24,7 @@ describe("parsePage", () => {
     expect(parsePage("#/tasks")).toBe("tasks");
     expect(parsePage("#/people")).toBe("people");
     expect(parsePage("#/mood")).toBe("mood");
+    expect(parsePage("#/events")).toBe("events");
   });
 
   it("sends empty and unknown hashes to today", () => {

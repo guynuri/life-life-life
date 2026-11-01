@@ -7,7 +7,6 @@ import { dayBounds, formatClock, formatSessionTime, todaySessions, type TodaySes
 import { listSessions, listTasks } from "./lib/tasksData";
 import { listAllEvents } from "./lib/calendar";
 import { fixedEventsFrom, type FixedEvent } from "./lib/fixedEvents";
-import { FixedEventSheet } from "./FixedEventSheet";
 import { Icon } from "./Icon";
 
 // Each part loads on its own, so a failed read shows an error for that part only (SPEC principles).
@@ -59,8 +58,6 @@ async function loadMood(): Promise<MoodEntry | null> {
 }
 
 export function Today({ refreshTick, googleToken }: { refreshTick: number; googleToken: string | null }) {
-  // The add/edit sheet: null when closed, { current: null } to add a new event.
-  const [sheet, setSheet] = useState<{ current: FixedEvent | null } | null>(null);
   // Re-reads when the app comes back to the foreground, so a new day or a moved session shows up.
   const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
@@ -121,11 +118,13 @@ export function Today({ refreshTick, googleToken }: { refreshTick: number; googl
 
       <article className="card">
         <h2 className="card-title">
-          Fixed events
-          <button type="button" className="btn primary small" onClick={() => setSheet({ current: null })}>
-            <Icon name="plus" size={18} />
-            Add event
-          </button>
+          <a className="card-link" href="#/events">
+            <span className="card-icon tint-lilac">
+              <Icon name="calendar" />
+            </span>
+            Fixed events
+            <Icon name="chevronRight" size={18} />
+          </a>
         </h2>
         {fixed.error && (
           <p className="error" role="alert">
@@ -136,33 +135,19 @@ export function Today({ refreshTick, googleToken }: { refreshTick: number; googl
         {fixed.data && fixed.data.length > 0 && (
           <ul className="stack">
             {fixed.data.map((f) => (
-              <li key={f.eventId}>
-                <button type="button" className="row today-fixed" onClick={() => setSheet({ current: f })}>
-                  <div className="row-body">
-                    <strong>{f.title || "(no title)"}</strong>
-                  </div>
-                  <span className="pill time">
-                    <Icon name="clock" size={14} />
-                    {formatClock(f.start)}–{formatClock(f.end)}
-                  </span>
-                </button>
+              <li className="row today-fixed" key={f.eventId}>
+                <div className="row-body">
+                  <strong>{f.title || "(no title)"}</strong>
+                </div>
+                <span className="pill time">
+                  <Icon name="clock" size={14} />
+                  {formatClock(f.start)}–{formatClock(f.end)}
+                </span>
               </li>
             ))}
           </ul>
         )}
       </article>
-
-      {sheet && (
-        <FixedEventSheet
-          googleToken={googleToken}
-          current={sheet.current}
-          onClose={() => setSheet(null)}
-          onSaved={() => {
-            setSheet(null);
-            setReloadKey((k) => k + 1);
-          }}
-        />
-      )}
 
       <article className="card">
         <h2 className="card-title">

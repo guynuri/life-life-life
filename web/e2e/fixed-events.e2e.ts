@@ -21,8 +21,9 @@ test("add, edit, and delete a fixed event from Today", async ({ page }) => {
   await serveCalendarList(page);
 
   await page.goto("/");
+  await page.getByRole("tab", { name: "Events", exact: true }).click();
 
-  // Add: the event goes to Google with the chosen start, duration and calendar, and shows on Today.
+  // Add: the event goes to Google with the chosen start, duration and calendar, and shows on the Events tab.
   await page.getByRole("button", { name: "Add event" }).click();
   await page.getByLabel("Title").fill("Haircut");
   await page.getByLabel("Start").fill("2026-10-12T10:00");
@@ -73,12 +74,14 @@ test("refresh follows Google: an event deleted in Google Calendar leaves Today",
   await serveCalendarList(page);
 
   await page.goto("/");
-  await expect(page.getByRole("button", { name: /Dentist/ })).toBeVisible();
+  // Today lists today's fixed events read-only. The Events tab is mounted too, so scope to Today.
+  const today = page.locator("section.today");
+  await expect(today.getByText("Dentist")).toBeVisible();
 
   // Deleted in Google Calendar, then Refresh.
   googleEvents.splice(0, googleEvents.length);
   await page.getByRole("button", { name: "Refresh" }).click();
-  await expect(page.getByRole("button", { name: /Dentist/ })).toHaveCount(0);
+  await expect(today.getByText("Dentist")).toHaveCount(0);
 });
 
 test("a failed save shows the error and keeps the sheet open", async ({ page }) => {
@@ -92,6 +95,7 @@ test("a failed save shows the error and keeps the sheet open", async ({ page }) 
   await serveCalendarList(page);
 
   await page.goto("/");
+  await page.getByRole("tab", { name: "Events", exact: true }).click();
   await page.getByRole("button", { name: "Add event" }).click();
   await page.getByLabel("Title").fill("Dentist");
   await page.getByLabel("Start").fill("2026-10-12T11:00");
