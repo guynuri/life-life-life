@@ -28,7 +28,7 @@ test("add, edit, and delete a fixed event from Today", async ({ page }) => {
   await page.getByLabel("Title").fill("Haircut");
   await page.getByLabel("Start").fill("2026-10-12T10:00");
   await page.getByLabel("Duration (minutes)").fill("45");
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Add event", exact: true }).click();
   const row = page.getByRole("button", { name: /Haircut/ });
   await expect(row).toBeVisible();
   expect(googleEvents).toHaveLength(1);
@@ -39,14 +39,14 @@ test("add, edit, and delete a fixed event from Today", async ({ page }) => {
   // Edit: the title change is saved to the same Google event.
   await row.click();
   await page.getByLabel("Title").fill("Haircut at Sam's");
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByRole("button", { name: /Haircut at Sam's/ })).toBeVisible();
   expect(googleEvents[0]?.summary).toBe("Haircut at Sam's");
 
-  // Delete: asks first, then removes the Google event and the row.
-  await page.getByRole("button", { name: /Haircut at Sam's/ }).click();
-  await page.getByRole("button", { name: "Delete…" }).click();
-  await page.getByRole("button", { name: "Delete event" }).click();
+  // Delete: from the card, asks first, then removes the Google event and the card.
+  const card = page.locator("li.task").filter({ hasText: "Haircut at Sam's" });
+  await card.getByRole("button", { name: "Delete event" }).click();
+  await card.getByRole("button", { name: "Yes, delete" }).click();
   await expect(page.getByRole("button", { name: /Haircut/ })).toHaveCount(0);
   await expect.poll(() => googleEvents.length).toBe(0);
 });
@@ -118,7 +118,7 @@ test("a failed save shows the error and keeps the sheet open", async ({ page }) 
   await page.getByRole("button", { name: "Add event" }).click();
   await page.getByLabel("Title").fill("Dentist");
   await page.getByLabel("Start").fill("2026-10-12T11:00");
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Add event", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText("Backend Error");
   await expect(page.getByRole("dialog", { name: "Add event" })).toBeVisible();
 });

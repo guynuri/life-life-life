@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { listAllEvents } from "./lib/calendar";
 import { dayLabel } from "./lib/moodView";
-import { fixedEventsFrom, groupByDay, type FixedEvent } from "./lib/fixedEvents";
+import { deleteFixedEvent, fixedEventsFrom, groupByDay, type FixedEvent } from "./lib/fixedEvents";
 import { dayBounds, formatClock } from "./lib/today";
 import { FixedEventSheet } from "./FixedEventSheet";
 import { Icon } from "./Icon";
@@ -36,6 +36,20 @@ export function Events({
   const [reloadKey, setReloadKey] = useState(0);
   // The sheet: null when closed, { current: null } to add a new event.
   const [sheet, setSheet] = useState<{ current: FixedEvent | null } | null>(null);
+  // Delete is confirmed inline on the card, as on Tasks; the id of the card asking.
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  async function remove(event: FixedEvent) {
+    setConfirmingId(null);
+    setActionError(null);
+    try {
+      await deleteFixedEvent(googleToken, event);
+      setReloadKey((k) => k + 1);
+    } catch (e) {
+      setActionError(messageOf(e));
+    }
+  }
 
   // Re-reads when the app comes back to the foreground, as Today does, so edits made in Google show up.
   useEffect(() => {
@@ -89,6 +103,11 @@ export function Events({
           Could not load events: {error}
         </p>
       )}
+      {actionError && (
+        <p className="error" role="alert">
+          Could not delete the event: {actionError}
+        </p>
+      )}
       {events?.length === 0 && <p className="empty">No events in the next {WINDOW_DAYS} days.</p>}
       {events &&
         groupByDay(events).map((group) => (
@@ -96,16 +115,58 @@ export function Events({
             <h2 className="day-title">{dayLabel(new Date(group.day))}</h2>
             <ul className="stack">
               {group.events.map((f) => (
-                <li key={f.eventId}>
-                  <button type="button" className="row today-fixed" onClick={() => setSheet({ current: f })}>
-                    <div className="row-body">
-                      <strong>{f.title || "(no title)"}</strong>
-                    </div>
+                <li key={f.eventId} className="card task">
+                  <div className="task-row">
+                    <button
+                      type="button"
+                      className="task-top task-open"
+                      onClick={() => {
+                        setConfirmingId(null);
+                        setSheet({ current: f });
+                      }}
+                    >
+                      <span className="row-body">
+                        <strong className="task-title">{f.title || "(no title)"}</strong>
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="pills">
                     <span className="pill time">
-                      <Icon name="clock" size={14} />
+                      <Icon name="clock" size={13} />
                       {formatClock(f.start)}–{formatClock(f.end)}
                     </span>
-                  </button>
+                  </div>
+
+                  <div className="task-actions">
+                    <button
+                      type="button"
+                      className="chip"
+                      onClick={() => {
+                        setConfirmingId(null);
+                        setSheet({ current: f });
+                      }}
+                    >
+                      <Icon name="pencil" size={16} />
+                      Edit
+                    </button>
+                    <button type="button" className="chip danger" onClick={() => setConfirmingId(f.eventId)}>
+                      <Icon name="trash" size={16} />
+                      Delete event
+                    </button>
+                  </div>
+
+                  {confirmingId === f.eventId && (
+                    <div className="confirm">
+                      <span>Delete &ldquo;{f.title || "(no title)"}&rdquo;?</span>
+                      <button type="button" className="btn danger small" onClick={() => remove(f)}>
+                        Yes, delete
+                      </button>
+                      <button type="button" className="btn ghost small" onClick={() => setConfirmingId(null)}>
+                        Keep it
+                      </button>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
