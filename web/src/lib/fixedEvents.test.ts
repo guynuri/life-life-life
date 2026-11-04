@@ -41,7 +41,8 @@ const sessionEv = (id: string, start: string, end: string): GoogleEvent => ({
 const now = new Date(2026, 10, 2, 9, 0).getTime();
 const ok: FixedEventInput = {
   title: "Haircut",
-  start: new Date(2026, 10, 3, 10, 0).getTime(),
+  // Two days out from the real clock, so the Google-call tests (which check the real "now") never see a past start.
+  start: Date.now() + 2 * 86_400_000,
   durationMinutes: 60,
   calendarId: "cal",
 };
