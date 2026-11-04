@@ -117,7 +117,14 @@ export function Events({
               {group.events.map((f) => (
                 <li key={f.eventId} className="card task">
                   <div className="task-row">
-                    <button type="button" className="task-top task-open" onClick={() => setSheet({ current: f })}>
+                    <button
+                      type="button"
+                      className="task-top task-open"
+                      onClick={() => {
+                        setConfirmingId(null);
+                        setSheet({ current: f });
+                      }}
+                    >
                       <span className="row-body">
                         <strong className="task-title">{f.title || "(no title)"}</strong>
                       </span>
@@ -132,7 +139,14 @@ export function Events({
                   </div>
 
                   <div className="task-actions">
-                    <button type="button" className="chip" onClick={() => setSheet({ current: f })}>
+                    <button
+                      type="button"
+                      className="chip"
+                      onClick={() => {
+                        setConfirmingId(null);
+                        setSheet({ current: f });
+                      }}
+                    >
                       <Icon name="pencil" size={16} />
                       Edit
                     </button>
