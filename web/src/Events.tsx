@@ -23,10 +23,12 @@ async function loadUpcoming(token: string | null): Promise<FixedEvent[]> {
 export function Events({
   googleToken,
   refreshTick,
+  active,
   onReconnect,
 }: {
   googleToken: string | null;
   refreshTick: number;
+  active: boolean; // true while the Events tab is open; hidden tabs stay mounted but do not read Google
   onReconnect?: () => void;
 }) {
   const [events, setEvents] = useState<FixedEvent[] | null | undefined>(undefined);
@@ -35,7 +37,18 @@ export function Events({
   // The sheet: null when closed, { current: null } to add a new event.
   const [sheet, setSheet] = useState<{ current: FixedEvent | null } | null>(null);
 
+  // Re-reads when the app comes back to the foreground, as Today does, so edits made in Google show up.
   useEffect(() => {
+    if (!active) return;
+    const onForeground = () => {
+      if (document.visibilityState === "visible") setReloadKey((k) => k + 1);
+    };
+    document.addEventListener("visibilitychange", onForeground);
+    return () => document.removeEventListener("visibilitychange", onForeground);
+  }, [active]);
+
+  useEffect(() => {
+    if (!active) return;
     let live = true;
     loadUpcoming(googleToken).then(
       (list) => {
@@ -52,7 +65,7 @@ export function Events({
     return () => {
       live = false;
     };
-  }, [googleToken, reloadKey, refreshTick]);
+  }, [active, googleToken, reloadKey, refreshTick]);
 
   return (
     <section className="page" aria-labelledby="events-heading">

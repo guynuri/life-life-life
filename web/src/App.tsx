@@ -160,7 +160,7 @@ export function App() {
           <Today refreshTick={refreshTick} googleToken={googleToken} />
         </div>
         <div hidden={page !== "events"}>
-          <Events googleToken={googleToken} refreshTick={refreshTick} onReconnect={signIn} />
+          <Events googleToken={googleToken} refreshTick={refreshTick} active={page === "events"} onReconnect={signIn} />
         </div>
         <div hidden={page !== "tasks"}>
           <Tasks googleToken={googleToken} googleReady={googleReady} onReconnect={signIn} refreshTick={refreshTick} />
