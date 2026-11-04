@@ -73,6 +73,20 @@ export function personReminders(people: readonly Person[], now: number, zone: st
     }));
 }
 
+// Today's date in the zone as "YYYY-MM-DD", the same key the moods table uses.
+export function localDay(ms: number, zone: string): string {
+  const p = parts(ms, zone, { year: "numeric", month: "2-digit", day: "2-digit" });
+  return `${p.year}-${p.month}-${p.day}`;
+}
+
+// Fill in today's mood at 22:00 if the day is still blank. One reminder per local day.
+export const MOOD_REMINDER_MIN = 22 * 60;
+
+export function moodReminders(now: number, zone: string, moodSetToday: boolean): Reminder[] {
+  if (localMinutes(now, zone) < MOOD_REMINDER_MIN || moodSetToday) return [];
+  return [{ dedupeKey: `mood:${localDay(now, zone)}`, fireAt: now, title: "Set today's mood", body: "Pick today's mood color." }];
+}
+
 // One batched message per scheduler run (SPEC 5). Returns null when the run placed and unplaced nothing.
 export function placementReminder(
   placed: readonly PlacedSession[],

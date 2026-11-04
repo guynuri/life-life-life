@@ -2,7 +2,7 @@
 // The rules are in web/src/lib/reminders.ts and the due rule in web/src/lib/people.ts. This file only reads, sends and records.
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.117.3";
 import webpush from "npm:web-push@3.6.7";
-import { afterAttempt, personReminders, sessionReminders, type Reminder } from "../../../web/src/lib/reminders.ts";
+import { afterAttempt, localDay, moodReminders, personReminders, sessionReminders, type Reminder } from "../../../web/src/lib/reminders.ts";
 import type { Person, Tier } from "../../../web/src/lib/people.ts";
 
 const DEFAULT_CONTACT_REMINDER_MIN = 19 * 60;
@@ -98,7 +98,7 @@ async function runForOwner(
 ): Promise<number> {
   const zone = subs[0]?.timezone ?? "UTC";
 
-  const [settings, people, sessions] = await Promise.all([
+  const [settings, people, sessions, mood] = await Promise.all([
     admin.from("work_settings").select("contact_reminder_min").eq("owner_id", owner).maybeSingle(),
     admin.from("people").select("id, name, tier, interval_days, last_contacted_at, created_at").eq("user_id", owner),
     admin
@@ -107,10 +107,12 @@ async function runForOwner(
       .eq("owner_id", owner)
       .gt("start_at", iso(now))
       .lte("start_at", iso(now + 10 * 60_000)),
+    admin.from("moods").select("day").eq("user_id", owner).eq("day", localDay(now, zone)).maybeSingle(),
   ]);
-  for (const result of [settings, people, sessions]) if (result.error) throw result.error;
+  for (const result of [settings, people, sessions, mood]) if (result.error) throw result.error;
 
   const candidates: Reminder[] = [
+    ...moodReminders(now, zone, mood.data !== null),
     ...sessionReminders(
       ((sessions.data ?? []) as SessionRowIn[]).map((s) => ({
         id: s.id,

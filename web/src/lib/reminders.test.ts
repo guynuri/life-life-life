@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { afterAttempt, formatTimeOfDay, localMinutes, MAX_ATTEMPTS, newlyUnplacedTitles, parseTimeOfDay, personReminders, placementReminder, sessionReminders, SESSION_LEAD_MS } from "./reminders";
+import { afterAttempt, formatTimeOfDay, localDay, localMinutes, MAX_ATTEMPTS, moodReminders, newlyUnplacedTitles, parseTimeOfDay, personReminders, placementReminder, sessionReminders, SESSION_LEAD_MS } from "./reminders";
 import type { Person } from "./people";
 
 const ZONE = "UTC";
@@ -113,5 +113,28 @@ describe("unplaced announcements", () => {
         { title: "Old deadline", deadline: "2026-10-20T00:00:00Z", wasUnplaced: true },
       ]),
     ).toEqual(["Taxes"]);
+  });
+});
+
+describe("mood reminder", () => {
+  it("is off before 22:00", () => {
+    expect(moodReminders(at(21, 59), ZONE, false)).toEqual([]);
+  });
+
+  it("fires at 22:00 when today's mood is blank, keyed by the local day", () => {
+    const [reminder] = moodReminders(at(22, 0, 12), ZONE, false);
+    expect(reminder?.dedupeKey).toBe("mood:2026-10-12");
+    expect(reminder?.fireAt).toBe(at(22, 0, 12));
+  });
+
+  it("does not fire when today's mood is already set", () => {
+    expect(moodReminders(at(23, 0), ZONE, true)).toEqual([]);
+  });
+
+  it("uses the zone's day, not UTC's", () => {
+    // 23:30 UTC on Oct 12 is 02:30 on Oct 13 in Jerusalem (UTC+3 in October).
+    const now = Date.UTC(2026, 9, 12, 23, 30);
+    expect(localDay(now, "Asia/Jerusalem")).toBe("2026-10-13");
+    expect(moodReminders(now, "Asia/Jerusalem", false)).toEqual([]);
   });
 });

@@ -181,6 +181,7 @@ Where this spec differs from the original spec, the change is listed under "Chan
   - [Decided] A task session, 10 minutes before it starts.
   - [Decided] New placements are announced. [Assumed] They are batched as one message per scheduler run.
   - [Decided] A person who becomes due, at the contact reminder time on the due day. The default is 19:00, and I can change it in settings. [Decided]
+  - [Decided] Today's mood, at 22:00, if today's mood is still blank. Once per day.
   - [Decided] Tasks that become unplaced because they cannot fit by their deadline. They are batched into the same message as new placements, once per scheduler run in which they newly become unplaced.
 - [Assumed] "Notifications on" for a device means that device has a push subscription registered. Turning them off removes it.
 - [Assumed] Reminder times use the time zone the device reports when it registers. The function uses the first registered device's zone for the owner.
