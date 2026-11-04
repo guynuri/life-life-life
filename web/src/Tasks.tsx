@@ -18,6 +18,7 @@ import { playDing, primeDing } from "./lib/ding";
 import { isGoogleAuthError } from "./lib/calendar";
 import type { Placement } from "./lib/scheduler";
 import { Icon, type IconName } from "./Icon";
+import { Loading, Spinner } from "./Loading";
 import { Sheet } from "./Sheet";
 
 interface TasksProps {
@@ -94,6 +95,9 @@ export function Tasks({ googleToken, googleReady, onReconnect, refreshTick }: Ta
   const [errors, setErrors] = useState<string[]>([]);
   const [reconnect, setReconnect] = useState(false);
   const [notices, setNotices] = useState<string[]>([]);
+  // Saves in flight behind the screen (done, delete, unschedule, and so on), and the sheet's own submit.
+  const [saves, setSaves] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
   const [sheet, setSheet] = useState<SheetState>(null);
   const [form, setForm] = useState<TaskInput>(emptyForm);
   const [edit, setEdit] = useState<TaskEditInput>({ title: "", durationMin: "", deadline: "" });
@@ -156,12 +160,22 @@ export function Tasks({ googleToken, googleReady, onReconnect, refreshTick }: Ta
     setSheet({ mode: "add" });
   }
 
+  // Runs one sheet save with its spinner on the submit button.
+  async function busy<T>(work: () => Promise<T>): Promise<T> {
+    setSubmitting(true);
+    try {
+      return await work();
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function add(event: FormEvent) {
     event.preventDefault();
     const parsed = parseTaskInput(form);
     if (!parsed.ok) return setErrors(parsed.errors);
     try {
-      await insertTask(parsed.value);
+      await busy(() => insertTask(parsed.value));
     } catch (error) {
       return setErrors([`Could not save task: ${messageOf(error)}`]);
     }
@@ -187,9 +201,11 @@ export function Tasks({ googleToken, googleReady, onReconnect, refreshTick }: Ta
     const task = data?.tasks.find((t) => t.id === id);
     const timeChanged = task !== undefined && (task.durationMin !== parsed.value.durationMin || !sameInstant(task.deadline, parsed.value.deadline));
     try {
-      // A changed duration or deadline replaces the placement: Google events go first, then the sessions (SPEC 2.5).
-      if (timeChanged) await replacePlacement(googleToken, id);
-      await updateTaskEdit(id, parsed.value);
+      await busy(async () => {
+        // A changed duration or deadline replaces the placement: Google events go first, then the sessions (SPEC 2.5).
+        if (timeChanged) await replacePlacement(googleToken, id);
+        await updateTaskEdit(id, parsed.value);
+      });
     } catch (error) {
       return fail("Could not save task", error);
     }
@@ -204,11 +220,14 @@ export function Tasks({ googleToken, googleReady, onReconnect, refreshTick }: Ta
   async function optimistic(change: (loaded: Loaded) => Loaded, save: () => Promise<unknown>, failure: string) {
     setData((d) => d && change(d));
     setErrors([]);
+    setSaves((n) => n + 1);
     try {
       await save();
     } catch (error) {
       await loadStored();
       return fail(failure, error);
+    } finally {
+      setSaves((n) => n - 1);
     }
     void refresh();
   }
@@ -302,6 +321,7 @@ export function Tasks({ googleToken, googleReady, onReconnect, refreshTick }: Ta
           {data && <p className="page-sub">{data.tasks.length === 0 ? "Nothing yet" : `${active.length} on your list`}</p>}
         </div>
         <div className="topbar-actions">
+          {saves > 0 && <Spinner label="Saving" />}
           <button type="button" className="btn primary" onClick={openAdd}>
             <Icon name="plus" size={18} />
             New
@@ -325,7 +345,7 @@ export function Tasks({ googleToken, googleReady, onReconnect, refreshTick }: Ta
       ))}
 
       {data === null ? (
-        errors.length === 0 && <p className="status">Loading...</p>
+        errors.length === 0 && <Loading label="Loading tasks…" />
       ) : data.tasks.length === 0 ? (
         <p className="empty">No tasks yet. Tap New to add the first one.</p>
       ) : (
@@ -533,9 +553,15 @@ export function Tasks({ googleToken, googleReady, onReconnect, refreshTick }: Ta
               <input type="datetime-local" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
             </label>
 
-            <button type="submit" className="btn primary block">
-              <Icon name="plus" size={18} />
-              Add task
+            <button type="submit" className="btn primary block" disabled={submitting}>
+              {submitting ? (
+                <Spinner label="Saving" />
+              ) : (
+                <>
+                  <Icon name="plus" size={18} />
+                  Add task
+                </>
+              )}
             </button>
           </form>
         </Sheet>
@@ -565,8 +591,8 @@ export function Tasks({ googleToken, googleReady, onReconnect, refreshTick }: Ta
               <input type="datetime-local" value={edit.deadline} onChange={(e) => setEdit({ ...edit, deadline: e.target.value })} />
             </label>
             <p className="meta">Changing the time moves the task&rsquo;s sessions to a new slot.</p>
-            <button type="submit" className="btn primary block">
-              Save changes
+            <button type="submit" className="btn primary block" disabled={submitting}>
+              {submitting ? <Spinner label="Saving" /> : "Save changes"}
             </button>
           </form>
         </Sheet>

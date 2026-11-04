@@ -8,6 +8,7 @@ import { listSessions, listTasks } from "./lib/tasksData";
 import { listAllEvents } from "./lib/calendar";
 import { fixedEventsFrom, type FixedEvent } from "./lib/fixedEvents";
 import { Icon } from "./Icon";
+import { Loading } from "./Loading";
 
 // Each part loads on its own, so a failed read shows an error for that part only (SPEC principles).
 // data is undefined while loading and null after a failed read.
@@ -97,6 +98,7 @@ export function Today({ refreshTick, googleToken }: { refreshTick: number; googl
             Could not load sessions: {sessions.error}
           </p>
         )}
+        {sessions.data === undefined && !sessions.error && <Loading label="Loading sessions…" />}
         {sessions.data?.length === 0 && <p className="empty">No sessions today.</p>}
         {sessions.data && sessions.data.length > 0 && (
           <ul className="stack">
@@ -131,6 +133,7 @@ export function Today({ refreshTick, googleToken }: { refreshTick: number; googl
             Could not load fixed events: {fixed.error}
           </p>
         )}
+        {fixed.data === undefined && !fixed.error && <Loading label="Loading fixed events…" />}
         {fixed.data?.length === 0 && <p className="empty">No fixed events today.</p>}
         {fixed.data && fixed.data.length > 0 && (
           <ul className="stack">
@@ -164,6 +167,7 @@ export function Today({ refreshTick, googleToken }: { refreshTick: number; googl
             Could not load people: {due.error}
           </p>
         )}
+        {due.data === undefined && !due.error && <Loading label="Loading people…" />}
         {due.data?.length === 0 && <p className="empty">Nobody is due.</p>}
         {due.data && due.data.length > 0 && (
           <ul className="stack">
@@ -197,6 +201,7 @@ export function Today({ refreshTick, googleToken }: { refreshTick: number; googl
             Could not load mood: {mood.error}
           </p>
         )}
+        {mood.data === undefined && !mood.error && <Loading label="Loading mood…" />}
         {mood.data === null && !mood.error && <p className="empty">Not set</p>}
         {mood.data && (
           <p className="today-mood">

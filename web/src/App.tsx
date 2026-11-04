@@ -9,6 +9,7 @@ import { Today } from "./Today";
 import { Events } from "./Events";
 import { Settings } from "./Settings";
 import { Icon, type IconName } from "./Icon";
+import { Loading } from "./Loading";
 import { placeTasks } from "./lib/calendarSync";
 import { clearCalendarCache } from "./lib/fixedEvents";
 import { placementQueue } from "./lib/serialQueue";
@@ -113,7 +114,7 @@ export function App() {
   if (!configured) {
     return <Shell status="Set the Supabase URL and anon key in web/src/lib/config.ts." />;
   }
-  if (!ready) return <Shell status="Loading..." />;
+  if (!ready) return <Shell><Loading label="Loading…" /></Shell>;
 
   if (!session) {
     return (

@@ -4,6 +4,7 @@ import type { WorkHours } from "./lib/scheduler";
 import { minutesToTime, timeToMinutes, validateWorkHours } from "./lib/workHours";
 import { Reminders } from "./Reminders";
 import { Icon } from "./Icon";
+import { Loading } from "./Loading";
 import { applyTheme, saveTheme, type Theme } from "./lib/theme";
 
 const THEMES: { value: Theme; label: string; icon: "today" | "moon" }[] = [
@@ -124,7 +125,7 @@ export function Settings({ onSaved }: SettingsProps) {
             </button>
           </div>
         ) : (
-          <p className="status">Loading...</p>
+          <Loading label="Loading settings…" />
         )
       ) : (
         <form className="form" aria-label="Work hours" onSubmit={save}>

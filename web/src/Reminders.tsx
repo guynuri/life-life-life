@@ -3,6 +3,7 @@ import { formatTimeOfDay, parseTimeOfDay } from "./lib/reminders";
 import { DEFAULT_CONTACT_REMINDER_MIN, getContactReminderMin, saveContactReminderMin } from "./lib/remindersData";
 import { deviceStatus, needsHomeScreen, turnOff, turnOn } from "./lib/push";
 import { Icon } from "./Icon";
+import { Spinner } from "./Loading";
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : typeof error === "object" && error !== null && "message" in error ? String(error.message) : String(error);
@@ -107,7 +108,7 @@ export function Reminders() {
       <div className="row">
         <div className="row-body">
           <strong>Reach-out reminder</strong>
-          <span className="meta">{storedMin !== null ? `Saved for ${formatTimeOfDay(storedMin)}` : "Loading..."}</span>
+          <span className="meta">{storedMin !== null ? `Saved for ${formatTimeOfDay(storedMin)}` : <Spinner label="Loading reminder time" />}</span>
         </div>
         <div className="time-field">
           <input

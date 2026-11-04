@@ -3,6 +3,7 @@ import type { CalendarInfo } from "./lib/calendarEvents";
 import { isGoogleAuthError } from "./lib/calendar";
 import { createFixedEvent, getCalendars, parseLocalInput, toLocalInput, updateFixedEvent, type FixedEvent } from "./lib/fixedEvents";
 import { Sheet } from "./Sheet";
+import { Spinner } from "./Loading";
 
 // Add or edit a fixed-time event: title, start, duration, category (a calendar). Google is called before the sheet closes.
 const HALF_HOUR = 30 * 60_000;
@@ -110,7 +111,9 @@ export function FixedEventSheet({
           <input type="number" inputMode="numeric" min={5} step={1} value={duration} onChange={(e) => setDuration(e.target.value)} />
         </label>
         <label className="field">
-          <span>Category</span>
+          <span>
+            Category {calendars === null && !loadError && <Spinner label="Loading categories" />}
+          </span>
           <select value={calendarId} onChange={(e) => setCalendarId(e.target.value)} disabled={calendars === null}>
             {calendars?.map((c) => (
               <option key={c.id} value={c.id}>
@@ -122,7 +125,7 @@ export function FixedEventSheet({
         </label>
 
         <button type="submit" className="btn primary block" disabled={saving}>
-          {current ? "Save changes" : "Add event"}
+          {saving ? <Spinner label="Saving" /> : current ? "Save changes" : "Add event"}
         </button>
       </form>
     </Sheet>
