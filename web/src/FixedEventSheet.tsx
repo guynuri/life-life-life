@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import type { CalendarInfo } from "./lib/calendarEvents";
 import { isGoogleAuthError } from "./lib/calendar";
-import { createFixedEvent, deleteFixedEvent, getCalendars, parseLocalInput, toLocalInput, updateFixedEvent, type FixedEvent } from "./lib/fixedEvents";
+import { createFixedEvent, getCalendars, parseLocalInput, toLocalInput, updateFixedEvent, type FixedEvent } from "./lib/fixedEvents";
 import { Sheet } from "./Sheet";
 
 // Add or edit a fixed-time event: title, start, duration, category (a calendar). Google is called before the sheet closes.
@@ -39,7 +39,6 @@ export function FixedEventSheet({
   const [calendarId, setCalendarId] = useState(current?.calendarId ?? "primary");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -75,20 +74,6 @@ export function FixedEventSheet({
     } catch (e) {
       setError(messageOf(e));
       setNeedsReconnect(isGoogleAuthError(e));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function remove() {
-    if (!current) return;
-    setSaving(true);
-    setError(null);
-    try {
-      await deleteFixedEvent(googleToken, current);
-      onSaved();
-    } catch (e) {
-      setError(messageOf(e));
     } finally {
       setSaving(false);
     }
@@ -137,25 +122,9 @@ export function FixedEventSheet({
         </label>
 
         <button type="submit" className="btn primary block" disabled={saving}>
-          Save
+          {current ? "Save changes" : "Add event"}
         </button>
       </form>
-
-      {current &&
-        (confirmingDelete ? (
-          <div className="row-actions">
-            <button type="button" className="btn danger block" onClick={remove} disabled={saving}>
-              Delete event
-            </button>
-            <button type="button" className="btn ghost block" onClick={() => setConfirmingDelete(false)}>
-              Keep it
-            </button>
-          </div>
-        ) : (
-          <button type="button" className="btn danger block" onClick={() => setConfirmingDelete(true)}>
-            Delete…
-          </button>
-        ))}
     </Sheet>
   );
 }
