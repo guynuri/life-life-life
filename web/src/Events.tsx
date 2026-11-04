@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { listAllEvents } from "./lib/calendar";
 import { dayLabel } from "./lib/moodView";
-import { fixedEventsFrom, type FixedEvent } from "./lib/fixedEvents";
+import { fixedEventsFrom, groupByDay, type FixedEvent } from "./lib/fixedEvents";
 import { dayBounds, formatClock } from "./lib/today";
 import { FixedEventSheet } from "./FixedEventSheet";
 import { Icon } from "./Icon";
@@ -90,24 +90,27 @@ export function Events({
         </p>
       )}
       {events?.length === 0 && <p className="empty">No events in the next {WINDOW_DAYS} days.</p>}
-      {events && events.length > 0 && (
-        <ul className="stack">
-          {events.map((f) => (
-            <li key={f.eventId}>
-              <button type="button" className="row today-fixed" onClick={() => setSheet({ current: f })}>
-                <div className="row-body">
-                  <strong>{f.title || "(no title)"}</strong>
-                  <span className="meta">{dayLabel(new Date(f.start))}</span>
-                </div>
-                <span className="pill time">
-                  <Icon name="clock" size={14} />
-                  {formatClock(f.start)}–{formatClock(f.end)}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      {events &&
+        groupByDay(events).map((group) => (
+          <section className="day-group" key={group.day} aria-label={dayLabel(new Date(group.day))}>
+            <h2 className="day-title">{dayLabel(new Date(group.day))}</h2>
+            <ul className="stack">
+              {group.events.map((f) => (
+                <li key={f.eventId}>
+                  <button type="button" className="row today-fixed" onClick={() => setSheet({ current: f })}>
+                    <div className="row-body">
+                      <strong>{f.title || "(no title)"}</strong>
+                    </div>
+                    <span className="pill time">
+                      <Icon name="clock" size={14} />
+                      {formatClock(f.start)}–{formatClock(f.end)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
 
       {sheet && (
         <FixedEventSheet

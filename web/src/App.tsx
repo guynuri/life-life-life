@@ -132,6 +132,9 @@ export function App() {
     <Shell
       actions={
         <>
+          <a className="icon-btn" href="#/settings" aria-label="Settings" title="Settings">
+            <Icon name="settings" />
+          </a>
           <button
             type="button"
             className="icon-btn"
@@ -177,7 +180,10 @@ export function App() {
       </div>
 
       <nav className="tabbar" role="tablist" aria-label="Pages">
-        {pages.map((p) => (
+        {/* Settings lives in the top bar, so the tab bar holds five tabs on one row. */}
+        {pages
+          .filter((p) => p.id !== "settings")
+          .map((p) => (
           <button
             key={p.id}
             type="button"

@@ -369,6 +369,17 @@ select {
   background: var(--butter);
 }
 
+/* Events grouped by day: a heading per day, then its events. */
+.day-group + .day-group {
+  margin-top: 20px;
+}
+.day-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin: 0 0 8px;
+}
+
 .stack {
   list-style: none;
   margin: 0;

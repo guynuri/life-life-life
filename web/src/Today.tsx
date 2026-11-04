@@ -119,8 +119,8 @@ export function Today({ refreshTick, googleToken }: { refreshTick: number; googl
       <article className="card">
         <h2 className="card-title">
           <a className="card-link" href="#/events">
-            <span className="card-icon tint-lilac">
-              <Icon name="calendar" />
+            <span className="card-icon tint-butter">
+              <Icon name="clock" />
             </span>
             Fixed events
             <Icon name="chevronRight" size={18} />
