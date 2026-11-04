@@ -3,7 +3,7 @@ import { dueNow, everyone, initialsOf, intervalDaysFor, TIER_INTERVAL_DAYS, type
 import { addPerson, listPeople, markContacted, removePerson, updatePerson } from "./lib/peopleStore";
 import { Icon } from "./Icon";
 import { Sheet } from "./Sheet";
-import { Loading } from "./Loading";
+import { Loading, Spinner } from "./Loading";
 
 type View = "due" | "all";
 type Editing = { mode: "new" } | { mode: "edit"; person: Person } | null;
@@ -23,6 +23,8 @@ export function People({ refreshTick }: { refreshTick: number }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   // Kept until the next successful save, so a later successful re-read does not hide it.
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Saves in flight (add, edit, contacted, remove), shown as a spinner in the header.
+  const [saves, setSaves] = useState(0);
 
   // Re-reads the stored list, so the screen shows what is saved, not what was attempted.
   const reload = useCallback(async () => {
@@ -49,6 +51,7 @@ export function People({ refreshTick }: { refreshTick: number }) {
   }, [reload, refreshTick]);
 
   async function write(action: () => Promise<void>) {
+    setSaves((n) => n + 1);
     try {
       await action();
       setSaveError(null);
@@ -56,6 +59,8 @@ export function People({ refreshTick }: { refreshTick: number }) {
       setConfirmRemoveId(null);
     } catch (e) {
       setSaveError(`Save failed: ${errorText(e)}`);
+    } finally {
+      setSaves((n) => n - 1);
     }
     await reload();
   }
@@ -64,6 +69,7 @@ export function People({ refreshTick }: { refreshTick: number }) {
   async function optimistic(change: (list: Person[]) => Person[], action: () => Promise<void>) {
     const before = people;
     if (before) setPeople(change(before));
+    setSaves((n) => n + 1);
     try {
       await action();
       setSaveError(null);
@@ -71,6 +77,8 @@ export function People({ refreshTick }: { refreshTick: number }) {
     } catch (e) {
       if (before) setPeople(before);
       setSaveError(`Save failed: ${errorText(e)}`);
+    } finally {
+      setSaves((n) => n - 1);
     }
   }
 
@@ -92,6 +100,7 @@ export function People({ refreshTick }: { refreshTick: number }) {
           <h1 className="page-title">People</h1>
           <p className="page-sub">{people.length === 0 ? "Nobody added yet" : `${people.length} in your circle`}</p>
         </div>
+        {saves > 0 && <Spinner label="Saving" />}
         <button type="button" className="btn primary" onClick={() => setEditing({ mode: "new" })}>
           <Icon name="plus" size={18} />
           Add person
