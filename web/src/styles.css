@@ -276,6 +276,34 @@ select {
   animation: spin 0.9s linear infinite;
 }
 
+/* Loaders: a ring that spins while data is read or a save is running. Inside a button it takes the button's text colour. */
+.spinner {
+  display: inline-block;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--rule);
+  border-top-color: var(--ink-soft);
+  border-radius: 50%;
+  vertical-align: middle;
+  animation: spin 0.8s linear infinite;
+}
+.btn .spinner {
+  width: 16px;
+  height: 16px;
+  border-color: currentColor;
+  border-top-color: transparent;
+  opacity: 0.8;
+}
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 18px 0;
+  color: var(--ink-soft);
+}
+
 /* Chips are the tap targets for task and person actions: at least 40px tall. */
 .chip {
   min-height: 40px;

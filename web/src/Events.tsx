@@ -5,6 +5,7 @@ import { deleteFixedEvent, fixedEventsFrom, groupByDay, type FixedEvent } from "
 import { dayBounds, formatClock } from "./lib/today";
 import { FixedEventSheet } from "./FixedEventSheet";
 import { Icon } from "./Icon";
+import { Loading, Spinner } from "./Loading";
 
 // Fixed-time events in the next 30 days. Add and edit live here, not on Today (fixed events are stored in Google).
 const WINDOW_DAYS = 30;
@@ -38,16 +39,20 @@ export function Events({
   const [sheet, setSheet] = useState<{ current: FixedEvent | null } | null>(null);
   // Delete is confirmed inline on the card, as on Tasks; the id of the card asking.
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   async function remove(event: FixedEvent) {
-    setConfirmingId(null);
     setActionError(null);
+    setDeletingId(event.eventId);
     try {
       await deleteFixedEvent(googleToken, event);
+      setConfirmingId(null);
       setReloadKey((k) => k + 1);
     } catch (e) {
       setActionError(messageOf(e));
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -108,6 +113,7 @@ export function Events({
           Could not delete the event: {actionError}
         </p>
       )}
+      {events === undefined && !error && <Loading label="Loading events…" />}
       {events?.length === 0 && <p className="empty">No events in the next {WINDOW_DAYS} days.</p>}
       {events &&
         groupByDay(events).map((group) => (
@@ -159,8 +165,8 @@ export function Events({
                   {confirmingId === f.eventId && (
                     <div className="confirm">
                       <span>Delete &ldquo;{f.title || "(no title)"}&rdquo;?</span>
-                      <button type="button" className="btn danger small" onClick={() => remove(f)}>
-                        Yes, delete
+                      <button type="button" className="btn danger small" onClick={() => remove(f)} disabled={deletingId === f.eventId}>
+                        {deletingId === f.eventId ? <Spinner label="Deleting" /> : "Yes, delete"}
                       </button>
                       <button type="button" className="btn ghost small" onClick={() => setConfirmingId(null)}>
                         Keep it

@@ -3,6 +3,7 @@ import { dueNow, everyone, initialsOf, intervalDaysFor, TIER_INTERVAL_DAYS, type
 import { addPerson, listPeople, markContacted, removePerson, updatePerson } from "./lib/peopleStore";
 import { Icon } from "./Icon";
 import { Sheet } from "./Sheet";
+import { Loading } from "./Loading";
 
 type View = "due" | "all";
 type Editing = { mode: "new" } | { mode: "edit"; person: Person } | null;
@@ -76,7 +77,7 @@ export function People({ refreshTick }: { refreshTick: number }) {
   if (people === null) {
     return (
       <section className="page">
-        {loadError ? <p className="error">{loadError}</p> : <p className="status">Loading people...</p>}
+        {loadError ? <p className="error">{loadError}</p> : <Loading label="Loading people…" />}
       </section>
     );
   }

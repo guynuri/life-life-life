@@ -18,6 +18,7 @@ import { playDing, primeDing } from "./lib/ding";
 import { isGoogleAuthError } from "./lib/calendar";
 import type { Placement } from "./lib/scheduler";
 import { Icon, type IconName } from "./Icon";
+import { Loading } from "./Loading";
 import { Sheet } from "./Sheet";
 
 interface TasksProps {
@@ -325,7 +326,7 @@ export function Tasks({ googleToken, googleReady, onReconnect, refreshTick }: Ta
       ))}
 
       {data === null ? (
-        errors.length === 0 && <p className="status">Loading...</p>
+        errors.length === 0 && <Loading label="Loading tasks…" />
       ) : data.tasks.length === 0 ? (
         <p className="empty">No tasks yet. Tap New to add the first one.</p>
       ) : (

@@ -22,6 +22,7 @@ import {
   type Rgb,
 } from "./lib/moodView";
 import { Sheet } from "./Sheet";
+import { Loading } from "./Loading";
 
 const rgbCss = (c: Rgb) => `rgb(${c.join(", ")})`;
 // Supabase errors are plain objects, not Error instances, so read .message by shape.
@@ -120,6 +121,8 @@ export function MoodScreen({ refreshTick }: { refreshTick: number }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // False until the first read finishes, so the grid shows a loader rather than empty days.
+  const [moodsLoaded, setMoodsLoaded] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -128,12 +131,14 @@ export function MoodScreen({ refreshTick }: { refreshTick: number }) {
         if (!live) return;
         setStored(m);
         setLoadError(null);
+        setMoodsLoaded(true);
       },
       (e: unknown) => {
         if (!live) return;
         // Show nothing rather than entries we could not confirm.
         setStored(new Map());
         setLoadError(`Could not load moods: ${message(e)}`);
+        setMoodsLoaded(true);
       },
     );
     return () => {
@@ -231,6 +236,7 @@ export function MoodScreen({ refreshTick }: { refreshTick: number }) {
       </header>
 
       {loadError && <p className="toast error" role="alert">{loadError}</p>}
+      {!moodsLoaded && !loadError && <Loading label="Loading moods…" />}
 
       <div
         ref={scrollRef}
