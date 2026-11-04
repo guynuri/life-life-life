@@ -20,7 +20,15 @@ async function loadUpcoming(token: string | null): Promise<FixedEvent[]> {
   return fixedEventsFrom(await listAllEvents(token, from, to)).filter((f) => f.start >= from && f.start < to);
 }
 
-export function Events({ googleToken, refreshTick }: { googleToken: string | null; refreshTick: number }) {
+export function Events({
+  googleToken,
+  refreshTick,
+  onReconnect,
+}: {
+  googleToken: string | null;
+  refreshTick: number;
+  onReconnect?: () => void;
+}) {
   const [events, setEvents] = useState<FixedEvent[] | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -91,6 +99,7 @@ export function Events({ googleToken, refreshTick }: { googleToken: string | nul
       {sheet && (
         <FixedEventSheet
           googleToken={googleToken}
+          onReconnect={onReconnect}
           current={sheet.current}
           onClose={() => setSheet(null)}
           onSaved={() => {

@@ -72,7 +72,7 @@ test("a failed people read shows an error for that part and keeps the sessions",
   await page.goto("/");
 
   const today = page.locator("section.today");
-  await expect(today.getByRole("alert")).toContainText("Could not load people: people unavailable");
+  await expect(today.getByRole("alert").filter({ hasText: "Could not load people" })).toContainText("Could not load people: people unavailable");
   const sessionItems = today.locator(".today-session");
   await expect(sessionItems).toHaveCount(2);
   await expect(today.locator(".today-mood")).toContainText("calm");

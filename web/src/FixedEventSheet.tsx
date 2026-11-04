@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import type { CalendarInfo } from "./lib/calendarEvents";
+import { isGoogleAuthError } from "./lib/calendar";
 import { createFixedEvent, deleteFixedEvent, getCalendars, parseLocalInput, toLocalInput, updateFixedEvent, type FixedEvent } from "./lib/fixedEvents";
 import { Sheet } from "./Sheet";
 
@@ -20,14 +21,18 @@ export function FixedEventSheet({
   current,
   onSaved,
   onClose,
+  onReconnect,
 }: {
   googleToken: string | null;
   current: FixedEvent | null;
   onSaved: () => void;
   onClose: () => void;
+  onReconnect?: () => void;
 }) {
   const [calendars, setCalendars] = useState<CalendarInfo[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // 401 or 403: the Google grant is missing or predates the calendar list scope. Offer Reconnect instead of a raw error.
+  const [needsReconnect, setNeedsReconnect] = useState(false);
   const [title, setTitle] = useState(current?.title ?? "");
   const [start, setStart] = useState(toLocalInput(current?.start ?? nextHalfHour(Date.now())));
   const [duration, setDuration] = useState(String(current ? Math.round((current.end - current.start) / 60_000) : 60));
@@ -45,7 +50,11 @@ export function FixedEventSheet({
         // A new event goes to the primary calendar when it is writable, otherwise the first category.
         if (!current && !list.some((c) => c.id === "primary") && list[0]) setCalendarId(list[0].id);
       },
-      (e: unknown) => live && setLoadError(messageOf(e)),
+      (e: unknown) => {
+        if (!live) return;
+        setLoadError(messageOf(e));
+        setNeedsReconnect(isGoogleAuthError(e));
+      },
     );
     return () => {
       live = false;
@@ -65,6 +74,7 @@ export function FixedEventSheet({
       onSaved();
     } catch (e) {
       setError(messageOf(e));
+      setNeedsReconnect(isGoogleAuthError(e));
     } finally {
       setSaving(false);
     }
@@ -95,6 +105,11 @@ export function FixedEventSheet({
         <p className="error" role="alert">
           Could not load categories: {loadError}
         </p>
+      )}
+      {needsReconnect && onReconnect && (
+        <button type="button" className="btn primary block" onClick={onReconnect}>
+          Reconnect Google
+        </button>
       )}
       <form className="form" aria-label={current ? "Edit event" : "Add event"} onSubmit={save}>
         <label className="field">
