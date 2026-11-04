@@ -21,6 +21,25 @@ export interface FixedEventInput {
 const MINUTE_MS = 60_000;
 const MIN_DURATION_MINUTES = 5;
 
+// Events for one local day. day is that day's local midnight, in epoch ms.
+export interface DayGroup {
+  day: number;
+  events: FixedEvent[];
+}
+
+// Groups events by the local day they start on: days in order, events in start order within each day.
+export function groupByDay(events: readonly FixedEvent[]): DayGroup[] {
+  const byDay = new Map<number, FixedEvent[]>();
+  for (const event of events) {
+    const d = new Date(event.start);
+    const day = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    byDay.set(day, [...(byDay.get(day) ?? []), event]);
+  }
+  return [...byDay.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([day, list]) => ({ day, events: [...list].sort((a, b) => a.start - b.start) }));
+}
+
 // The first problem with the input as a message, or null when it can be saved.
 export function validateFixedEvent(input: FixedEventInput, now: number): string | null {
   if (input.title.trim() === "") return "Add a title.";

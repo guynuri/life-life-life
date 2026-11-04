@@ -8,10 +8,12 @@ import {
   fixedEventBody,
   fixedEventsFrom,
   getCalendars,
+  groupByDay,
   parseLocalInput,
   toLocalInput,
   updateFixedEvent,
   validateFixedEvent,
+  type FixedEvent,
   type FixedEventInput,
 } from "./fixedEvents";
 
@@ -90,6 +92,25 @@ describe("fixedEventsFrom", () => {
   it("carries the title and calendar", () => {
     const [item] = fixedEventsFrom([{ calendarId: "cal-1", event: fixedEv("a", "2026-11-03T08:00:00", "2026-11-03T09:00:00") }]);
     expect(item).toMatchObject({ eventId: "a", calendarId: "cal-1", title: "Fixed a" });
+  });
+});
+
+describe("groupByDay", () => {
+  const at = (day: number, hour: number) => new Date(2026, 10, day, hour, 0).getTime();
+  const ev = (id: string, start: number): FixedEvent => ({ eventId: id, calendarId: "c", title: id, start, end: start + 3_600_000 });
+
+  it("groups events by their local day, days in order, events in time order", () => {
+    const groups = groupByDay([ev("b", at(6, 13)), ev("a", at(5, 15)), ev("c", at(5, 9))]);
+    expect(groups.map((g) => g.events.map((e) => e.eventId))).toEqual([["c", "a"], ["b"]]);
+  });
+
+  it("gives each group the local midnight of its day", () => {
+    const [first] = groupByDay([ev("a", at(5, 15))]);
+    expect(first?.day).toBe(new Date(2026, 10, 5).getTime());
+  });
+
+  it("returns no groups for no events", () => {
+    expect(groupByDay([])).toEqual([]);
   });
 });
 
