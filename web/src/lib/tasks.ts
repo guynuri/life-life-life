@@ -1,4 +1,5 @@
 // Pure task rules (SPEC 2.1, 2.6, 2.7). No DOM, no network.
+import { parseDuration as parseDurationFields, type DurationFields } from "./duration";
 
 export type TaskType = "big" | "work_day" | "short_fixed";
 export type ConditionPlace = "any" | "work" | "home";
@@ -22,7 +23,7 @@ export interface Task {
 export interface TaskInput {
   title: string;
   type: TaskType;
-  durationMin: string;
+  duration: DurationFields; // hours and minutes as typed; stored as durationMin
   topic: string;
   deadline: string; // datetime-local value, or "" for none
   spreadDays: string;
@@ -31,7 +32,7 @@ export interface TaskInput {
 
 export interface TaskEditInput {
   title: string;
-  durationMin: string;
+  duration: DurationFields;
   deadline: string;
 }
 
@@ -59,7 +60,7 @@ export function sortTasks(tasks: readonly Task[]): Task[] {
 export function parseTaskInput(input: TaskInput): ParseResult<NewTask> {
   const errors: string[] = [];
   const title = parseTitle(input.title, errors);
-  const durationMin = parseDuration(input.durationMin, errors);
+  const durationMin = parseDuration(input.duration, errors);
   const deadline = parseDeadline(input.deadline, errors);
 
   let spreadDays: number | null = null;
@@ -84,7 +85,7 @@ export function parseTaskInput(input: TaskInput): ParseResult<NewTask> {
 export function parseTaskEdit(input: TaskEditInput): ParseResult<TaskEdit> {
   const errors: string[] = [];
   const title = parseTitle(input.title, errors);
-  const durationMin = parseDuration(input.durationMin, errors);
+  const durationMin = parseDuration(input.duration, errors);
   const deadline = parseDeadline(input.deadline, errors);
   if (errors.length > 0 || title === null || durationMin === null) {
     return { ok: false, errors };
@@ -109,13 +110,14 @@ function parseTitle(raw: string, errors: string[]): string | null {
   return title;
 }
 
-function parseDuration(raw: string, errors: string[]): number | null {
-  const value = Number(raw.trim());
-  if (raw.trim() === "" || !Number.isInteger(value) || value <= 0) {
-    errors.push("Duration must be a whole number of minutes, more than 0.");
+// Hours and minutes as typed, to total minutes.
+function parseDuration(fields: DurationFields, errors: string[]): number | null {
+  const minutes = parseDurationFields(fields);
+  if (minutes === null) {
+    errors.push("Duration must be whole hours and minutes, more than 0 in total.");
     return null;
   }
-  return value;
+  return minutes;
 }
 
 function parseSpread(raw: string, errors: string[]): number | null {

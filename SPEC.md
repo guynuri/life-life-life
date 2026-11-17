@@ -27,7 +27,7 @@ Where this spec differs from the original spec, the change is listed under "Chan
 
 - Read events from every calendar I can write to. Task sessions are created on my primary calendar. A refresh re-reads Google, so edits I make there appear in the app. [Decided]
 - Read busy times from every calendar I can write to, to find open slots for the scheduler. [Decided]
-- I can add, edit, and delete fixed-time events from the app: title, start, duration in minutes, and category. A category is one of my Google calendars. The event gets that calendar's default reminders. Fixed events show on Today and block time for placed tasks. Google Calendar stays the only place they are stored. [Decided]
+- I can add, edit, and delete fixed-time events from the app: title, start, duration (entered as hours and minutes, e.g. 2 h 45 min), and category. A category is one of my Google calendars. The event gets that calendar's default reminders. Fixed events show on Today and block time for placed tasks. Google Calendar stays the only place they are stored. [Decided]
 - Create calendar events for scheduled tasks. Each app-created event links back to its task. [Decided]
   - One event per session, titled with the task's title. [Assumed]
 - Sync on each refresh: [Decided]
@@ -53,7 +53,7 @@ Where this spec differs from the original spec, the change is listed under "Chan
   - *Big*: a task that takes several sessions, spread over time. [Decided]
   - *Work day*: a task done on a work day (Sunday to Thursday). It has no time slot; see 2.4. Its Condition is always Place = Work. [Decided]
   - *Short fixed item*: a short task of a fixed length, like shopping. [Decided]
-- **Duration** in minutes, required. For a big task, this is the total time across all its sessions. [Assumed]
+- **Duration**, required. Entered as hours and minutes (e.g. 2 h 45 min), either may be blank; stored as total minutes. For a big task, this is the total time across all its sessions. [Assumed]
 - **Topic**, optional free text. Blank means no topic. Shown on the task. [Decided]
 - **Deadline**, optional. The latest time the task may be done. [Assumed]
 - **Spread over (days)**, required for a big task. [Decided] Not used for other types. [Assumed]
