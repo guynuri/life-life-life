@@ -1,15 +1,29 @@
-// Durations are typed in hours (decimals allowed, e.g. "0.5") and stored in whole minutes. No DOM, no network.
+// Durations are typed as hours plus minutes (e.g. 2 h 45 min) and stored in whole minutes. No DOM, no network.
 
-// Minutes for a typed number of hours, rounded to the nearest minute. Accepts "." or "," as the decimal mark.
-// null when the text is not a number of hours above 0, or rounds to 0 minutes.
-export function parseHours(raw: string): number | null {
-  const text = raw.trim().replace(",", ".");
-  if (!/^(\d+\.?\d*|\.\d+)$/.test(text)) return null;
-  const minutes = Math.round(Number(text) * 60);
-  return minutes > 0 ? minutes : null;
+export interface DurationFields {
+  hours: string;
+  minutes: string;
 }
 
-// Hours text for a number of minutes, with at most two decimals: 30 -> "0.5", 90 -> "1.5", 80 -> "1.33".
-export function formatHours(minutes: number): string {
-  return String(Math.round((minutes / 60) * 100) / 100);
+export const emptyDuration: DurationFields = { hours: "", minutes: "" };
+
+// Total minutes for the typed hours and minutes. A blank field counts as 0.
+// null when either field is not a whole number of 0 or more, or the total is 0.
+export function parseDuration(fields: DurationFields): number | null {
+  const hours = wholeOrZero(fields.hours);
+  const minutes = wholeOrZero(fields.minutes);
+  if (hours === null || minutes === null) return null;
+  const total = hours * 60 + minutes;
+  return total > 0 ? total : null;
+}
+
+// The fields for a stored duration: 165 -> 2 h 45 min, 30 -> 0 h 30 min, 120 -> 2 h 0 min.
+export function splitDuration(totalMinutes: number): DurationFields {
+  return { hours: String(Math.floor(totalMinutes / 60)), minutes: String(totalMinutes % 60) };
+}
+
+function wholeOrZero(raw: string): number | null {
+  const text = raw.trim();
+  if (text === "") return 0;
+  return /^\d+$/.test(text) ? Number(text) : null;
 }

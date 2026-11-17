@@ -1059,3 +1059,26 @@ button.session {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Duration: hours and minutes side by side, each with its unit. */
+.field legend {
+  padding: 0;
+  margin-bottom: 6px;
+}
+
+.duration-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.duration-part {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.duration-part span {
+  flex: none;
+}

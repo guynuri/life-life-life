@@ -72,7 +72,7 @@ test("a big task is placed as several sessions; tasks stay in deadline order; ed
   const addForm = page.getByRole("form", { name: "Add task" });
   await addForm.getByLabel("Title").fill("Plan trip");
   await addForm.getByRole("radio", { name: "Big" }).click();
-  await addForm.getByLabel("Duration (hours)").fill("2");
+  await addForm.getByLabel("Hours").fill("2");
   await addForm.getByLabel("Spread over (days)").fill("2");
   await addForm.getByRole("button", { name: "Add task" }).click();
   const planItem = page.getByRole("listitem").filter({ hasText: "Plan trip" });
@@ -89,6 +89,9 @@ test("a big task is placed as several sessions; tasks stay in deadline order; ed
   await payItem.getByRole("button", { name: "Edit" }).click();
   // The edit form opens in a sheet named Edit task.
   const editForm = page.getByRole("form", { name: "Edit task" });
+  // The stored 20 minutes shows as 0 h 20 min.
+  await expect(editForm.getByLabel("Hours")).toHaveValue("0");
+  await expect(editForm.getByLabel("Minutes")).toHaveValue("20");
   await editForm.getByLabel("Title").fill("Pay rent now");
   await editForm.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "Pay rent now" })).toBeVisible();
@@ -111,7 +114,7 @@ test("a failed save is shown and the list keeps the stored state", async ({ page
   await page.getByRole("button", { name: "New", exact: true }).click();
   const addForm = page.getByRole("form", { name: "Add task" });
   await addForm.getByLabel("Title").fill("Will not save");
-  await addForm.getByLabel("Duration (hours)").fill("0.5");
+  await addForm.getByLabel("Minutes").fill("30");
   await addForm.getByRole("button", { name: "Add task" }).click();
 
   await expect(page.getByRole("alert")).toContainText("Could not save task: new row violates row-level security policy");

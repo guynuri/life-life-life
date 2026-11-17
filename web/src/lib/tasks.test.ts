@@ -12,7 +12,7 @@ import {
 const base: TaskInput = {
   title: "Renew passport",
   type: "short_fixed",
-  durationHours: "0.5",
+  duration: { hours: "", minutes: "30" },
   topic: "",
   deadline: "",
   spreadDays: "",
@@ -58,16 +58,19 @@ describe("parseTaskInput", () => {
     expect(result).toEqual({ ok: false, errors: ["Title is required."] });
   });
 
-  it("reads the duration in hours, decimals allowed, and stores minutes", () => {
-    const half = parseTaskInput({ ...base, durationHours: "0.5" });
-    expect(half.ok && half.value.durationMin).toBe(30);
-    const oneAndHalf = parseTaskInput({ ...base, durationHours: "1.5" });
-    expect(oneAndHalf.ok && oneAndHalf.value.durationMin).toBe(90);
+  it("reads the duration as hours plus minutes and stores minutes", () => {
+    const result = parseTaskInput({ ...base, duration: { hours: "2", minutes: "45" } });
+    expect(result.ok && result.value.durationMin).toBe(165);
   });
 
   it("requires a duration above 0", () => {
-    for (const durationHours of ["", "0", "-5", "abc"]) {
-      const result = parseTaskInput({ ...base, durationHours });
+    for (const duration of [
+      { hours: "", minutes: "" },
+      { hours: "0", minutes: "0" },
+      { hours: "-5", minutes: "" },
+      { hours: "abc", minutes: "" },
+    ]) {
+      const result = parseTaskInput({ ...base, duration });
       expect(result.ok).toBe(false);
     }
   });
@@ -102,12 +105,12 @@ describe("parseTaskInput", () => {
 
 describe("parseTaskEdit", () => {
   it("accepts title, duration and deadline, with a blank deadline meaning none", () => {
-    const result = parseTaskEdit({ title: "New", durationHours: "0.75", deadline: "" });
+    const result = parseTaskEdit({ title: "New", duration: { hours: "0", minutes: "45" }, deadline: "" });
     expect(result).toEqual({ ok: true, value: { title: "New", durationMin: 45, deadline: null } });
   });
 
   it("rejects a blank title", () => {
-    expect(parseTaskEdit({ title: "", durationHours: "0.75", deadline: "" }).ok).toBe(false);
+    expect(parseTaskEdit({ title: "", duration: { hours: "0", minutes: "45" }, deadline: "" }).ok).toBe(false);
   });
 });
 

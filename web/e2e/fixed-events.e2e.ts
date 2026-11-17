@@ -27,7 +27,8 @@ test("add, edit, and delete a fixed event from Today", async ({ page }) => {
   await page.getByRole("button", { name: "Add event" }).click();
   await page.getByLabel("Title").fill("Haircut");
   await page.getByLabel("Start").fill("2026-10-12T10:00");
-  await page.getByLabel("Duration (hours)").fill("0.75");
+  await page.getByLabel("Hours").fill("0");
+  await page.getByLabel("Minutes").fill("45");
   await page.getByRole("dialog").getByRole("button", { name: "Add event", exact: true }).click();
   const row = page.getByRole("button", { name: /Haircut/ });
   await expect(row).toBeVisible();

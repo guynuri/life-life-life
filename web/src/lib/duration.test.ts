@@ -1,38 +1,41 @@
 import { describe, expect, it } from "vitest";
-import { formatHours, parseHours } from "./duration";
+import { parseDuration, splitDuration } from "./duration";
 
-describe("parseHours", () => {
-  it("converts hours to whole minutes", () => {
-    expect(parseHours("1")).toBe(60);
-    expect(parseHours("0.5")).toBe(30);
-    expect(parseHours(".25")).toBe(15);
-    expect(parseHours("1.5")).toBe(90);
-    expect(parseHours(" 2 ")).toBe(120);
-    expect(parseHours("1.33")).toBe(80);
+describe("parseDuration", () => {
+  it("adds hours and minutes", () => {
+    expect(parseDuration({ hours: "2", minutes: "45" })).toBe(165);
+    expect(parseDuration({ hours: " 1 ", minutes: " 0 " })).toBe(60);
+    expect(parseDuration({ hours: "0", minutes: "90" })).toBe(90);
   });
 
-  it("accepts a comma as the decimal mark", () => {
-    expect(parseHours("0,5")).toBe(30);
+  it("treats a blank field as 0", () => {
+    expect(parseDuration({ hours: "", minutes: "30" })).toBe(30);
+    expect(parseDuration({ hours: "3", minutes: "" })).toBe(180);
   });
 
-  it("rejects empty, zero, negative and non-numbers", () => {
-    for (const raw of ["", "0", "0.0", "-1", "abc", "1h", "1.2.3", "0.001"]) {
-      expect(parseHours(raw)).toBeNull();
+  it("rejects a zero total and anything but whole numbers", () => {
+    for (const fields of [
+      { hours: "", minutes: "" },
+      { hours: "0", minutes: "0" },
+      { hours: "-1", minutes: "30" },
+      { hours: "1.5", minutes: "" },
+      { hours: "1", minutes: "abc" },
+    ]) {
+      expect(parseDuration(fields)).toBeNull();
     }
   });
 });
 
-describe("formatHours", () => {
-  it("shows minutes as hours with at most two decimals", () => {
-    expect(formatHours(60)).toBe("1");
-    expect(formatHours(30)).toBe("0.5");
-    expect(formatHours(45)).toBe("0.75");
-    expect(formatHours(80)).toBe("1.33");
+describe("splitDuration", () => {
+  it("splits minutes into hours and minutes", () => {
+    expect(splitDuration(165)).toEqual({ hours: "2", minutes: "45" });
+    expect(splitDuration(30)).toEqual({ hours: "0", minutes: "30" });
+    expect(splitDuration(120)).toEqual({ hours: "2", minutes: "0" });
   });
 
-  it("round-trips through parseHours", () => {
-    for (const minutes of [5, 10, 20, 30, 45, 50, 80, 90, 100, 125]) {
-      expect(parseHours(formatHours(minutes))).toBe(minutes);
+  it("round-trips through parseDuration", () => {
+    for (const minutes of [5, 30, 45, 60, 80, 165, 300]) {
+      expect(parseDuration(splitDuration(minutes))).toBe(minutes);
     }
   });
 });

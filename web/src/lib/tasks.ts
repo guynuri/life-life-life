@@ -1,5 +1,5 @@
 // Pure task rules (SPEC 2.1, 2.6, 2.7). No DOM, no network.
-import { parseHours } from "./duration";
+import { parseDuration as parseDurationFields, type DurationFields } from "./duration";
 
 export type TaskType = "big" | "work_day" | "short_fixed";
 export type ConditionPlace = "any" | "work" | "home";
@@ -23,7 +23,7 @@ export interface Task {
 export interface TaskInput {
   title: string;
   type: TaskType;
-  durationHours: string; // typed in hours, e.g. "0.5"; stored as durationMin
+  duration: DurationFields; // hours and minutes as typed; stored as durationMin
   topic: string;
   deadline: string; // datetime-local value, or "" for none
   spreadDays: string;
@@ -32,7 +32,7 @@ export interface TaskInput {
 
 export interface TaskEditInput {
   title: string;
-  durationHours: string;
+  duration: DurationFields;
   deadline: string;
 }
 
@@ -60,7 +60,7 @@ export function sortTasks(tasks: readonly Task[]): Task[] {
 export function parseTaskInput(input: TaskInput): ParseResult<NewTask> {
   const errors: string[] = [];
   const title = parseTitle(input.title, errors);
-  const durationMin = parseDuration(input.durationHours, errors);
+  const durationMin = parseDuration(input.duration, errors);
   const deadline = parseDeadline(input.deadline, errors);
 
   let spreadDays: number | null = null;
@@ -85,7 +85,7 @@ export function parseTaskInput(input: TaskInput): ParseResult<NewTask> {
 export function parseTaskEdit(input: TaskEditInput): ParseResult<TaskEdit> {
   const errors: string[] = [];
   const title = parseTitle(input.title, errors);
-  const durationMin = parseDuration(input.durationHours, errors);
+  const durationMin = parseDuration(input.duration, errors);
   const deadline = parseDeadline(input.deadline, errors);
   if (errors.length > 0 || title === null || durationMin === null) {
     return { ok: false, errors };
@@ -110,11 +110,11 @@ function parseTitle(raw: string, errors: string[]): string | null {
   return title;
 }
 
-// Hours as typed, to whole minutes.
-function parseDuration(raw: string, errors: string[]): number | null {
-  const minutes = parseHours(raw);
+// Hours and minutes as typed, to total minutes.
+function parseDuration(fields: DurationFields, errors: string[]): number | null {
+  const minutes = parseDurationFields(fields);
   if (minutes === null) {
-    errors.push("Duration must be a number of hours, more than 0 (for example 0.5).");
+    errors.push("Duration must be whole hours and minutes, more than 0 in total.");
     return null;
   }
   return minutes;
