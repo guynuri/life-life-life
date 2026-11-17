@@ -44,7 +44,7 @@ export function groupByDay(events: readonly FixedEvent[]): DayGroup[] {
 export function validateFixedEvent(input: FixedEventInput, now: number): string | null {
   if (input.title.trim() === "") return "Add a title.";
   if (!Number.isInteger(input.durationMinutes) || input.durationMinutes < MIN_DURATION_MINUTES) {
-    return `Duration must be a whole number of minutes, ${MIN_DURATION_MINUTES} or more.`;
+    return `Duration must be a number of hours, at least ${MIN_DURATION_MINUTES} minutes (for example 0.5).`;
   }
   if (input.calendarId === "") return "Choose a category.";
   if (input.start < now) return "The start is in the past.";

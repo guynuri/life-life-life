@@ -20,6 +20,7 @@ import type { Placement } from "./lib/scheduler";
 import { Icon, type IconName } from "./Icon";
 import { Loading, Spinner } from "./Loading";
 import { Sheet } from "./Sheet";
+import { formatHours } from "./lib/duration";
 
 interface TasksProps {
   googleToken: string | null; // from googleAccessToken; null when Google access is missing
@@ -52,7 +53,7 @@ const PLACE_ICONS: Record<ConditionPlace, IconName> = { any: "globe", work: "bui
 const emptyForm: TaskInput = {
   title: "",
   type: "short_fixed",
-  durationMin: "",
+  durationHours: "",
   topic: "",
   deadline: "",
   spreadDays: "",
@@ -100,7 +101,7 @@ export function Tasks({ googleToken, googleReady, onReconnect, refreshTick }: Ta
   const [submitting, setSubmitting] = useState(false);
   const [sheet, setSheet] = useState<SheetState>(null);
   const [form, setForm] = useState<TaskInput>(emptyForm);
-  const [edit, setEdit] = useState<TaskEditInput>({ title: "", durationMin: "", deadline: "" });
+  const [edit, setEdit] = useState<TaskEditInput>({ title: "", durationHours: "", deadline: "" });
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [moveValue, setMoveValue] = useState("");
@@ -189,7 +190,7 @@ export function Tasks({ googleToken, googleReady, onReconnect, refreshTick }: Ta
     setErrors([]);
     setEdit({
       title: task.title,
-      durationMin: String(task.durationMin),
+      durationHours: formatHours(task.durationMin),
       deadline: toLocalInputValue(task.deadline),
     });
     setSheet({ mode: "edit", id: task.id });
@@ -512,8 +513,8 @@ export function Tasks({ googleToken, googleReady, onReconnect, refreshTick }: Ta
 
             <div className="form-grid">
               <label className="field">
-                <span>Duration (minutes)</span>
-                <input inputMode="numeric" value={form.durationMin} onChange={(e) => setForm({ ...form, durationMin: e.target.value })} />
+                <span>Duration (hours)</span>
+                <input inputMode="decimal" placeholder="e.g. 0.5" value={form.durationHours} onChange={(e) => setForm({ ...form, durationHours: e.target.value })} />
               </label>
               {form.type === "big" && (
                 <label className="field">
@@ -583,8 +584,8 @@ export function Tasks({ googleToken, googleReady, onReconnect, refreshTick }: Ta
               <input value={edit.title} onChange={(e) => setEdit({ ...edit, title: e.target.value })} />
             </label>
             <label className="field">
-              <span>Duration (minutes)</span>
-              <input inputMode="numeric" value={edit.durationMin} onChange={(e) => setEdit({ ...edit, durationMin: e.target.value })} />
+              <span>Duration (hours)</span>
+              <input inputMode="decimal" placeholder="e.g. 0.5" value={edit.durationHours} onChange={(e) => setEdit({ ...edit, durationHours: e.target.value })} />
             </label>
             <label className="field">
               <span>Deadline (optional)</span>

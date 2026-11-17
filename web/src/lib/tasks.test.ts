@@ -12,7 +12,7 @@ import {
 const base: TaskInput = {
   title: "Renew passport",
   type: "short_fixed",
-  durationMin: "30",
+  durationHours: "0.5",
   topic: "",
   deadline: "",
   spreadDays: "",
@@ -58,9 +58,16 @@ describe("parseTaskInput", () => {
     expect(result).toEqual({ ok: false, errors: ["Title is required."] });
   });
 
-  it("requires a whole-number duration above 0", () => {
-    for (const durationMin of ["", "0", "-5", "1.5", "abc"]) {
-      const result = parseTaskInput({ ...base, durationMin });
+  it("reads the duration in hours, decimals allowed, and stores minutes", () => {
+    const half = parseTaskInput({ ...base, durationHours: "0.5" });
+    expect(half.ok && half.value.durationMin).toBe(30);
+    const oneAndHalf = parseTaskInput({ ...base, durationHours: "1.5" });
+    expect(oneAndHalf.ok && oneAndHalf.value.durationMin).toBe(90);
+  });
+
+  it("requires a duration above 0", () => {
+    for (const durationHours of ["", "0", "-5", "abc"]) {
+      const result = parseTaskInput({ ...base, durationHours });
       expect(result.ok).toBe(false);
     }
   });
@@ -95,12 +102,12 @@ describe("parseTaskInput", () => {
 
 describe("parseTaskEdit", () => {
   it("accepts title, duration and deadline, with a blank deadline meaning none", () => {
-    const result = parseTaskEdit({ title: "New", durationMin: "45", deadline: "" });
+    const result = parseTaskEdit({ title: "New", durationHours: "0.75", deadline: "" });
     expect(result).toEqual({ ok: true, value: { title: "New", durationMin: 45, deadline: null } });
   });
 
   it("rejects a blank title", () => {
-    expect(parseTaskEdit({ title: "", durationMin: "45", deadline: "" }).ok).toBe(false);
+    expect(parseTaskEdit({ title: "", durationHours: "0.75", deadline: "" }).ok).toBe(false);
   });
 });
 

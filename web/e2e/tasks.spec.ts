@@ -72,7 +72,7 @@ test("a big task is placed as several sessions; tasks stay in deadline order; ed
   const addForm = page.getByRole("form", { name: "Add task" });
   await addForm.getByLabel("Title").fill("Plan trip");
   await addForm.getByRole("radio", { name: "Big" }).click();
-  await addForm.getByLabel("Duration (minutes)").fill("120");
+  await addForm.getByLabel("Duration (hours)").fill("2");
   await addForm.getByLabel("Spread over (days)").fill("2");
   await addForm.getByRole("button", { name: "Add task" }).click();
   const planItem = page.getByRole("listitem").filter({ hasText: "Plan trip" });
@@ -111,7 +111,7 @@ test("a failed save is shown and the list keeps the stored state", async ({ page
   await page.getByRole("button", { name: "New", exact: true }).click();
   const addForm = page.getByRole("form", { name: "Add task" });
   await addForm.getByLabel("Title").fill("Will not save");
-  await addForm.getByLabel("Duration (minutes)").fill("10");
+  await addForm.getByLabel("Duration (hours)").fill("0.5");
   await addForm.getByRole("button", { name: "Add task" }).click();
 
   await expect(page.getByRole("alert")).toContainText("Could not save task: new row violates row-level security policy");

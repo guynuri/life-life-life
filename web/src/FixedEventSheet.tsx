@@ -4,6 +4,7 @@ import { isGoogleAuthError } from "./lib/calendar";
 import { createFixedEvent, getCalendars, parseLocalInput, toLocalInput, updateFixedEvent, type FixedEvent } from "./lib/fixedEvents";
 import { Sheet } from "./Sheet";
 import { Spinner } from "./Loading";
+import { formatHours, parseHours } from "./lib/duration";
 
 // Add or edit a fixed-time event: title, start, duration, category (a calendar). Google is called before the sheet closes.
 const HALF_HOUR = 30 * 60_000;
@@ -36,7 +37,7 @@ export function FixedEventSheet({
   const [needsReconnect, setNeedsReconnect] = useState(false);
   const [title, setTitle] = useState(current?.title ?? "");
   const [start, setStart] = useState(toLocalInput(current?.start ?? nextHalfHour(Date.now())));
-  const [duration, setDuration] = useState(String(current ? Math.round((current.end - current.start) / 60_000) : 60));
+  const [duration, setDuration] = useState(formatHours(current ? Math.round((current.end - current.start) / 60_000) : 60));
   const [calendarId, setCalendarId] = useState(current?.calendarId ?? "primary");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -61,7 +62,7 @@ export function FixedEventSheet({
     };
   }, [googleToken, current]);
 
-  const input = { title, start: parseLocalInput(start), durationMinutes: Number(duration), calendarId };
+  const input = { title, start: parseLocalInput(start), durationMinutes: parseHours(duration) ?? Number.NaN, calendarId };
 
   async function save(event: FormEvent) {
     event.preventDefault();
@@ -107,8 +108,8 @@ export function FixedEventSheet({
           <input type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} />
         </label>
         <label className="field">
-          <span>Duration (minutes)</span>
-          <input type="number" inputMode="numeric" min={5} step={1} value={duration} onChange={(e) => setDuration(e.target.value)} />
+          <span>Duration (hours)</span>
+          <input inputMode="decimal" placeholder="e.g. 0.5" value={duration} onChange={(e) => setDuration(e.target.value)} />
         </label>
         <label className="field">
           <span>
